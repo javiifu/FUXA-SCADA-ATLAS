@@ -1,10 +1,19 @@
 using Proyecto_FUXA.Components;
+using Microsoft.EntityFrameworkCore;
+using Proyecto_FUXA.Data;
+using Proyecto_FUXA.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddScoped<ServicioMaquina>();
+builder.Services.AddScoped<ServicioProductividad>();
 
 var app = builder.Build();
 
