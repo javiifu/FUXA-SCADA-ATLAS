@@ -1,0 +1,50 @@
+﻿@page "/maquinas"
+
+@inject Proyecto_FUXA.Services.ServicioMaquina ServicioMaquina
+
+<h1>Maquinas</h1>
+
+<a class="btn btn-primary mb-3" href="/maquinas/nueva">Nueva máquina</a>
+
+@if (maquinas is null)
+{
+    <text>Cargando...</text>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Código</th>
+                <th>Estado</th>
+                <th>Objetivo ciclos/h</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var maquinas in maquinas)
+            {
+                <tr>
+                    <td>@maquinas.Nombre</td>
+                    <td>@maquinas.Codigo</td>
+                    <td>@maquinas.Estado</td>
+                    <td>@maquinas.CiclosHoraObjetivo</td>
+                    <td>
+                        <a class="btn btn-sm btn-secondary" href="/machines/edit/@maquinas.Id">Editar</a>
+                        <a class="btn btn-sm btn-info" href="/machines/dashboard/@maquinas.Id">Dashboard</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Proyecto_FUXA.Models.Machine>? maquinas;
+
+    protected override async Task OnInitializedAsync()
+    {
+        maquinas = await ServicioMaquina.GetAllAsync();
+    }
+}
