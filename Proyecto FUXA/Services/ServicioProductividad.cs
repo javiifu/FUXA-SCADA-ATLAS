@@ -8,8 +8,8 @@ namespace Proyecto_FUXA.Services
     {
         public decimal CalculateHourlyProductivity(Maquina machine, int realCycles)
         {
-            if (machine.CiclosHoraObjetivo <= 0) return 0;
-            return Math.Round((decimal)realCycles / machine.CiclosHoraObjetivo * 100, 2); //Aquí redondearemos en dos decimales, para ser más claros con el resultado. 
+            if (machine.CiclosObjetivo <= 0) return 0;
+            return Math.Round((decimal)realCycles / machine.CiclosObjetivo * 100, 2); //Aquí redondearemos en dos decimales, para ser más claros con el resultado. 
         }
     }
 }

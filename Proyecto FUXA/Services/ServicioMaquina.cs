@@ -15,44 +15,42 @@ namespace Proyecto_FUXA.Services
 
         public async Task<List<Maquina>> GetAllAsync()
         {
-            return await _db.Machines
-                .Include(m => m.CycleLogs)
+            return await _db.Maquinas
                 .OrderBy(m => m.Nombre)
                 .ToListAsync();
         }
 
         public async Task<Maquina?> GetByIdAsync(int id)
         {
-            return await _db.Machines
-                .Include(m => m.CycleLogs)
+            return await _db.Maquinas
                 .FirstOrDefaultAsync(m => m.Id == id);
         }
 
         public async Task AddAsync(Maquina machine)
         {
-            machine.CreadoEn = DateTime.UtcNow;
-            machine.ModificadoEn = DateTime.UtcNow;
-            _db.Machines.Add(machine);
+            machine.FechaCreacion = DateTime.UtcNow;
+            machine.FechaActualizacion = DateTime.UtcNow;
+            _db.Maquinas.Add(machine);
             await _db.SaveChangesAsync();
         }
 
         public async Task UpdateAsync(Maquina machine)
         {
-            machine.ModificadoEn = DateTime.UtcNow;
-            _db.Machines.Update(machine);
+            machine.FechaActualizacion = DateTime.UtcNow;
+            _db.Maquinas.Update(machine);
             await _db.SaveChangesAsync();
         }
 
         public async Task AddCycleAsync(int machineId, int realCycles)
         {
-            var log = new LogCicloMaquina
+            var log = new MaquinaProduccion
             {
-                IdMaquina = machineId,
+                MaquinaId = machineId,
                 CiclosReales = realCycles,
-                Timestamp = DateTime.UtcNow
+                FechaRegistro = DateTime.UtcNow
             };
 
-            _db.LogsCicloMaquina.Add(log);
+            _db.Producciones.Add(log);
             await _db.SaveChangesAsync();
         }
     }

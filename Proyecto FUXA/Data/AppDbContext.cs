@@ -5,22 +5,18 @@ namespace Proyecto_FUXA.Data
 {
     public class AppDbContext : DbContext
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
-        {
-        }
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-        public DbSet<Machine> Machines => Set<Machine>();
-        public DbSet<LogCicloMaquina> LogsCicloMaquina => Set<LogCicloMaquina>();
+        public DbSet<Maquina> Maquinas { get; set; } 
+        public DbSet<MaquinaProduccion> Producciones { get; set; }
+        public DbSet<MaquinaEstatus> Estatus { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Machine>()
-                .HasIndex(m => m.EstadoActualId)
-                .IsUnique();
+            modelBuilder.Entity<Maquina>().ToTable("Maquina");
+            modelBuilder.Entity<MaquinaProduccion>().ToTable("MaquinaProduccion");
+            modelBuilder.Entity<MaquinaEstatus>().ToTable("MaquinaEstatus");
 
-            modelBuilder.Entity<Machine>()
-                .Property(m => m.EstaActivo)
-                .HasConversion<string>();
         }
     }
 }

@@ -3,9 +3,9 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Proyecto_FUXA.Models
 {
-    [Table("Maquinas")]
+    [Table("Maquina")]
 
-    public class Machine
+    public class Maquina
     {
         public int Id { get; set; }
         public string Nombre { get; set; }
