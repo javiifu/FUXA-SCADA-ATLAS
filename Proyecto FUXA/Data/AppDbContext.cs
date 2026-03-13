@@ -22,7 +22,11 @@ public class AppDbContext : DbContext
             .HasConstraintName("FK_Machines_Status");
 
         modelBuilder.Entity<MaquinaProduccion>()
+<<<<<<< HEAD
             .HasOne(p => p.Maquinas)
+=======
+            .HasOne(p => p.Maquina)
+>>>>>>> master
             .WithMany(m => m.Producciones)
             .HasForeignKey(p => p.MaquinaId)
             .HasConstraintName("FK_Production_Machines");
