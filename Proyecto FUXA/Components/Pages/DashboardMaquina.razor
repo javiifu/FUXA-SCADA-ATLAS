@@ -1,7 +1,7 @@
-﻿@page "/dashboard-maquina/{machineId:int}"
+@page "/dashboard-maquina/{machineId:int}"
 @using Proyecto_FUXA.Services
 @using Proyecto_FUXA.Models
-@using System.Linq;
+@using System.Linq
 
 @inject ServicioMaquina MachineService
 @inject ServicioProductividad ProductivityService
@@ -14,19 +14,19 @@
 }
 else
 {
-    var last = machine.Productions.OrderByDescending(p => p.Timestamp).FirstOrDefault();
-    var realCycles = last?.RealCycles ?? 0;
-    var productivity = ProductivityService.Calculate(realCycles, machine.TargetCycles);
+    var last = machine.Producciones.OrderByDescending(p => p.FechaRegistro).FirstOrDefault();
+    var realCycles = last?.CiclosReales ?? 0;
+    var productivity = ProductivityService.Calculate(realCycles, machine.CiclosObjetivo);
 
-    <div style="padding:20px;border:1px solid #ccc;background:@GetColor(machine.CurrentStatus?.Name)">
+    <div style="padding:20px;border:1px solid #ccc;background:@GetColor(machine.EstadoActual?.Nombre)">
 
-        <h4>@machine.Name</h4>
+        <h4>@machine.Nombre</h4>
 
-        <p><b>Sección:</b> @machine.SectionName</p>
+        <p><b>Sección:</b> @machine.NombreSeccion</p>
 
-        <p><b>Estado:</b> @machine.CurrentStatusId?.Name</p>
+        <p><b>Estado:</b> @machine.EstadoActual?.Nombre (@machine.EstadoActualId)</p>
 
-        <p><b>Objetivo ciclos:</b> @machine.TargetCycles</p>
+        <p><b>Objetivo ciclos:</b> @machine.CiclosObjetivo</p>
 
         <p><b>Ciclos reales:</b> @realCycles</p>
 
@@ -40,7 +40,7 @@ else
     [Parameter]
     public int machineId { get; set; }
 
-    Machine? machine;
+    private Maquina? machine;
 
     protected override async Task OnInitializedAsync()
     {
@@ -52,9 +52,9 @@ else
     {
         return status switch
         {
-            "Activa" => "#b6fcb6",
+            "Activo" => "#b6fcb6",
             "Incidencia" => "#ffd966",
-            "Parada" => "#ffb3b3",
+            "Parado" => "#ffb3b3",
             _ => "white"
         };
     }
