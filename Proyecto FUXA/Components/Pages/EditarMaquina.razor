@@ -1,4 +1,5 @@
-﻿@page "/editar-maquina/{machineId:int}"
+@page "/editar-maquina/{machineId:int}"
+@using Proyecto_FUXA.Models
 @using Proyecto_FUXA.Services
 
 @inject ServicioMaquina MachineService
@@ -13,38 +14,37 @@
 else
 {
     <div style="border:1px solid #ccc;padding:20px;width:500px">
-
         <div>
             <label>Nombre</label><br />
-            <input class="form-control" @bind="machine.nombre" />
+            <input class="form-control" @bind="machine.Nombre" />
         </div>
 
         <br />
 
         <div>
             <label>Número de Orden</label><br />
-            <input class="form-control" @bind="machine.OrderNumber" />
+            <input type="number" class="form-control" @bind="machine.NumeroOrden" />
         </div>
 
         <br />
 
         <div>
             <label>Sección</label><br />
-            <input class="form-control" @bind="machine.SectionName" />
+            <input class="form-control" @bind="machine.NombreSeccion" />
         </div>
 
         <br />
 
         <div>
             <label>Objetivo de ciclos</label><br />
-            <input type="number" class="form-control" @bind="machine.TargetCycles" />
+            <input type="number" class="form-control" @bind="machine.CiclosObjetivo" />
         </div>
 
         <br />
 
         <div>
             <label>Estado</label><br />
-            <select class="form-control" @bind="machine.CurrentStatusId">
+            <select class="form-control" @bind="machine.EstadoActualId">
                 <option value="1">Activa</option>
                 <option value="2">Incidencia</option>
                 <option value="3">Parada</option>
@@ -55,49 +55,40 @@ else
 
         <div>
             <label>Activa</label>
-            <input type="checkbox" @bind="machine.IsActive" />
+            <input type="checkbox" @bind="machine.EstaActivo" />
         </div>
 
         <br />
 
-        <button class="btn btn-primary" @onclick="Guardar">
-            Guardar cambios
-        </button>
-
-        <button class="btn btn-secondary" @onclick="Cancelar">
-            Cancelar
-        </button>
-
+        <button class="btn btn-primary" @onclick="Guardar">Guardar cambios</button>
+        <button class="btn btn-secondary" @onclick="Cancelar">Cancelar</button>
     </div>
 }
 
 @code {
-
     [Parameter]
     public int machineId { get; set; }
 
-    Maquinas? machine;
+    private Maquina? machine;
 
     protected override async Task OnInitializedAsync()
     {
-        var machines = await MachineService.GetMachinesAsync();
-        machine = machines.FirstOrDefault(x => x.Id == machineId);
+        machine = await MachineService.GetByIdAsync(machineId);
     }
 
-    async Task Guardar()
+    private async Task Guardar()
     {
-        if (machine != null)
+        if (machine is null)
         {
-            machine.UpdatedAt = DateTime.UtcNow;
-
-            await MachineService.UpdateAsync(machine);
-
-            Navigation.NavigateTo("/machines");
+            return;
         }
+
+        await MachineService.UpdateAsync(machine);
+        Navigation.NavigateTo("/maquinas");
     }
 
-    void Cancelar()
+    private void Cancelar()
     {
-        Navigation.NavigateTo("/machines");
+        Navigation.NavigateTo("/maquinas");
     }
 }
