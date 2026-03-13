@@ -5,8 +5,6 @@
 
 <h1>Maquinas</h1>
 
-<a class="btn btn-primary mb-3" href="/maquinas/nueva">Nueva máquina</a>
-
 @if (maquinas is null)
 {
     <text>Cargando...</text>
@@ -32,7 +30,8 @@ else
                     <td>@maquina.EstadoActual?.Nombre</td>
                     <td>@maquina.CiclosObjetivo</td>
                     <td>
-                        <a class="btn btn-sm btn-secondary" href="/machines/edit/@maquina.Id">Editar</a>
+                        <a class="btn btn-sm btn-secondary" href="/editar-maquina/@maquina.Id">Editar</a>
+                        <a class="btn btn-sm btn-primary" href="/ciclos-maquina/@maquina.Id">Ciclos</a>
                         <a class="btn btn-sm btn-info" href="/dashboard-maquina/@maquina.Id">Dashboard</a>
                     </td>
                 </tr>
