@@ -25,10 +25,10 @@ else
             @foreach (var maquina in maquinas)
             {
                 <tr>
-                    <td>@maquina.Nombre</td>
-                    <td>@maquina.NumeroOrden</td>
-                    <td>@maquina.EstadoActual?.Nombre</td>
-                    <td>@maquina.CiclosObjetivo</td>
+                    <td>@maquinas.Nombre</td>
+                    <td>@maquinas.NumeroOrden</td>
+                    <td>@maquinas.EstaActivo</td>
+                    <td>@maquinas.CiclosObjetivo</td>
                     <td>
                         <a class="btn btn-sm btn-secondary" href="/editar-maquina/@maquina.Id">Editar</a>
                         <a class="btn btn-sm btn-primary" href="/ciclos-maquina/@maquina.Id">Ciclos</a>

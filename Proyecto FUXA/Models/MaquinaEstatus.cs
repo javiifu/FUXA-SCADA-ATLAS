@@ -1,17 +1,15 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Proyecto_FUXA.Models;
-
-[Table("MaquinaEstatus")]
-public class MaquinaEstatus
+namespace Proyecto_FUXA.Models
 {
-    [Key]
-    [DatabaseGenerated(DatabaseGeneratedOption.None)]
-    public int Id { get; set; }
 
-    [Required, MaxLength(50)]
-    public string Nombre { get; set; } = string.Empty;
-
-    public ICollection<Maquina> Maquinas { get; set; } = new List<Maquina>();
+    [Table("MaquinaEstatus")]
+    public class MaquinaEstatus
+    {
+        [Key]
+        public int Id { get; set; }
+        [Required]
+        public string Nombre { get; set; }
+    }
 }

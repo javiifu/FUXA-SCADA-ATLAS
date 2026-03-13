@@ -47,8 +47,8 @@ else
     {
         try
         {
-            // Usamos el nombre que pusimos en el DbContext: Maquinas
-            maquinas = await DbContext.Machines.ToListAsync();
+            // CAMBIO AQUÍ: Debe ser .Maquinas (como lo definiste en el AppDbContext)
+            maquinas = await DbContext.Maquinas.ToListAsync();
         }
         catch (Exception ex)
         {

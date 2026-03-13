@@ -7,26 +7,18 @@ public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
-    }
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-    public DbSet<Maquina> Machines => Set<Maquina>();
-    public DbSet<MaquinaEstatus> MachineStatuses => Set<MaquinaEstatus>();
-    public DbSet<MaquinaProduccion> MachineProductions => Set<MaquinaProduccion>();
+        public DbSet<Maquina> Maquinas { get; set; } 
+        public DbSet<MaquinaProduccion> Producciones { get; set; }
+        public DbSet<MaquinaEstatus> Estatus { get; set; }
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        base.OnModelCreating(modelBuilder);
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Maquina>().ToTable("Maquina");
+            modelBuilder.Entity<MaquinaProduccion>().ToTable("MaquinaProduccion");
+            modelBuilder.Entity<MaquinaEstatus>().ToTable("MaquinaEstatus");
 
-        modelBuilder.Entity<Maquina>()
-            .HasOne(m => m.EstadoActual)
-            .WithMany(e => e.Maquinas)
-            .HasForeignKey(m => m.EstadoActualId)
-            .HasConstraintName("FK_Machines_Status");
-
-        modelBuilder.Entity<MaquinaProduccion>()
-            .HasOne(p => p.Maquina)
-            .WithMany(m => m.Producciones)
-            .HasForeignKey(p => p.MaquinaId)
-            .HasConstraintName("FK_Production_Machines");
+        }
     }
 }
