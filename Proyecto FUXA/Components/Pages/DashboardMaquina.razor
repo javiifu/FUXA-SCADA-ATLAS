@@ -1,6 +1,62 @@
-﻿<h3>DashboardMaquina</h3>
+﻿@page "/dashboard-maquina/{machineId:int}"
+@using Proyecto_FUXA.Services
+@using Proyecto_FUXA.Models
+@using System.Linq;
 
-<iframe src="http://localhost:1881/home" style="width:100%; height:700px; border:none;"></iframe>
+@inject ServicioMaquina MachineService
+@inject ServicioProductividad ProductivityService
+
+<h3>Dashboard Máquina</h3>
+
+@if (machine == null)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    var last = machine.Productions.OrderByDescending(p => p.Timestamp).FirstOrDefault();
+    var realCycles = last?.RealCycles ?? 0;
+    var productivity = ProductivityService.Calculate(realCycles, machine.TargetCycles);
+
+    <div style="padding:20px;border:1px solid #ccc;background:@GetColor(machine.CurrentStatus?.Name)">
+
+        <h4>@machine.Name</h4>
+
+        <p><b>Sección:</b> @machine.SectionName</p>
+
+        <p><b>Estado:</b> @machine.CurrentStatusId?.Name</p>
+
+        <p><b>Objetivo ciclos:</b> @machine.TargetCycles</p>
+
+        <p><b>Ciclos reales:</b> @realCycles</p>
+
+        <p><b>Productividad:</b> @productivity %</p>
+
+    </div>
+}
+
 @code {
+
+    [Parameter]
+    public int machineId { get; set; }
+
+    Machine? machine;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var machines = await MachineService.GetMachinesAsync();
+        machine = machines.FirstOrDefault(x => x.Id == machineId);
+    }
+
+    string GetColor(string? status)
+    {
+        return status switch
+        {
+            "Activa" => "#b6fcb6",
+            "Incidencia" => "#ffd966",
+            "Parada" => "#ffb3b3",
+            _ => "white"
+        };
+    }
 
 }
