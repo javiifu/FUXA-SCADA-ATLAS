@@ -16,6 +16,10 @@ public class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        // Alinea explícitamente los nombres de tablas con las entidades existentes
+        modelBuilder.Entity<Maquina>().ToTable("Maquina");
+        modelBuilder.Entity<MaquinaEstatus>().ToTable("MaquinaEstatus");
+        modelBuilder.Entity<MaquinaProduccion>().ToTable("MaquinaProduccion");
 
         modelBuilder.Entity<Maquina>()
             .HasOne(m => m.EstadoActual)
@@ -24,11 +28,7 @@ public class AppDbContext : DbContext
             .HasConstraintName("FK_Machines_Status");
 
         modelBuilder.Entity<MaquinaProduccion>()
-<<<<<<< HEAD
-            .HasOne(p => p.Maquinas)
-=======
             .HasOne(p => p.Maquina)
->>>>>>> master
             .WithMany(m => m.Producciones)
             .HasForeignKey(p => p.MaquinaId)
             .HasConstraintName("FK_Production_Machines");
