@@ -34,8 +34,9 @@ public class ServicioMaquina
 
     public async Task AddAsync(Maquina machine)
     {
-        machine.FechaCreacion = DateTime.UtcNow;
-        machine.FechaActualizacion = DateTime.UtcNow;
+        var now = DateTime.UtcNow;
+        machine.FechaCreacion = now;
+        machine.FechaActualizacion = now;
         _db.Machines.Add(machine);
         await _db.SaveChangesAsync();
     }

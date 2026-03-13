@@ -6,7 +6,12 @@ namespace Proyecto_FUXA.Models;
 [Table("MaquinaEstatus")]
 public class MaquinaEstatus
 {
-    public class HistorialMaquinaEstado
-    {
-    }
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.None)]
+    public int Id { get; set; }
+
+    [Required, MaxLength(50)]
+    public string Nombre { get; set; } = string.Empty;
+
+    public ICollection<Maquina> Maquinas { get; set; } = new List<Maquina>();
 }

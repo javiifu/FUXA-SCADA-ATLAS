@@ -15,6 +15,8 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+
         modelBuilder.Entity<Maquina>()
             .HasOne(m => m.EstadoActual)
             .WithMany(e => e.Maquinas)
