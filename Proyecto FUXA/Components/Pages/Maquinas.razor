@@ -1,5 +1,6 @@
-﻿@page "/maquinas"
+@page "/maquinas"
 
+@using Proyecto_FUXA.Models
 @inject Proyecto_FUXA.Services.ServicioMaquina ServicioMaquina
 
 <h1>Maquinas</h1>
@@ -16,23 +17,23 @@ else
         <thead>
             <tr>
                 <th>Nombre</th>
-                <th>Código</th>
+                <th>Orden</th>
                 <th>Estado</th>
                 <th>Objetivo ciclos/h</th>
                 <th>Acciones</th>
             </tr>
         </thead>
         <tbody>
-            @foreach (var maquinas in maquinas)
+            @foreach (var maquina in maquinas)
             {
                 <tr>
-                    <td>@maquinas.Nombre</td>
-                    <td>@maquinas.Codigo</td>
-                    <td>@maquinas.Estado</td>
-                    <td>@maquinas.CiclosHoraObjetivo</td>
+                    <td>@maquina.Nombre</td>
+                    <td>@maquina.NumeroOrden</td>
+                    <td>@maquina.EstadoActual?.Nombre</td>
+                    <td>@maquina.CiclosObjetivo</td>
                     <td>
-                        <a class="btn btn-sm btn-secondary" href="/machines/edit/@maquinas.Id">Editar</a>
-                        <a class="btn btn-sm btn-info" href="/machines/dashboard/@maquinas.Id">Dashboard</a>
+                        <a class="btn btn-sm btn-secondary" href="/machines/edit/@maquina.Id">Editar</a>
+                        <a class="btn btn-sm btn-info" href="/dashboard-maquina/@maquina.Id">Dashboard</a>
                     </td>
                 </tr>
             }
@@ -41,7 +42,7 @@ else
 }
 
 @code {
-    private List<Proyecto_FUXA.Models.Maquina>? maquinas;
+    private List<Maquina>? maquinas;
 
     protected override async Task OnInitializedAsync()
     {
