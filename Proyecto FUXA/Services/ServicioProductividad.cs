@@ -1,16 +1,25 @@
+using Proyecto_FUXA.Models;
+
 namespace Proyecto_FUXA.Services;
 
 public class ServicioProductividad
 {
-    public double CalculateHourlyProductivity(int realCycles, int targetCycles)
+    // para calcular la productividad
+    public decimal CalcularProductividadPorHora(int ciclosReales, int ciclosObjetivo)
     {
-        public decimal CalculateHourlyProductivity(Maquina machine, int realCycles)
+        if (ciclosObjetivo <= 0) 
         {
-            if (machine.CiclosObjetivo <= 0) return 0;
-            return Math.Round((decimal)realCycles / machine.CiclosObjetivo * 100, 2); //Aquí redondearemos en dos decimales, para ser más claros con el resultado. 
+            return 0;
         }
+
+        // Calculamos el porcentaje: (Reales / Objetivo) * 100
+        decimal resultado = (decimal)ciclosReales / ciclosObjetivo * 100;
+        
+        return Math.Round(resultado, 2);
     }
 
-    public double Calculate(int realCycles, int targetCycles) =>
-        CalculateHourlyProductivity(realCycles, targetCycles);
+    public double Calcular(int ciclosReales, int ciclosObjetivo) 
+    {
+        return (double)CalcularProductividadPorHora(ciclosReales, ciclosObjetivo);
+    }
 }

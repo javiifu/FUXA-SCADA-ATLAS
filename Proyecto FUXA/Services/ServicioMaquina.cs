@@ -2,26 +2,18 @@ using Microsoft.EntityFrameworkCore;
 using Proyecto_FUXA.Data;
 using Proyecto_FUXA.Models;
 
-namespace Proyecto_FUXA.Services;
-
-public class ServicioMaquina
+namespace Proyecto_FUXA.Services
 {
-    private readonly AppDbContext _db;
-
-    public ServicioMaquina(AppDbContext db)
+    public class ServicioMaquina
     {
-        _db = db;
-    }
+        private readonly AppDbContext _db;
 
-    public async Task<List<Maquina>> GetAllAsync()
-    {
-        return await _db.Machines
-            .Include(m => m.EstadoActual)
-            .Include(m => m.Producciones)
-            .OrderBy(m => m.Nombre)
-            .ToListAsync();
-    }
+        public ServicioMaquina(AppDbContext db)
+        {
+            _db = db;
+        }
 
+        // Obtener todas las máquinas ordenadas por nombre
         public async Task<List<Maquina>> GetAllAsync()
         {
             return await _db.Maquinas
@@ -29,12 +21,14 @@ public class ServicioMaquina
                 .ToListAsync();
         }
 
+        // Obtener una máquina por su ID
         public async Task<Maquina?> GetByIdAsync(int id)
         {
             return await _db.Maquinas
                 .FirstOrDefaultAsync(m => m.Id == id);
         }
 
+        // Añadir una nueva máquina
         public async Task AddAsync(Maquina machine)
         {
             machine.FechaCreacion = DateTime.UtcNow;
@@ -43,6 +37,7 @@ public class ServicioMaquina
             await _db.SaveChangesAsync();
         }
 
+        // Actualizar una máquina
         public async Task UpdateAsync(Maquina machine)
         {
             machine.FechaActualizacion = DateTime.UtcNow;
@@ -50,9 +45,8 @@ public class ServicioMaquina
             await _db.SaveChangesAsync();
         }
 
-    public async Task AddCycleAsync(int machineId, int realCycles)
-    {
-        var produccion = new MaquinaProduccion
+        // Registrar un ciclo de producción
+        public async Task AddCycleAsync(int machineId, int realCycles)
         {
             var log = new MaquinaProduccion
             {

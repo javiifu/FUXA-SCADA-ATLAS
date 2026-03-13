@@ -14,9 +14,9 @@
 }
 else
 {
-    var last = machine.Producciones.OrderByDescending(p => p.FechaRegistro).FirstOrDefault();
+    var last = machine.Producciones?.OrderByDescending(p => p.FechaRegistro).FirstOrDefault();
     var realCycles = last?.CiclosReales ?? 0;
-    var productivity = ProductivityService.Calculate(realCycles, machine.CiclosObjetivo);
+    var productivity = ProductivityService.Calcular(realCycles, machine.CiclosObjetivo);
 
     <div style="padding:20px;border:1px solid #ccc;background:@GetColor(machine.EstadoActual?.Nombre)">
 
@@ -44,7 +44,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var machines = await MachineService.GetMachinesAsync();
+        var machines = await MachineService.GetAllAsync();
         machine = machines.FirstOrDefault(x => x.Id == machineId);
     }
 
@@ -53,10 +53,11 @@ else
         return status switch
         {
             "Activo" => "#b6fcb6",
+            "En Producción" => "#b6fcb6",
             "Incidencia" => "#ffd966",
             "Parado" => "#ffb3b3",
+            "Parada Técnica" => "#ffb3b3",
             _ => "white"
         };
     }
-
 }
