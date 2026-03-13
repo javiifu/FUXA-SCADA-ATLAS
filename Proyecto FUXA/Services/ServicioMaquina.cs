@@ -13,7 +13,7 @@ namespace Proyecto_FUXA.Services
             _db = db;
         }
 
-        public async Task<List<Machine>> GetAllAsync()
+        public async Task<List<Maquina>> GetAllAsync()
         {
             return await _db.Machines
                 .Include(m => m.CycleLogs)
@@ -21,14 +21,14 @@ namespace Proyecto_FUXA.Services
                 .ToListAsync();
         }
 
-        public async Task<Machine?> GetByIdAsync(int id)
+        public async Task<Maquina?> GetByIdAsync(int id)
         {
             return await _db.Machines
                 .Include(m => m.CycleLogs)
                 .FirstOrDefaultAsync(m => m.Id == id);
         }
 
-        public async Task AddAsync(Machine machine)
+        public async Task AddAsync(Maquina machine)
         {
             machine.CreadoEn = DateTime.UtcNow;
             machine.ModificadoEn = DateTime.UtcNow;
@@ -36,7 +36,7 @@ namespace Proyecto_FUXA.Services
             await _db.SaveChangesAsync();
         }
 
-        public async Task UpdateAsync(Machine machine)
+        public async Task UpdateAsync(Maquina machine)
         {
             machine.ModificadoEn = DateTime.UtcNow;
             _db.Machines.Update(machine);

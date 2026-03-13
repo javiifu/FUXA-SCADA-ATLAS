@@ -15,11 +15,11 @@ namespace Proyecto_FUXA.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Machine>()
-                .HasIndex(m => m.Codigo)
+                .HasIndex(m => m.EstadoActualId)
                 .IsUnique();
 
             modelBuilder.Entity<Machine>()
-                .Property(m => m.Estado)
+                .Property(m => m.EstaActivo)
                 .HasConversion<string>();
         }
     }

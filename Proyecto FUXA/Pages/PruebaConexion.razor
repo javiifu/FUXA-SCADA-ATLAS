@@ -1,0 +1,59 @@
+﻿@page "/prueba-conexion"
+@using Microsoft.EntityFrameworkCore
+@using Proyecto_FUXA.Models
+@using Proyecto_FUXA.Data
+@inject AppDbContext DbContext
+
+<h3>Estado de la Conexión</h3>
+
+@if (maquinas == null)
+{
+    <div class="alert alert-info">Intentando conectar con la base de datos...</div>
+}
+else if (!maquinas.Any())
+{
+    <div class="alert alert-warning">Conexión establecida, pero la tabla Maquinas está vacía.</div>
+}
+else
+{
+    <div class="alert alert-success">¡Conexión exitosa! Se han encontrado @maquinas.Count máquinas.</div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Sección</th>
+                <th>Estado (ID)</th>
+                <th>Meta</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var m in maquinas)
+            {
+                <tr>
+                    <td>@m.Nombre</td>
+                    <td>@m.NombreSeccion</td>
+                    <td>@m.EstadoActualId</td>
+                    <td>@m.CiclosObjetivo</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Maquina>? maquinas;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Usamos el nombre que pusimos en el DbContext: Maquinas
+            maquinas = await DbContext.Machines.ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error de conexión: {ex.Message}");
+            maquinas = new List<Maquina>();
+        }
+    }
+}
