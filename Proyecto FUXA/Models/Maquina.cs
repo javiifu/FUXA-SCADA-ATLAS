@@ -1,7 +1,10 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Proyecto_FUXA.Models
+namespace Proyecto_FUXA.Models;
+
+[Table("Maquina")]
+public class Maquina
 {
     [Table("Maquina")]
 
