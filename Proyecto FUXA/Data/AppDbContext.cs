@@ -1,26 +1,30 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Proyecto_FUXA.Models;
 
-namespace Proyecto_FUXA.Data
+namespace Proyecto_FUXA.Data;
+
+public class AppDbContext : DbContext
 {
-    public class AppDbContext : DbContext
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
-        {
-        }
+    }
 
-        public DbSet<Machine> Machines => Set<Machine>();
-        public DbSet<LogCicloMaquina> LogsCicloMaquina => Set<LogCicloMaquina>();
+    public DbSet<Maquina> Machines => Set<Maquina>();
+    public DbSet<MaquinaEstatus> MachineStatuses => Set<MaquinaEstatus>();
+    public DbSet<MaquinaProduccion> MachineProductions => Set<MaquinaProduccion>();
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            modelBuilder.Entity<Machine>()
-                .HasIndex(m => m.EstadoActualId)
-                .IsUnique();
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Maquina>()
+            .HasOne(m => m.EstadoActual)
+            .WithMany(e => e.Maquinas)
+            .HasForeignKey(m => m.EstadoActualId)
+            .HasConstraintName("FK_Machines_Status");
 
-            modelBuilder.Entity<Machine>()
-                .Property(m => m.EstaActivo)
-                .HasConversion<string>();
-        }
+        modelBuilder.Entity<MaquinaProduccion>()
+            .HasOne(p => p.Maquinas)
+            .WithMany(m => m.Producciones)
+            .HasForeignKey(p => p.MaquinaId)
+            .HasConstraintName("FK_Production_Machines");
     }
 }
