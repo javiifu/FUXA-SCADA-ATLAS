@@ -8,8 +8,12 @@ namespace Proyecto_FUXA.Models
     {
         [Key]
         public int Id { get; set; }
+
         [Required]
         public int MaquinaId { get; set; }
+
+        [ForeignKey(nameof(MaquinaId))]
+        public Maquina? Maquina { get; set; }
 
         public int CiclosReales { get; set; }
         public DateTime FechaRegistro { get; set; }
