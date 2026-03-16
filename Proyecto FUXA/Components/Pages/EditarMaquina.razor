@@ -1,6 +1,7 @@
 @page "/editar-maquina/{machineId:int}"
 @using Proyecto_FUXA.Models
 @using Proyecto_FUXA.Services
+@rendermode InteractiveServer
 
 @inject ServicioMaquina MachineService
 @inject NavigationManager Navigation
@@ -62,6 +63,7 @@ else
 
         <button class="btn btn-primary" @onclick="Guardar">Guardar cambios</button>
         <button class="btn btn-secondary" @onclick="Cancelar">Cancelar</button>
+        
     </div>
 }
 
