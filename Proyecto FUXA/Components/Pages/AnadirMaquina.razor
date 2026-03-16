@@ -1,0 +1,76 @@
+﻿@* @page "/anadir-maquina/"
+@using Proyecto_FUXA.Services
+@using Proyecto_FUXA.Models
+@using System.Linq
+
+@rendermode InteractiveServer
+
+@inject ServicioMaquina MachineService
+@inject NavigationManager Navigation
+
+<h3>Añadir Nueva Máquina</h3>
+
+<div style="border-radius: 5px; border: 1px solid #ccc; padding: 20px; width: 500px; background-color: #f9f9f9;">
+    <div class="mb-3">
+        <label><b>Nombre de la máquina</b></label>
+        <input type="text" class="form-control" @bind="nuevaMaquina.Nombre" placeholder="Ej: Prensa 1" />
+    </div>
+
+    <div class="mb-3">
+        <label><b>Número de orden</b></label>
+        <input type="number" class="form-control" @bind="nuevaMaquina.NumeroOrden" />
+    </div>
+
+    <div class="mb-3">
+        <label><b>Sección</b></label>
+        <input type="text" class="form-control" @bind="nuevaMaquina.NombreSeccion" />
+    </div>
+
+    <div class="mb-3">
+        <label><b>Objetivo de ciclos</b></label>
+        <input type="number" class="form-control" @bind="nuevaMaquina.CiclosObjetivo" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label"><b>Estado Inicial</b></label>
+        <select class="form-select" @bind="nuevaMaquina.EstadoActualId">
+            <option value="1">Activa</option>
+            <option value="2">Incidencia</option>
+            <option value="3">Parada</option>
+        </select>
+    </div>
+
+    <div class="mt-4 d-flex justify-content-between">
+        <button class="btn btn-secondary" @onclick="Volver">Volver</button>
+        <button class="btn btn-success" @onclick="Guardar">Guardar Máquina</button>
+    </div>
+</div> *@
+
+@* @code {
+    // Creamos una instancia vacía de Maquina para enlazar los campos
+    private Maquina nuevaMaquina = new Maquina
+    {
+        EstadoActualId = 3, // Por defecto empezamos en 'Parada'
+        EstaActivo = true
+    };
+
+    private async Task Guardar()
+    {
+        // Validación básica
+        if (string.IsNullOrWhiteSpace(nuevaMaquina.Nombre))
+        {
+            return; // Podrías añadir un mensaje de error aquí
+        }
+
+        // Llamamos al servicio para insertar en la base de datos
+        await MachineService.AddAsync(nuevaMaquina);
+
+        // Una vez guardada, volvemos a la lista
+        Navigation.NavigateTo("/maquinas");
+    }
+
+    private void Volver()
+    {
+        Navigation.NavigateTo("/maquinas");
+    }
+} *@

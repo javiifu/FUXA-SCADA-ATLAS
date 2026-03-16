@@ -1,6 +1,7 @@
-@page "/ciclos-maquina/{machineId:int}"
+@page "/ciclos-maquina/{maquinaId:int}"
 @using Proyecto_FUXA.Models
 @using Proyecto_FUXA.Services
+@rendermode InteractiveServer
 
 @inject ServicioMaquina MachineService
 @inject NavigationManager Navigation
@@ -8,16 +9,16 @@
 
 <h3>Registrar ciclos de máquina</h3>
 
-@if (machine == null)
+@if (maquina == null)
 {
     <p>Cargando máquina...</p>
 }
 else
 {
-    <div style="border:1px solid #ccc;padding:20px;width:400px">
-        <p><b>Máquina:</b> @machine.Nombre</p>
-        <p><b>Sección:</b> @machine.NombreSeccion</p>
-        <p><b>Objetivo ciclos:</b> @machine.CiclosObjetivo</p>
+    <div style="border-radius: 5px; border:1px solid #ccc;padding:20px;width:400px">
+        <p><b>Máquina:</b> @maquina.Nombre</p>
+        <p><b>Sección:</b> @maquina.NombreSeccion</p>
+        <p><b>Objetivo ciclos:</b> @maquina.CiclosObjetivo</p>
 
         <hr />
 
@@ -33,20 +34,20 @@ else
 
 @code {
     [Parameter]
-    public int machineId { get; set; }
+    public int maquinaId { get; set; }
 
-    private Maquina? machine;
+    private Maquina? maquina;
     private int realCycles;
 
     protected override async Task OnInitializedAsync()
     {
-        machine = await MachineService.GetByIdAsync(machineId);
+        maquina = await MachineService.GetByIdAsync(maquinaId);
     }
 
     private async Task Guardar()
     {
-        await MachineService.AddCycleAsync(machineId, realCycles);
-        Navigation.NavigateTo($"/dashboard-maquina/{machineId}");
+        await MachineService.AddCycleAsync(maquinaId, realCycles);
+        Navigation.NavigateTo($"/dashboard-maquina/{maquinaId}");
     }
     private void Cancelar()
     {

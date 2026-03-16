@@ -29,29 +29,29 @@ namespace Proyecto_FUXA.Services
         }
 
         // Añadir una nueva máquina
-        public async Task AddAsync(Maquina machine)
+        public async Task AddAsync(Maquina maquina)
         {
-            machine.FechaCreacion = DateTime.UtcNow;
-            machine.FechaActualizacion = DateTime.UtcNow;
-            _db.Maquinas.Add(machine);
+            maquina.FechaCreacion = DateTime.UtcNow;
+            maquina.FechaActualizacion = DateTime.UtcNow;
+            _db.Maquinas.Add(maquina);
             await _db.SaveChangesAsync();
         }
 
         // Actualizar una máquina
-        public async Task UpdateAsync(Maquina machine)
+        public async Task UpdateAsync(Maquina maquina)
         {
-            machine.FechaActualizacion = DateTime.UtcNow;
-            _db.Maquinas.Update(machine);
+            maquina.FechaActualizacion = DateTime.UtcNow;
+            _db.Maquinas.Update(maquina);
             await _db.SaveChangesAsync();
         }
 
         // Registrar un ciclo de producción
-        public async Task AddCycleAsync(int machineId, int realCycles)
+        public async Task AddCycleAsync(int maquinaId, int ciclosReales)
         {
             var log = new MaquinaProduccion
             {
-                MaquinaId = machineId,
-                CiclosReales = realCycles,
+                MaquinaId = maquinaId,
+                CiclosReales = ciclosReales,
                 FechaRegistro = DateTime.UtcNow
             };
 

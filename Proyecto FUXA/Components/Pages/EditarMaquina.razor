@@ -3,6 +3,8 @@
 @using Proyecto_FUXA.Services
 @rendermode InteractiveServer
 
+@rendermode InteractiveServer
+
 @inject ServicioMaquina MachineService
 @inject NavigationManager Navigation
 
@@ -14,7 +16,7 @@
 }
 else
 {
-    <div style="border:1px solid #ccc;padding:20px;width:500px">
+    <div style="border-radius: 5px; border:1px solid #ccc;padding:20px;width:500px">
         <div>
             <label>Nombre</label><br />
             <input class="form-control" @bind="machine.Nombre" />

@@ -4,6 +4,8 @@
 @using System.Linq
 @rendermode InteractiveServer
 
+@rendermode InteractiveServer
+
 @inject ServicioMaquina MachineService
 @inject ServicioProductividad ProductivityService
 @inject NavigationManager Navigation
@@ -33,6 +35,8 @@ else
         <p><b>Ciclos reales:</b> @realCycles</p>
 
         <p><b>Productividad:</b> @productivity %</p>
+
+        <button class="btn btn-secondary" @onclick="Volver">Volver</button>
 
     </div>
     <br />
