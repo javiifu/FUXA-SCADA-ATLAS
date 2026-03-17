@@ -1,52 +1,199 @@
 @page "/maquinas"
-
-@using Proyecto_FUXA.Models
-@inject Proyecto_FUXA.Services.ServicioMaquina ServicioMaquina
-
-<h1>Maquinas</h1>
-
-<a class="btn btn-lg btn-primary float-lg-end" href="/anadir-maquina/">+ Añadir maquina</a>
-
-@if (maquinas is null)
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@rendermode InteractiveServer
+@using System.Text.Json
+@using Proyecto_FUXA.Services
+@inject ServicioMaquina ServicioMaquina
+@inject ServicioProductividad ServicioProductividad
+@using Radzen
+@using Radzen.Blazor
+@if (maquinasHMI == null || !maquinasHMI.Any())
 {
-    <text>Cargando...</text>
+    <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
 }
 else
 {
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Nombre</th>
-                <th>Orden</th>
-                <th>Estado</th>
-                <th>Objetivo ciclos/h</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var maquina in maquinas)
-            {
-                <tr>
-                    <td>@maquina.Nombre</td>
-                    <td>@maquina.NumeroOrden</td>
-                    <td>@maquina.EstaActivo</td>
-                    <td>@maquina.CiclosObjetivo</td>
-                    <td>
-                        <a class="btn btn-sm btn-secondary" href="/editar-maquina/@maquina.Id">Editar</a>
-                        <a class="btn btn-sm btn-primary" href="/ciclos-maquina/@maquina.Id">Ciclos</a>
-                        <a class="btn btn-sm btn-info" href="/dashboard-maquina/@maquina.Id">Dashboard</a>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <RadzenStack Gap="2rem">
+        @* FILA 1: LA TABLA PRINCIPAL (Ocupa todo el ancho) *@
+        <RadzenRow>
+            <RadzenColumn Size="12">
+                <RadzenCard Variant="Variant.Outlined">
+                    <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">Lista de Máquinas en Planta</RadzenText>
+
+                    <RadzenDataGrid AllowFiltering="true" AllowPaging="true" PageSize="10" AllowSorting="true"
+                                    Data="@maquinasHMI" TItem="MaquinaHMI" @bind-Value="@SelectedMaquinas"
+                                    SelectionMode="DataGridSelectionMode.Single" Responsive="true">
+                        <Columns>
+                            <RadzenDataGridColumn TItem="MaquinaHMI" Title="Nº" Width="60px" TextAlign="TextAlign.Center">
+                                <Template Context="item">
+                                    @(maquinasHMI.IndexOf(item) + 1)
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="Nombre" Title="Nombre Máquina" />
+                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="Seccion" Title="Sección" />
+                            <RadzenDataGridColumn TItem="MaquinaHMI" Title="Estado" Width="100px" TextAlign="TextAlign.Center">
+                                <Template Context="m">
+                                    <RadzenBadge BadgeStyle="@(m.Activa? BadgeStyle.Success: BadgeStyle.Danger)"
+                                                 Text="@(m.Activa ? "Activa" : "Inactiva")" />
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="CiclosReales" Title="Reales" Width="200px" TextAlign="TextAlign.Center" />
+                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="CiclosObjetivo" Title="Objetivo" Width="100px" TextAlign="TextAlign.Center" />
+                            <RadzenDataGridColumn TItem="MaquinaHMI" Title="Eficiencia">
+                                <Template Context="m">
+                                    <RadzenProgressBar Value="@((double)m.PorcentajeCiclos)" Max="100" Unit="%"
+                                                       ProgressBarStyle="ProgressBarStyle.Info" />
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            <RadzenDataGridColumn TItem="MaquinaHMI" Title="Editar" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
+                                <Template Context="maquina">
+                                    <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat"
+                                                  Size="ButtonSize.Medium" Click="@(args => IrAEditar(maquina.Id))" />
+                                </Template>
+                            </RadzenDataGridColumn>
+                        </Columns>
+                    </RadzenDataGrid>
+                </RadzenCard>
+            </RadzenColumn>
+        </RadzenRow>
+
+        @* FILA 2: EL PANEL DE DETALLES (Debajo y a todo el ancho) *@
+        <RadzenRow>
+            <RadzenColumn Size="12">
+                <RadzenCard Variant="Variant.Filled" class="rz-background-color-base-100">
+                    @if (SelectedMaquinas?.Any() == true)
+                    {
+                        var seleccionada = SelectedMaquinas.First();
+                        <RadzenRow Gap="1rem">
+                            <RadzenColumn Size="12" SizeMD="4">
+                                <RadzenText TextStyle="TextStyle.H5">Detalles de: <b>@seleccionada.Nombre</b></RadzenText>
+                                <hr />
+                                <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem">
+                                    <RadzenBadge BadgeStyle="BadgeStyle.Secondary" IsPill="true" Text="ID FUXA" />
+                                    <RadzenText TextStyle="TextStyle.Body2">@seleccionada.Id</RadzenText>
+                                </RadzenStack>
+                            </RadzenColumn>
+
+                            <RadzenColumn Size="12" SizeMD="8">
+                                <RadzenTabs RenderMode="TabRenderMode.Client">
+                                    <Tabs>
+                                        <RadzenTabsItem Text="Producción Detallada" Icon="analytics">
+                                            <RadzenStack Gap="1rem" class="rz-p-4">
+                                                <RadzenText TextStyle="TextStyle.Subtitle2">Rendimiento Actual:</RadzenText>
+                                                <RadzenText TextStyle="TextStyle.H3" class="rz-color-info">@seleccionada.PorcentajeCiclos%</RadzenText>
+                                            </RadzenStack>
+                                        </RadzenTabsItem>
+                                        <RadzenTabsItem Text="Configuración HMI" Icon="settings_input_component">
+                                            <RadzenText TextStyle="TextStyle.Body1" class="rz-p-4">
+                                                Tipo Técnico: <b>@seleccionada.Tipo</b>
+                                            </RadzenText>
+                                        </RadzenTabsItem>
+                                    </Tabs>
+                                </RadzenTabs>
+                            </RadzenColumn>
+                        </RadzenRow>
+                    }
+                    else
+                    {
+                        <RadzenAlert Title="Información" AlertStyle="AlertStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter" AllowClose="false">
+                            Selecciona una máquina de la tabla para ver su ficha técnica aquí debajo.
+                        </RadzenAlert>
+                    }
+                </RadzenCard>
+            </RadzenColumn>
+        </RadzenRow>
+    </RadzenStack>
 }
 
 @code {
-    private List<Maquina>? maquinas;
+    public class MaquinaHMI
+    {
+        public string Id { get; set; } // IdFuxa
+        public string Nombre { get; set; }
+        public string Tipo { get; set; }
+        public string Seccion { get; set; }
+        public bool Activa { get; set; }
+        public int CiclosObjetivo { get; set; }
+        public int CiclosReales { get; set; }
+        public float PorcentajeCiclos { get; set; }
+    }
+
+    private List<MaquinaHMI> maquinasHMI = new();
+    private IList<MaquinaHMI> SelectedMaquinas;
 
     protected override async Task OnInitializedAsync()
     {
-        maquinas = await ServicioMaquina.GetAllAsync();
+        await CargarDesdeFuxa();
+    }
+
+    private void IrAEditar(string id)
+    {
+        NavManager.NavigateTo($"/editar-maquina/{id}");
+    }
+
+    private async Task CargarDesdeFuxa()
+    {
+        try
+        {
+            var response = await Http.GetAsync("api/project");
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                using JsonDocument doc = JsonDocument.Parse(json);
+                var items = doc.RootElement.GetProperty("hmi").GetProperty("views")[0].GetProperty("items");
+
+                // Traemos los datos de SQL usando tu servicio
+                var maquinasEnSQL = await ServicioMaquina.GetAllAsync();
+
+                maquinasHMI.Clear();
+
+                foreach (var item in items.EnumerateObject())
+                {
+                    string tipoTecnico = item.Value.GetProperty("type").GetString();
+
+                    if (tipoTecnico.Contains("proceng") || tipoTecnico.Contains("svg-ext"))
+                    {
+                        string idFuxa = item.Name;
+
+                        // CRUCE DE DATOS: Buscamos por la nueva columna IdFuxa
+                        var datosDb = maquinasEnSQL.FirstOrDefault(m => m.IdFuxa == idFuxa);
+
+                        var nuevaMaquina = new MaquinaHMI
+                        {
+                            Id = idFuxa,
+                            // Si existe en SQL usamos Nombre, si no, el Label de FUXA
+                            Nombre = datosDb?.Nombre ?? (item.Value.TryGetProperty("label", out var l) ? l.GetString() : "Nueva Máquina"),
+                            Tipo = tipoTecnico.Replace("svg-ext-proceng-", ""),
+                            Seccion = datosDb?.NombreSeccion ?? "Sin asignar",
+                            CiclosObjetivo = datosDb?.CiclosObjetivo ?? 0,
+                            // Aquí asumo que ciclos actuales es 0 o vendrá de otra propiedad
+                            CiclosReales = 0,
+                            Activa = datosDb?.EstaActivo ?? false
+                        };
+
+                        // Calculamos porcentaje con tu servicio
+                        nuevaMaquina.PorcentajeCiclos = (float)ServicioProductividad.CalcularProductividadPorHora(
+                            nuevaMaquina.CiclosReales,
+                            nuevaMaquina.CiclosObjetivo
+                        );
+
+                        maquinasHMI.Add(nuevaMaquina);
+                    }
+                }
+
+                if (maquinasHMI.Any())
+                {
+                    SelectedMaquinas = new List<MaquinaHMI>() { maquinasHMI.First() };
+                }
+
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error al sincronizar FUXA y SQL: " + ex.Message);
+        }
     }
 }

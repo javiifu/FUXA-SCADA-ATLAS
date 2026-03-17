@@ -1,0 +1,84 @@
+{
+  "devices": {
+    "0": {
+      "id": "0",
+      "name": "FUXA Server",
+      "type": "FuxaServer",
+      "property": {},
+      "enabled": true,
+      "tags": {
+        "t_cc5af875-d9f14097": {
+          "id": "t_cc5af875-d9f14097",
+          "name": "SQL Server Connection Status",
+          "label": "SQL Server Connection Status",
+          "value": 5,
+          "type": "number",
+          "memaddress": "d_41200fc9-e92f4ae1",
+          "daq": {
+            "enabled": false,
+            "interval": 60,
+            "changed": false,
+            "restored": false
+          },
+          "init": "",
+          "sysType": 1,
+          "timestamp": 1773650230777
+        }
+      },
+      "polling": 1000
+    },
+    "d_41200fc9-e92f4ae1": {
+      "id": "d_41200fc9-e92f4ae1",
+      "name": "SQL Server",
+      "enabled": true,
+      "property": {
+        "address": "Driver={SQL Server};Server=.\\SQLEXPRESS2;Database=GestionMaquinas_DB;Trusted_Connection=yes;",
+        "port": null,
+        "slot": null,
+        "rack": null,
+        "baudrate": 9600,
+        "databits": 8,
+        "stopbits": 1,
+        "parity": "None",
+        "delay": 10,
+        "forceFC16": false
+      },
+      "type": "ODBC",
+      "polling": 2000,
+      "tags": {}
+    }
+  },
+  "hmi": {
+    "views": [
+      {
+        "id": "v_52132411b3-773a",
+        "name": "MainView",
+        "profile": {
+          "width": 1024,
+          "height": 768,
+          "bkcolor": "#ffffffff",
+          "margin": 10,
+          "align": "topCenter",
+          "gridType": "fixed",
+          "viewRenderDelay": 0
+        },
+        "items": {
+          "SHE_008ed2e3-8d2a4be3": {
+            "id": "SHE_008ed2e3-8d2a4be3",
+            "type": "svg-ext-proceng-compturbo",
+            "name": "",
+            "property": null,
+            "label": "Compresor Turbo"
+          },
+          "SHE_4299cb66-7fe14a83": {
+            "id": "SHE_4299cb66-7fe14a83",
+            "type": "svg-ext-proceng-pumpscreew",
+            "name": "",
+            "property": null,
+            "label": "Bomba de Tornillo"
+          }
+        }
+      }
+    ]
+  }
+}

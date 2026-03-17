@@ -3,6 +3,7 @@ using Proyecto_FUXA;
 using Proyecto_FUXA.Components;
 using Proyecto_FUXA.Data;
 using Proyecto_FUXA.Services;
+using Radzen;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +16,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddScoped<ServicioMaquina>();
 builder.Services.AddScoped<ServicioProductividad>();
+builder.Services.AddRadzenComponents();
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("http://localhost:1881/") });
 
 var app = builder.Build();
 
