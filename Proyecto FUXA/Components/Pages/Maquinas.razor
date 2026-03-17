@@ -1,6 +1,9 @@
 @page "/maquinas"
 
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore.Metadata.Internal
 @using Proyecto_FUXA.Models
+@inject Proyecto_FUXA.Services.FuxaService FuxaService
 @inject Proyecto_FUXA.Services.ServicioMaquina ServicioMaquina
 
 <h1>Maquinas</h1>
@@ -13,40 +16,51 @@
 }
 else
 {
-    <table class="table">
-        <thead>
+    <table class="table table-striped">
+
+        <thread>
             <tr>
-                <th>Nombre</th>
-                <th>Orden</th>
+                
+                <th>
+                    ID Técnico
+                </th>
+                <th>Nombre Máquina</th>
+                <th>Tipo Máquina</th>
                 <th>Estado</th>
-                <th>Objetivo ciclos/h</th>
-                <th>Acciones</th>
             </tr>
-        </thead>
+        </thread>
         <tbody>
             @foreach (var maquina in maquinas)
             {
                 <tr>
-                    <td>@maquina.Nombre</td>
-                    <td>@maquina.NumeroOrden</td>
-                    <td>@maquina.EstaActivo</td>
-                    <td>@maquina.CiclosObjetivo</td>
+                    <!--<td>@Index</td>-->
+                    <td><code class="text-muted">@maquina.FuxaDeviceId</code></td>
+                    <td><code class="text-muted">@maquina.Nombre</code></td>
+                    <td><code class="text-muted">@maquina.NombreSeccion</code></td>
                     <td>
-                        <a class="btn btn-sm btn-secondary" href="/editar-maquina/@maquina.Id">Editar</a>
-                        <a class="btn btn-sm btn-primary" href="/ciclos-maquina/@maquina.Id">Ciclos</a>
-                        <a class="btn btn-sm btn-info" href="/dashboard-maquina/@maquina.Id">Dashboard</a>
+                        @if (maquina.EstaActivo)
+                        {
+                            <span class="badge bg-success">Activa</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inactiva</span>
+                        }
                     </td>
                 </tr>
             }
         </tbody>
+
     </table>
+    
 }
 
 @code {
     private List<Maquina>? maquinas;
 
+
     protected override async Task OnInitializedAsync()
     {
-        maquinas = await ServicioMaquina.GetAllAsync();
+        maquinas = await FuxaService.GetMaquinasDesdeFuxa();
     }
 }

@@ -15,6 +15,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddScoped<ServicioMaquina>();
 builder.Services.AddScoped<ServicioProductividad>();
+builder.Services.AddScoped<FuxaService>();
+
+builder.Services.AddScoped(sp => new HttpClient
+{
+    BaseAddress = new Uri("http://localhost:1881")
+});
 
 var app = builder.Build();
 

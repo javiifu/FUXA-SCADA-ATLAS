@@ -16,6 +16,7 @@ namespace Proyecto_FUXA.Models
         public bool EstaActivo { get; set; }
         public DateTime FechaCreacion { get; set; }
         public DateTime FechaActualizacion { get; set; }
+        public string FuxaDeviceId { get; set; }
 
         public virtual ICollection<MaquinaProduccion> Producciones { get; set; } = new List<MaquinaProduccion>();
 
