@@ -26,7 +26,7 @@ else
             <tr>
                 
                 <th>
-                    ID Técnico
+                    ID
                 </th>
                 <th>Nombre Máquina</th>
                 <th>Tipo Máquina</th>
@@ -38,11 +38,11 @@ else
             {
                 <tr>
                     <!--<td>@Index</td>-->
-                    <td><code class="text-muted">@maquina.FuxaDeviceId</code></td>
+                    <td><code class="text-muted">@maquina.Id</code></td>
                     <td><code class="text-muted">@maquina.Nombre</code></td>
                     <td><code class="text-muted">@maquina.NombreSeccion</code></td>
                     <td>
-                        @if (maquina.EstaActivo)
+                        @if (maquina.EstaActivo == true)
                         {
                             <span class="badge bg-success">Activa</span>
                         }

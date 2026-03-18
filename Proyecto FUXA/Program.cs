@@ -19,7 +19,12 @@ if (string.IsNullOrWhiteSpace(defaultConnection))
 }
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(defaultConnection));
+    options.UseSqlServer(
+        defaultConnection,
+        sqlServerOptions =>
+        {
+            sqlServerOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+        }));
 
 builder.Services.AddScoped<ServicioMaquina>();
 builder.Services.AddScoped<ServicioProductividad>();

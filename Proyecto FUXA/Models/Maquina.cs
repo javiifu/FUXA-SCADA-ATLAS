@@ -13,9 +13,11 @@ namespace Proyecto_FUXA.Models
         public string NombreSeccion { get; set; }
         public int CiclosObjetivo { get; set; }
         public int EstadoActualId { get; set; }
-        public bool EstaActivo { get; set; }
+        public bool? EstaActivo { get; set; }
         public DateTime FechaCreacion { get; set; }
         public DateTime FechaActualizacion { get; set; }
+
+        [NotMapped]
         public string? FuxaDeviceId { get; set; }
 
         public virtual ICollection<MaquinaProduccion> Producciones { get; set; } = new List<MaquinaProduccion>();
@@ -25,7 +27,9 @@ namespace Proyecto_FUXA.Models
         [ForeignKey("EstadoActualId")]
         public virtual MaquinaEstatus? EstadoActual { get; set; }
 
+        [NotMapped]
         public int? PosX { get; set; }
+        [NotMapped]
         public int? PosY { get; set; }
     }
 }
