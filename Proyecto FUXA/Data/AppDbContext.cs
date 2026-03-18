@@ -27,6 +27,14 @@ public class AppDbContext : DbContext
             .HasForeignKey(m => m.EstadoActualId)
             .HasConstraintName("FK_Machines_Status");
 
+        modelBuilder.Entity<Maquina>()
+            .Property(m => m.IdentificadorObjetoFuxa)
+            .HasMaxLength(100);
+
+        modelBuilder.Entity<Maquina>()
+            .HasIndex(m => m.IdentificadorObjetoFuxa)
+            .HasDatabaseName("IX_Maquina_IdentificadorObjetoFuxa");
+
         modelBuilder.Entity<MaquinaProduccion>()
             .HasOne(p => p.Maquina)
             .WithMany(m => m.Producciones)
