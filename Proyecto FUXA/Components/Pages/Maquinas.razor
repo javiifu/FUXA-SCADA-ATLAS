@@ -32,14 +32,14 @@ else
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MaquinaHMI" Property="Nombre" Title="Nombre Máquina" />
                             <RadzenDataGridColumn TItem="MaquinaHMI" Property="Seccion" Title="Sección" />
-                            <RadzenDataGridColumn TItem="MaquinaHMI" Title="Estado" Width="100px" TextAlign="TextAlign.Center">
+                            <RadzenDataGridColumn TItem="MaquinaHMI" Title="Estado" Width="120px" TextAlign="TextAlign.Center">
                                 <Template Context="m">
                                     <RadzenBadge BadgeStyle="@(m.Activa? BadgeStyle.Success: BadgeStyle.Danger)"
                                                  Text="@(m.Activa ? "Activa" : "Inactiva")" />
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="CiclosReales" Title="Reales" Width="200px" TextAlign="TextAlign.Center" />
-                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="CiclosObjetivo" Title="Objetivo" Width="100px" TextAlign="TextAlign.Center" />
+                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="CiclosReales" Title="Reales" Width="120px" TextAlign="TextAlign.Center" />
+                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="CiclosObjetivo" Title="Objetivo" Width="120px" TextAlign="TextAlign.Center" />
                             <RadzenDataGridColumn TItem="MaquinaHMI" Title="Eficiencia">
                                 <Template Context="m">
                                     <RadzenProgressBar Value="@((double)m.PorcentajeCiclos)" Max="100" Unit="%"
@@ -47,7 +47,7 @@ else
                                 </Template>
                             </RadzenDataGridColumn>
 
-                            <RadzenDataGridColumn TItem="MaquinaHMI" Title="Editar" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
+                            <RadzenDataGridColumn TItem="MaquinaHMI" Title="Editar" Width="70px" Filterable="false" Sortable="false">
                                 <Template Context="maquina">
                                     <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat"
                                                   Size="ButtonSize.Medium" Click="@(args => IrAEditar(maquina.Id))" />
@@ -144,7 +144,7 @@ else
                 using JsonDocument doc = JsonDocument.Parse(json);
                 var items = doc.RootElement.GetProperty("hmi").GetProperty("views")[0].GetProperty("items");
 
-                // Traemos los datos de SQL usando tu servicio
+                // Traemos los datos de sql
                 var maquinasEnSQL = await ServicioMaquina.GetAllAsync();
 
                 maquinasHMI.Clear();
@@ -157,7 +157,7 @@ else
                     {
                         string idFuxa = item.Name;
 
-                        // CRUCE DE DATOS: Buscamos por la nueva columna IdFuxa
+                        // cruce
                         var datosDb = maquinasEnSQL.FirstOrDefault(m => m.IdFuxa == idFuxa);
 
                         var nuevaMaquina = new MaquinaHMI
@@ -168,12 +168,13 @@ else
                             Tipo = tipoTecnico.Replace("svg-ext-proceng-", ""),
                             Seccion = datosDb?.NombreSeccion ?? "Sin asignar",
                             CiclosObjetivo = datosDb?.CiclosObjetivo ?? 0,
-                            // Aquí asumo que ciclos actuales es 0 o vendrá de otra propiedad
+
+                            //ciclos reales
                             CiclosReales = 0,
                             Activa = datosDb?.EstaActivo ?? false
                         };
 
-                        // Calculamos porcentaje con tu servicio
+                        // calculamos porcentaje
                         nuevaMaquina.PorcentajeCiclos = (float)ServicioProductividad.CalcularProductividadPorHora(
                             nuevaMaquina.CiclosReales,
                             nuevaMaquina.CiclosObjetivo

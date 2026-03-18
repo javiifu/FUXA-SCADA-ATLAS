@@ -58,5 +58,28 @@ namespace Proyecto_FUXA.Services
             _db.Producciones.Add(log);
             await _db.SaveChangesAsync();
         }
+
+        public async Task<Maquina?> ObtenerPorIdFuxa(string idFuxa)
+        {
+            return await _db.Maquinas
+                .FirstOrDefaultAsync(m => m.IdFuxa == idFuxa);
+        }
+
+        public async Task GuardarMaquina(Maquina maquina)
+        {
+            var existe = await _db.Maquinas
+                .AnyAsync(m => m.IdFuxa == maquina.IdFuxa);
+
+            if (!existe)
+            {
+                _db.Maquinas.Add(maquina);
+            }
+            else
+            {
+                _db.Maquinas.Update(maquina);
+            }
+
+            await _db.SaveChangesAsync();
+        }
     }
 }

@@ -1,7 +1,6 @@
-@page "/editar-maquina/{machineId:int}"
+@page "/editar-maquina/{IdFuxa}"
 @using Proyecto_FUXA.Models
 @using Proyecto_FUXA.Services
-@rendermode InteractiveServer
 
 @rendermode InteractiveServer
 
@@ -20,6 +19,11 @@ else
         <div>
             <label>Nombre</label><br />
             <input class="form-control" @bind="machine.Nombre" />
+        </div>
+
+        <div>
+            <label>ID Fuxa</label><br/>
+            <input class="form-control" @bind="machine.IdFuxa" disabled/>
         </div>
 
         <br />
@@ -65,29 +69,39 @@ else
 
         <button class="btn btn-primary" @onclick="Guardar">Guardar cambios</button>
         <button class="btn btn-secondary" @onclick="Cancelar">Cancelar</button>
-        
     </div>
 }
 
 @code {
     [Parameter]
-    public int machineId { get; set; }
+    public String IdFuxa { get; set; }
 
     private Maquina? machine;
 
     protected override async Task OnInitializedAsync()
     {
-        machine = await MachineService.GetByIdAsync(machineId);
+        machine = await MachineService.ObtenerPorIdFuxa(IdFuxa);
+
+        if (machine == null)
+        {
+            machine = new Maquina
+            {
+                IdFuxa = IdFuxa,
+                Nombre = "Nueva Máquina",
+                FechaCreacion = DateTime.Now,
+                EstaActivo = true,
+                EstadoActualId = 1
+            };
+        }
     }
 
     private async Task Guardar()
     {
-        if (machine is null)
-        {
-            return;
-        }
+        if (machine is null)return;
 
-        await MachineService.UpdateAsync(machine);
+        machine.FechaActualizacion = DateTime.Now;
+
+        await MachineService.GuardarMaquina(machine);
         Navigation.NavigateTo("/maquinas");
     }
 
