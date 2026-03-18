@@ -1,67 +1,61 @@
-﻿@page "/planta"
+@page "/planta"
 @using Proyecto_FUXA.Models
 @using Proyecto_FUXA.Services
-@inject ServicioMaquina ServicioMaquina
+
+@inject ServicioPlantaVisual ServicioPlantaVisual
 @inject ServicioProductividad ProductivityService
 
 <h3>Planta</h3>
 
-<svg width="800" height="500">
+<div class="d-flex justify-content-end mb-2">
+    <a class="btn btn-outline-primary btn-sm" href="/planta-editor">Editar layout</a>
+</div>
 
-    @foreach (var machine in maquinas)
-    {
-        var prod = GetProductivity(machine);
-
-        <g>
-            <rect x="@machine.PosX"
-                  y="@machine.PosY"
-                  width="100"
-                  height="100"
-                  fill="@GetColor(prod)"
-                  stroke="black"
-                  stroke-width="2" />
-
-            <text x="@(machine.PosX + 50)"
-                  y="@(machine.PosY + 55)"
-                  text-anchor="middle"
-                  fill="white"
-                  font-size="14"
-                  font-weight="bold">
-                @prod%
-            </text>
-        </g>
-    }
-    
-</svg>
-
-@foreach (var machine in maquinas)
+@if (objetos.Count == 0)
 {
-    <p>@machine.Nombre - Producciones: @(machine.Producciones?.Count ?? 0) - Prod: @GetProductivity(machine)</p>
+    <p class="text-muted">No hay elementos en el layout. Usa el editor para añadir rectángulos.</p>
+}
+else
+{
+    <div class="planta-visor-canvas">
+        @foreach (var objeto in objetos)
+        {
+            var productividad = GetProductivity(objeto.Maquina);
+            var colorFondo = GetColor(productividad, objeto.ColorHex);
+
+            <div class="planta-visor-objeto"
+                 style="@BuildObjectStyle(objeto, colorFondo)">
+                <div class="planta-visor-nombre">@objeto.Nombre</div>
+
+                @if (objeto.Maquina is null)
+                {
+                    <div class="planta-visor-detalle">Sin máquina vinculada</div>
+                }
+                else
+                {
+                    <div class="planta-visor-detalle">@objeto.Maquina.Nombre</div>
+                    <div class="planta-visor-detalle">Prod: @productividad%</div>
+                }
+            </div>
+        }
+    </div>
 }
 
 @code {
-    private List<Maquina> maquinas = new();
-
-    int startX = 50;
-    int width = 100;
-    int margin = 50;
-
-
+    private List<PlantaObjetoVisual> objetos = new();
 
     protected override async Task OnInitializedAsync()
     {
-        maquinas = await ServicioMaquina.GetAllAsync();
-        int x = 50;
-        foreach (var m in maquinas)
-        {
-            m.PosX = startX;
-            m.PosY = 50;
-            startX += width + margin;
-        }
+        objetos = await ServicioPlantaVisual.GetAllAsync();
     }
 
-    private int GetProductivity(Maquina machine)
+    private int GetProductivity(Maquina? machine)
     {
+        if (machine is null)
+        {
+            return 0;
+        }
+
         var last = machine.Producciones?
             .OrderByDescending(p => p.FechaRegistro)
             .FirstOrDefault();
@@ -71,17 +65,19 @@
         return Convert.ToInt32(ProductivityService.Calcular(realCycles, machine.CiclosObjetivo));
     }
 
-    private string GetColor(int productivity)
+    private static string GetColor(int productivity, string fallbackColor)
     {
-        
+        if (productivity >= 70) return "#2e7d32";
+        if (productivity >= 30) return "#f9a825";
+        if (productivity > 0) return "#c62828";
 
-        if (productivity >= 70) return "green";
-        if (productivity >= 30) return "yellow";
-        return "red";
+        return string.IsNullOrWhiteSpace(fallbackColor)
+            ? "#2f80ed"
+            : (fallbackColor.StartsWith('#') ? fallbackColor : $"#{fallbackColor}");
     }
 
-    private void Seleccionar(int id)
+    private static string BuildObjectStyle(PlantaObjetoVisual objeto, string color)
     {
-        Console.WriteLine($"Máquina seleccionada: {id}");
+        return $"left:{objeto.PosX}px;top:{objeto.PosY}px;width:{Math.Max(20, objeto.Width)}px;height:{Math.Max(20, objeto.Height)}px;background:{color};";
     }
 }

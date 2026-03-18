@@ -1,0 +1,29 @@
+.planta-visor-canvas {
+    position: relative;
+    min-height: 520px;
+    border: 1px solid #d0d7de;
+    background: #f8fafc;
+    overflow: auto;
+}
+
+.planta-visor-objeto {
+    position: absolute;
+    border: 2px solid #0f172a;
+    border-radius: 6px;
+    color: white;
+    padding: 0.35rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.planta-visor-nombre {
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.planta-visor-detalle {
+    font-size: 0.75rem;
+}

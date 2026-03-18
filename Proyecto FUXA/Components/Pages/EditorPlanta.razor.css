@@ -1,0 +1,48 @@
+.editor-planta-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1rem;
+}
+
+.planta-canvas {
+    position: relative;
+    min-height: 520px;
+    border: 1px solid #d0d7de;
+    background: #f8fafc;
+    overflow: auto;
+}
+
+.planta-objeto {
+    position: absolute;
+    border: 2px solid #1f2937;
+    border-radius: 6px;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0.25rem;
+    text-align: center;
+    cursor: pointer;
+}
+
+.planta-objeto.selected {
+    box-shadow: 0 0 0 3px #2563eb;
+}
+
+.planta-objeto-titulo {
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.planta-objeto-subtitulo {
+    font-size: 0.75rem;
+    opacity: 0.95;
+}
+
+.planta-editor-panel {
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    padding: 1rem;
+    background: #fff;
+}
