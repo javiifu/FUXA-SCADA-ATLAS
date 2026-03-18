@@ -1,16 +1,20 @@
 @page "/maquinas"
 
-@using Microsoft.AspNetCore.Components.Authorization
-@using Microsoft.EntityFrameworkCore.Metadata.Internal
 @using Proyecto_FUXA.Models
-@inject Proyecto_FUXA.Services.FuxaService FuxaService
 @inject Proyecto_FUXA.Services.ServicioMaquina ServicioMaquina
 
 <h1>Maquinas</h1>
 
 <a class="btn btn-lg btn-primary float-lg-end" href="/anadir-maquina/">+ Añadir maquina</a>
 
-@if (maquinas is null)
+@if (!string.IsNullOrWhiteSpace(errorCarga))
+{
+    <div class="alert alert-danger mt-3">
+        <strong>No se pudieron cargar las máquinas.</strong>
+        <div>@errorCarga</div>
+    </div>
+}
+else if (maquinas is null)
 {
     <text>Cargando...</text>
 }
@@ -57,10 +61,19 @@ else
 
 @code {
     private List<Maquina>? maquinas;
+    private string? errorCarga;
 
 
     protected override async Task OnInitializedAsync()
     {
-        maquinas = await FuxaService.GetMaquinasDesdeFuxa();
+        try
+        {
+            maquinas = await ServicioMaquina.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            errorCarga = ex.Message;
+            maquinas = new List<Maquina>();
+        }
     }
 }

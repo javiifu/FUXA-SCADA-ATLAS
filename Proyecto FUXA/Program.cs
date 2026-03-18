@@ -10,8 +10,16 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+var defaultConnection = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(defaultConnection))
+{
+    throw new InvalidOperationException(
+        "No se encontró la cadena de conexión 'ConnectionStrings:DefaultConnection'. " +
+        "Configúrala en appsettings.json, appsettings.Development.json o variables de entorno.");
+}
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(defaultConnection));
 
 builder.Services.AddScoped<ServicioMaquina>();
 builder.Services.AddScoped<ServicioProductividad>();

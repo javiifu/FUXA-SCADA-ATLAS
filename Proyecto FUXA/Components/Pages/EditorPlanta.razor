@@ -12,16 +12,33 @@
     <div>
         <div class="d-flex justify-content-between align-items-center mb-2">
             <strong>Lienzo</strong>
-            <button class="btn btn-primary btn-sm" @onclick="AgregarRectangulo">+ Añadir rectángulo</button>
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary btn-sm" @onclick="AgregarRectangulo">+ Rectángulo</button>
+                <button class="btn btn-primary btn-sm" @onclick="AgregarCirculo">+ Círculo</button>
+                <button class="btn btn-primary btn-sm" @onclick="AgregarLinea">+ Línea</button>
+            </div>
         </div>
 
         <div class="planta-canvas">
-            @foreach (var objeto in objetos)
+            <svg class="planta-canvas-lineas">
+                @foreach (var objeto in objetos.Where(x => x.Tipo == "Linea"))
+                {
+                    <line class="planta-linea @(objeto.Id == selectedId ? "selected" : string.Empty)"
+                          x1="@objeto.PosX"
+                          y1="@objeto.PosY"
+                          x2="@(objeto.PosX + objeto.Width)"
+                          y2="@(objeto.PosY + objeto.Height)"
+                          stroke="@NormalizarColorHex(objeto.ColorHex)"
+                          @onclick="@(() => Seleccionar(objeto.Id))" />
+                }
+            </svg>
+
+            @foreach (var objeto in objetos.Where(x => x.Tipo != "Linea"))
             {
-                <div class="planta-objeto @(objeto.Id == selectedId ? "selected" : string.Empty)"
+                <div class="planta-objeto @(GetClaseObjeto(objeto)) @(objeto.Id == selectedId ? "selected" : string.Empty)"
                      style="@BuildObjectStyle(objeto)"
                      title="@objeto.Nombre"
-                     @onclick="() => Seleccionar(objeto.Id)">
+                     @onclick="@(() => Seleccionar(objeto.Id))">
                     <div class="planta-objeto-titulo">@objeto.Nombre</div>
                     @if (!string.IsNullOrWhiteSpace(objeto.Maquina?.Nombre))
                     {
@@ -37,10 +54,15 @@
 
         @if (seleccionado is null)
         {
-            <p class="text-muted">Selecciona un rectángulo para editar sus propiedades.</p>
+            <p class="text-muted">Selecciona una forma para editar sus propiedades.</p>
         }
         else
         {
+            <div class="mb-2">
+                <label class="form-label">Tipo</label>
+                <input class="form-control" value="@seleccionado.Tipo" readonly />
+            </div>
+
             <div class="mb-2">
                 <label class="form-label">Nombre</label>
                 <input class="form-control" @bind="seleccionado.Nombre" />
@@ -48,19 +70,19 @@
 
             <div class="row g-2">
                 <div class="col-6">
-                    <label class="form-label">X</label>
+                    <label class="form-label">@(EsLineaSeleccionada ? "X1" : "X")</label>
                     <input type="number" class="form-control" @bind="seleccionado.PosX" />
                 </div>
                 <div class="col-6">
-                    <label class="form-label">Y</label>
+                    <label class="form-label">@(EsLineaSeleccionada ? "Y1" : "Y")</label>
                     <input type="number" class="form-control" @bind="seleccionado.PosY" />
                 </div>
                 <div class="col-6">
-                    <label class="form-label">Width</label>
+                    <label class="form-label">@(EsLineaSeleccionada ? "Delta X" : "Ancho")</label>
                     <input type="number" class="form-control" @bind="seleccionado.Width" />
                 </div>
                 <div class="col-6">
-                    <label class="form-label">Height</label>
+                    <label class="form-label">@(EsLineaSeleccionada ? "Delta Y" : "Alto")</label>
                     <input type="number" class="form-control" @bind="seleccionado.Height" />
                 </div>
             </div>
@@ -109,8 +131,26 @@
 
     private async Task AgregarRectangulo()
     {
-        var nombre = $"Rectángulo {objetos.Count + 1}";
-        var nuevo = await ServicioPlantaVisual.AddRectanguloAsync(nombre);
+        var nombre = $"Rectángulo {objetos.Count(x => x.Tipo == "Rectangulo") + 1}";
+        var nuevo = await ServicioPlantaVisual.AddAsync("Rectangulo", nombre);
+
+        await CargarDatosAsync();
+        Seleccionar(nuevo.Id);
+    }
+
+    private async Task AgregarCirculo()
+    {
+        var nombre = $"Círculo {objetos.Count(x => x.Tipo == "Circulo") + 1}";
+        var nuevo = await ServicioPlantaVisual.AddAsync("Circulo", nombre);
+
+        await CargarDatosAsync();
+        Seleccionar(nuevo.Id);
+    }
+
+    private async Task AgregarLinea()
+    {
+        var nombre = $"Línea {objetos.Count(x => x.Tipo == "Linea") + 1}";
+        var nuevo = await ServicioPlantaVisual.AddAsync("Linea", nombre);
 
         await CargarDatosAsync();
         Seleccionar(nuevo.Id);
@@ -130,9 +170,16 @@
             return;
         }
 
-        seleccionado.Width = Math.Max(20, seleccionado.Width);
-        seleccionado.Height = Math.Max(20, seleccionado.Height);
+        if (!EsLineaSeleccionada)
+        {
+            seleccionado.Width = Math.Max(20, seleccionado.Width);
+            seleccionado.Height = Math.Max(20, seleccionado.Height);
+        }
+
         seleccionado.ColorHex = NormalizarColorHex(seleccionado.ColorHex);
+        seleccionado.Nombre = string.IsNullOrWhiteSpace(seleccionado.Nombre)
+            ? $"{seleccionado.Tipo} {seleccionado.Id}"
+            : seleccionado.Nombre.Trim();
 
         await ServicioPlantaVisual.UpdateAsync(seleccionado);
         await ServicioPlantaVisual.VincularMaquinaAsync(seleccionado.Id, selectedMaquinaId);
@@ -169,5 +216,16 @@
     private static string BuildObjectStyle(PlantaObjetoVisual objeto)
     {
         return $"left:{objeto.PosX}px;top:{objeto.PosY}px;width:{Math.Max(20, objeto.Width)}px;height:{Math.Max(20, objeto.Height)}px;background:{NormalizarColorHex(objeto.ColorHex)};";
+    }
+
+    private bool EsLineaSeleccionada => seleccionado?.Tipo == "Linea";
+
+    private static string GetClaseObjeto(PlantaObjetoVisual objeto)
+    {
+        return objeto.Tipo switch
+        {
+            "Circulo" => "planta-objeto-circulo",
+            _ => "planta-objeto-rectangulo"
+        };
     }
 }
