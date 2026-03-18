@@ -23,6 +23,9 @@ public class Maquina
 
     public bool EstaActivo { get; set; }
 
+    [MaxLength(100)]
+    public string? IdentificadorObjetoFuxa { get; set; }
+
     public DateTime? FechaCreacion { get; set; }
 
     public DateTime? FechaActualizacion { get; set; }
