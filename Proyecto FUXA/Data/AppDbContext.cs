@@ -16,6 +16,10 @@ public class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        // Alinea explícitamente los nombres de tablas con las entidades existentes
+        modelBuilder.Entity<Maquina>().ToTable("Maquina");
+        modelBuilder.Entity<MaquinaEstatus>().ToTable("MaquinaEstatus");
+        modelBuilder.Entity<MaquinaProduccion>().ToTable("MaquinaProduccion");
 
         modelBuilder.Entity<Maquina>()
             .HasOne(m => m.EstadoActual)
