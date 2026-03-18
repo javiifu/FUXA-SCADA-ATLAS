@@ -13,17 +13,29 @@
 
 @if (objetos.Count == 0)
 {
-    <p class="text-muted">No hay elementos en el layout. Usa el editor para añadir rectángulos.</p>
+    <p class="text-muted">No hay elementos en el layout. Usa el editor para añadir formas.</p>
 }
 else
 {
     <div class="planta-visor-canvas">
-        @foreach (var objeto in objetos)
+        <svg class="planta-visor-lineas">
+            @foreach (var objeto in objetos.Where(x => x.Tipo == "Linea"))
+            {
+                <line class="planta-visor-linea"
+                      x1="@objeto.PosX"
+                      y1="@objeto.PosY"
+                      x2="@(objeto.PosX + objeto.Width)"
+                      y2="@(objeto.PosY + objeto.Height)"
+                      stroke="@NormalizarColorHex(objeto.ColorHex)" />
+            }
+        </svg>
+
+        @foreach (var objeto in objetos.Where(x => x.Tipo != "Linea"))
         {
             var productividad = GetProductivity(objeto.Maquina);
             var colorFondo = GetColor(productividad, objeto.ColorHex);
 
-            <div class="planta-visor-objeto"
+            <div class="planta-visor-objeto @(GetClaseObjeto(objeto))"
                  style="@BuildObjectStyle(objeto, colorFondo)">
                 <div class="planta-visor-nombre">@objeto.Nombre</div>
 
@@ -79,5 +91,24 @@ else
     private static string BuildObjectStyle(PlantaObjetoVisual objeto, string color)
     {
         return $"left:{objeto.PosX}px;top:{objeto.PosY}px;width:{Math.Max(20, objeto.Width)}px;height:{Math.Max(20, objeto.Height)}px;background:{color};";
+    }
+
+    private static string NormalizarColorHex(string? color)
+    {
+        if (string.IsNullOrWhiteSpace(color))
+        {
+            return "#2f80ed";
+        }
+
+        return color.StartsWith('#') ? color : $"#{color}";
+    }
+
+    private static string GetClaseObjeto(PlantaObjetoVisual objeto)
+    {
+        return objeto.Tipo switch
+        {
+            "Circulo" => "planta-visor-objeto-circulo",
+            _ => "planta-visor-objeto-rectangulo"
+        };
     }
 }
