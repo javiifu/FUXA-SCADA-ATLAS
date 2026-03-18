@@ -1,9 +1,40 @@
 @page "/maquinas"
 
+@using Microsoft.AspNetCore.Components
 @using Proyecto_FUXA.Models
 @inject Proyecto_FUXA.Services.ServicioMaquina ServicioMaquina
 
 <h1>Maquinas</h1>
+
+<div class="border rounded p-3 mb-4">
+    <h5>Vincular objeto visual de FUXA</h5>
+
+    <p class="mb-2">
+        Punto de entrada del objeto seleccionado en FUXA: query string <code>?fuxaObjectId=...</code>.
+    </p>
+
+    <div class="mb-2">
+        <label class="form-label">Id/Tag objeto FUXA</label>
+        <input class="form-control" @bind="fuxaObjectId" />
+    </div>
+
+    <div class="mb-2">
+        <label class="form-label">Máquina</label>
+        <select class="form-select" @bind="maquinaSeleccionadaId">
+            @foreach (var maquina in maquinas ?? Enumerable.Empty<Maquina>())
+            {
+                <option value="@maquina.Id">@maquina.Nombre (@maquina.NombreSeccion)</option>
+            }
+        </select>
+    </div>
+
+    <button class="btn btn-primary" @onclick="VincularObjetoFuxa">Guardar vinculación</button>
+
+    @if (!string.IsNullOrWhiteSpace(mensajeVinculacion))
+    {
+        <div class="alert alert-info mt-3 mb-0">@mensajeVinculacion</div>
+    }
+</div>
 
 @if (maquinas is null)
 {
@@ -18,6 +49,7 @@ else
                 <th>Orden</th>
                 <th>Estado</th>
                 <th>Objetivo ciclos/h</th>
+                <th>Objeto FUXA</th>
                 <th>Acciones</th>
             </tr>
         </thead>
@@ -29,6 +61,7 @@ else
                     <td>@maquina.NumeroOrden</td>
                     <td>@maquina.EstadoActual?.Nombre</td>
                     <td>@maquina.CiclosObjetivo</td>
+                    <td>@(maquina.IdentificadorObjetoFuxa ?? "-")</td>
                     <td>
                         <a class="btn btn-sm btn-secondary" href="/editar-maquina/@maquina.Id">Editar</a>
                         <a class="btn btn-sm btn-primary" href="/ciclos-maquina/@maquina.Id">Ciclos</a>
@@ -41,10 +74,45 @@ else
 }
 
 @code {
+    [SupplyParameterFromQuery(Name = "fuxaObjectId")]
+    private string? fuxaObjectIdFromQuery { get; set; }
+
     private List<Maquina>? maquinas;
+    private int maquinaSeleccionadaId;
+    private string fuxaObjectId = string.Empty;
+    private string? mensajeVinculacion;
 
     protected override async Task OnInitializedAsync()
     {
         maquinas = await ServicioMaquina.GetAllAsync();
+        if (maquinas.Count > 0)
+        {
+            maquinaSeleccionadaId = maquinas[0].Id;
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrWhiteSpace(fuxaObjectIdFromQuery))
+        {
+            fuxaObjectId = fuxaObjectIdFromQuery;
+        }
+    }
+
+    private async Task VincularObjetoFuxa()
+    {
+        if (string.IsNullOrWhiteSpace(fuxaObjectId) || maquinaSeleccionadaId <= 0)
+        {
+            mensajeVinculacion = "Debes indicar un objeto FUXA y una máquina.";
+            return;
+        }
+
+        await ServicioMaquina.VincularObjetoFuxaAsync(maquinaSeleccionadaId, fuxaObjectId);
+        maquinas = await ServicioMaquina.GetAllAsync();
+
+        var maquina = maquinas.FirstOrDefault(x => x.Id == maquinaSeleccionadaId);
+        mensajeVinculacion = maquina is null
+            ? "Vinculación guardada."
+            : $"Objeto FUXA '{fuxaObjectId}' vinculado a '{maquina.Nombre}'.";
     }
 }
