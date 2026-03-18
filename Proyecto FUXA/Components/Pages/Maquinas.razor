@@ -15,7 +15,7 @@
 else
 {
     <RadzenStack Gap="2rem">
-        @* FILA 1: LA TABLA PRINCIPAL (Ocupa todo el ancho) *@
+        @* fila de arriba*@
         <RadzenRow>
             <RadzenColumn Size="12">
                 <RadzenCard Variant="Variant.Outlined">
@@ -23,7 +23,7 @@ else
 
                     <RadzenDataGrid AllowFiltering="true" AllowPaging="true" PageSize="10" AllowSorting="true"
                                     Data="@maquinasHMI" TItem="MaquinaHMI" @bind-Value="@SelectedMaquinas"
-                                    SelectionMode="DataGridSelectionMode.Single" Responsive="true">
+                                    SelectionMode="DataGridSelectionMode.Single" Responsive="true" Style="height: 550px;">
                         <Columns>
                             <RadzenDataGridColumn TItem="MaquinaHMI" Title="Nº" Width="60px" TextAlign="TextAlign.Center">
                                 <Template Context="item">
@@ -32,18 +32,39 @@ else
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MaquinaHMI" Property="Nombre" Title="Nombre Máquina" />
                             <RadzenDataGridColumn TItem="MaquinaHMI" Property="Seccion" Title="Sección" />
-                            <RadzenDataGridColumn TItem="MaquinaHMI" Title="Estado" Width="100px" TextAlign="TextAlign.Center">
+                            <RadzenDataGridColumn TItem="MaquinaHMI" Title="Estado" Width="150px" TextAlign="TextAlign.Center">
                                 <Template Context="m">
-                                    <RadzenBadge BadgeStyle="@(m.Activa? BadgeStyle.Success: BadgeStyle.Danger)"
-                                                 Text="@(m.Activa ? "Activa" : "Inactiva")" />
+                                    @if (m.EstadoActualId == 1)
+                                    {
+                                        <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="Activa" />
+                                    }
+                                    else if (m.EstadoActualId == 2)
+                                    {
+                                        <RadzenBadge BadgeStyle="BadgeStyle.Warning" Text="Incidencia" />
+                                    }
+                                    else if (m.EstadoActualId == 3)
+                                    {
+                                        <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text="Parada" />
+                                    }
+                                    else if (m.EstadoActualId == 4)
+                                    {
+                                        <RadzenBadge BadgeStyle="BadgeStyle.Dark" Text="No disponible" />
+                                    }
+                                    else
+                                    {
+                                        <RadzenBadge BadgeStyle="BadgeStyle.Info" Text="Desconocido" />
+                                    }
                                 </Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MaquinaHMI" Property="CiclosReales" Title="Reales" Width="200px" TextAlign="TextAlign.Center" />
                             <RadzenDataGridColumn TItem="MaquinaHMI" Property="CiclosObjetivo" Title="Objetivo" Width="100px" TextAlign="TextAlign.Center" />
                             <RadzenDataGridColumn TItem="MaquinaHMI" Title="Eficiencia">
                                 <Template Context="m">
-                                    <RadzenProgressBar Value="@((double)m.PorcentajeCiclos)" Max="100" Unit="%"
-                                                       ProgressBarStyle="ProgressBarStyle.Info" />
+                                    <RadzenProgressBar Value="@(Math.Round((double)m.PorcentajeCiclos, 1))"
+                                                       Max="100"
+                                                       Unit="%"
+                                                       ShowValue="true"
+                                                       ProgressBarStyle="@CambiarColorBarraProgreso(m.PorcentajeCiclos)" />
                                 </Template>
                             </RadzenDataGridColumn>
 
@@ -59,7 +80,7 @@ else
             </RadzenColumn>
         </RadzenRow>
 
-        @* FILA 2: EL PANEL DE DETALLES (Debajo y a todo el ancho) *@
+        @* fila de abajo *@
         <RadzenRow>
             <RadzenColumn Size="12">
                 <RadzenCard Variant="Variant.Filled" class="rz-background-color-base-100">
@@ -110,18 +131,18 @@ else
 @code {
     public class MaquinaHMI
     {
-        public string Id { get; set; } // IdFuxa
-        public string Nombre { get; set; }
-        public string Tipo { get; set; }
-        public string Seccion { get; set; }
-        public bool Activa { get; set; }
+        public string Id { get; set; } = string.Empty; // IdFuxa
+        public string Nombre { get; set; } = string.Empty;
+        public string Tipo { get; set; } = string.Empty;
+        public string Seccion { get; set; } = string.Empty;
+        public int EstadoActualId { get; set; }
         public int CiclosObjetivo { get; set; }
         public int CiclosReales { get; set; }
         public float PorcentajeCiclos { get; set; }
     }
 
     private List<MaquinaHMI> maquinasHMI = new();
-    private IList<MaquinaHMI> SelectedMaquinas;
+    private IList<MaquinaHMI> SelectedMaquinas = new List<MaquinaHMI>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -151,7 +172,7 @@ else
 
                 foreach (var item in items.EnumerateObject())
                 {
-                    string tipoTecnico = item.Value.GetProperty("type").GetString();
+                    string tipoTecnico = item.Value.GetProperty("type").GetString() ?? "";
 
                     if (tipoTecnico.Contains("proceng") || tipoTecnico.Contains("svg-ext"))
                     {
@@ -167,10 +188,9 @@ else
                             Nombre = datosDb?.Nombre ?? (item.Value.TryGetProperty("label", out var l) ? l.GetString() : "Nueva Máquina"),
                             Tipo = tipoTecnico.Replace("svg-ext-proceng-", ""),
                             Seccion = datosDb?.NombreSeccion ?? "Sin asignar",
+                            EstadoActualId = datosDb?.EstadoActualId ?? 1,
                             CiclosObjetivo = datosDb?.CiclosObjetivo ?? 0,
-                            // Aquí asumo que ciclos actuales es 0 o vendrá de otra propiedad
-                            CiclosReales = 0,
-                            Activa = datosDb?.EstaActivo ?? false
+                            CiclosReales = 500,
                         };
 
                         // Calculamos porcentaje con tu servicio
@@ -194,6 +214,26 @@ else
         catch (Exception ex)
         {
             Console.WriteLine("Error al sincronizar FUXA y SQL: " + ex.Message);
+        }
+    }
+
+    private ProgressBarStyle CambiarColorBarraProgreso(double progreso)
+    {
+        if(progreso >= 90)
+        {
+            return ProgressBarStyle.Success;
+
+        }else if(progreso >= 60)
+        {
+            return ProgressBarStyle.Info;
+        }
+        else if (progreso >= 40)
+        {
+            return ProgressBarStyle.Warning;
+        }
+        else
+        {
+            return ProgressBarStyle.Danger;
         }
     }
 }
