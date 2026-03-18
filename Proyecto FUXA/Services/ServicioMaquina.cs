@@ -32,6 +32,20 @@ public class ServicioMaquina
             .FirstOrDefaultAsync(m => m.Id == id);
     }
 
+    public async Task<Maquina?> GetByIdentificadorObjetoFuxaAsync(string identificadorObjetoFuxa)
+    {
+        var objetoNormalizado = identificadorObjetoFuxa.Trim();
+        if (string.IsNullOrWhiteSpace(objetoNormalizado))
+        {
+            return null;
+        }
+
+        return await _db.Machines
+            .Include(m => m.EstadoActual)
+            .Include(m => m.Producciones)
+            .FirstOrDefaultAsync(m => m.IdentificadorObjetoFuxa == objetoNormalizado);
+    }
+
     public async Task AddAsync(Maquina machine)
     {
         var now = DateTime.UtcNow;
@@ -45,6 +59,36 @@ public class ServicioMaquina
     {
         machine.FechaActualizacion = DateTime.UtcNow;
         _db.Machines.Update(machine);
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task VincularObjetoFuxaAsync(int maquinaId, string identificadorObjetoFuxa)
+    {
+        var maquina = await _db.Machines.FirstOrDefaultAsync(m => m.Id == maquinaId);
+        if (maquina is null)
+        {
+            return;
+        }
+
+        var objetoNormalizado = identificadorObjetoFuxa.Trim();
+        if (string.IsNullOrWhiteSpace(objetoNormalizado))
+        {
+            return;
+        }
+
+        var maquinaConVinculo = await _db.Machines
+            .Where(m => m.Id != maquinaId && m.IdentificadorObjetoFuxa == objetoNormalizado)
+            .FirstOrDefaultAsync();
+
+        if (maquinaConVinculo is not null)
+        {
+            maquinaConVinculo.IdentificadorObjetoFuxa = null;
+            maquinaConVinculo.FechaActualizacion = DateTime.UtcNow;
+        }
+
+        maquina.IdentificadorObjetoFuxa = objetoNormalizado;
+        maquina.FechaActualizacion = DateTime.UtcNow;
+
         await _db.SaveChangesAsync();
     }
 

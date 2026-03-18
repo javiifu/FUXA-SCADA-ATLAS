@@ -1,8 +1,63 @@
 ﻿@page "/"
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
 
 <PageTitle>Home</PageTitle>
 
 <h1>Aplicación SCADA</h1>
 <iframe src="http://localhost:1881" style="width: 100%; height: 600px; border: 2px solid blue;"></iframe>
 
-FUXA SCADA
+<p class="mt-3 mb-1">
+    Contrato de integración FUXA → Blazor:
+</p>
+<ul>
+    <li>
+        FUXA debe enviar un <code>window.postMessage</code> al parent con uno de estos formatos:
+        <code>{ "type": "fuxa-object-selected", "id": "OBJETO_123" }</code>
+        o <code>{ "fuxaObjectId": "OBJETO_123" }</code>.
+    </li>
+    <li>
+        Blazor redirige automáticamente a <code>/maquinas?fuxaObjectId=OBJETO_123</code>.
+    </li>
+</ul>
+
+@code {
+    private IJSObjectReference? _fuxaBridgeModule;
+    private DotNetObjectReference<Home>? _dotNetReference;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        _fuxaBridgeModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/fuxaBridge.js");
+        _dotNetReference = DotNetObjectReference.Create(this);
+        await _fuxaBridgeModule.InvokeVoidAsync("startFuxaSelectionBridge", _dotNetReference);
+    }
+
+    [JSInvokable]
+    public void OnFuxaObjectSelected(string identificadorObjetoFuxa)
+    {
+        if (string.IsNullOrWhiteSpace(identificadorObjetoFuxa))
+        {
+            return;
+        }
+
+        var identificadorNormalizado = Uri.EscapeDataString(identificadorObjetoFuxa.Trim());
+        Navigation.NavigateTo($"/maquinas?fuxaObjectId={identificadorNormalizado}");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_fuxaBridgeModule is not null)
+        {
+            await _fuxaBridgeModule.InvokeVoidAsync("stopFuxaSelectionBridge");
+            await _fuxaBridgeModule.DisposeAsync();
+        }
+
+        _dotNetReference?.Dispose();
+    }
+}
