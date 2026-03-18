@@ -7,7 +7,14 @@
 
 <a class="btn btn-lg btn-primary float-lg-end" href="/anadir-maquina/">+ Añadir maquina</a>
 
-@if (maquinas is null)
+@if (!string.IsNullOrWhiteSpace(errorCarga))
+{
+    <div class="alert alert-danger mt-3">
+        <strong>No se pudieron cargar las máquinas.</strong>
+        <div>@errorCarga</div>
+    </div>
+}
+else if (maquinas is null)
 {
     <text>Cargando...</text>
 }
@@ -54,10 +61,19 @@ else
 
 @code {
     private List<Maquina>? maquinas;
+    private string? errorCarga;
 
 
     protected override async Task OnInitializedAsync()
     {
-        maquinas = await ServicioMaquina.GetAllAsync();
+        try
+        {
+            maquinas = await ServicioMaquina.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            errorCarga = ex.Message;
+            maquinas = new List<Maquina>();
+        }
     }
 }
