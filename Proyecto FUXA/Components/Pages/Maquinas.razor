@@ -1,9 +1,6 @@
 @page "/maquinas"
 
-@using Microsoft.AspNetCore.Components.Authorization
-@using Microsoft.EntityFrameworkCore.Metadata.Internal
 @using Proyecto_FUXA.Models
-@inject Proyecto_FUXA.Services.FuxaService FuxaService
 @inject Proyecto_FUXA.Services.ServicioMaquina ServicioMaquina
 
 <h1>Maquinas</h1>
@@ -61,6 +58,6 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        maquinas = await FuxaService.GetMaquinasDesdeFuxa();
+        maquinas = await ServicioMaquina.GetAllAsync();
     }
 }
