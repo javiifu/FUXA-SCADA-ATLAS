@@ -6,6 +6,17 @@
     overflow: auto;
 }
 
+.planta-visor-lineas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.planta-visor-linea {
+    stroke-width: 4;
+}
+
 .planta-visor-objeto {
     position: absolute;
     border: 2px solid #0f172a;
@@ -17,6 +28,10 @@
     justify-content: center;
     align-items: center;
     text-align: center;
+}
+
+.planta-visor-objeto-circulo {
+    border-radius: 999px;
 }
 
 .planta-visor-nombre {

@@ -7,6 +7,12 @@ namespace Proyecto_FUXA.Services;
 public class ServicioPlantaVisual
 {
     private readonly AppDbContext _db;
+    private static readonly HashSet<string> TiposSoportados = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Rectangulo",
+        "Circulo",
+        "Linea"
+    };
 
     public ServicioPlantaVisual(AppDbContext db)
     {
@@ -32,14 +38,20 @@ public class ServicioPlantaVisual
 
     public async Task<PlantaObjetoVisual> AddRectanguloAsync(string nombre)
     {
+        return await AddAsync("Rectangulo", nombre);
+    }
+
+    public async Task<PlantaObjetoVisual> AddAsync(string tipo, string nombre)
+    {
+        var tipoNormalizado = NormalizarTipo(tipo);
         var objeto = new PlantaObjetoVisual
         {
             Nombre = nombre,
-            Tipo = "Rectangulo",
+            Tipo = tipoNormalizado,
             PosX = 20,
             PosY = 20,
-            Width = 120,
-            Height = 80,
+            Width = tipoNormalizado == "Linea" ? 120 : 120,
+            Height = tipoNormalizado == "Linea" ? 0 : 80,
             ColorHex = "#2f80ed",
             FechaCreacion = DateTime.UtcNow,
             FechaActualizacion = DateTime.UtcNow
@@ -53,6 +65,8 @@ public class ServicioPlantaVisual
 
     public async Task UpdateAsync(PlantaObjetoVisual objeto)
     {
+        objeto.Tipo = NormalizarTipo(objeto.Tipo);
+        objeto.ColorHex = NormalizarColorHex(objeto.ColorHex);
         objeto.FechaActualizacion = DateTime.UtcNow;
         _db.ObjetosVisualesPlanta.Update(objeto);
         await _db.SaveChangesAsync();
@@ -81,5 +95,26 @@ public class ServicioPlantaVisual
         objeto.MaquinaId = maquinaId;
         objeto.FechaActualizacion = DateTime.UtcNow;
         await _db.SaveChangesAsync();
+    }
+
+    private static string NormalizarTipo(string? tipo)
+    {
+        if (string.IsNullOrWhiteSpace(tipo))
+        {
+            return "Rectangulo";
+        }
+
+        var tipoNormalizado = char.ToUpperInvariant(tipo[0]) + tipo[1..].ToLowerInvariant();
+        return TiposSoportados.Contains(tipoNormalizado) ? tipoNormalizado : "Rectangulo";
+    }
+
+    private static string NormalizarColorHex(string? colorHex)
+    {
+        if (string.IsNullOrWhiteSpace(colorHex))
+        {
+            return "#2f80ed";
+        }
+
+        return colorHex.StartsWith('#') ? colorHex : $"#{colorHex}";
     }
 }
