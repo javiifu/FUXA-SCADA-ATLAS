@@ -1,0 +1,87 @@
+﻿@page "/planta"
+@using Proyecto_FUXA.Models
+@using Proyecto_FUXA.Services
+@inject ServicioMaquina ServicioMaquina
+@inject ServicioProductividad ProductivityService
+
+<h3>Planta</h3>
+
+<svg width="800" height="500">
+
+    @foreach (var machine in maquinas)
+    {
+        var prod = GetProductivity(machine);
+
+        <g>
+            <rect x="@machine.PosX"
+                  y="@machine.PosY"
+                  width="100"
+                  height="100"
+                  fill="@GetColor(prod)"
+                  stroke="black"
+                  stroke-width="2" />
+
+            <text x="@(machine.PosX + 50)"
+                  y="@(machine.PosY + 55)"
+                  text-anchor="middle"
+                  fill="white"
+                  font-size="14"
+                  font-weight="bold">
+                @prod%
+            </text>
+        </g>
+    }
+    
+</svg>
+
+@foreach (var machine in maquinas)
+{
+    <p>@machine.Nombre - Producciones: @(machine.Producciones?.Count ?? 0) - Prod: @GetProductivity(machine)</p>
+}
+
+@code {
+    private List<Maquina> maquinas = new();
+
+    int startX = 50;
+    int width = 100;
+    int margin = 50;
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        maquinas = await ServicioMaquina.GetAllAsync();
+        int x = 50;
+        foreach (var m in maquinas)
+        {
+            m.PosX = startX;
+            m.PosY = 50;
+            startX += width + margin;
+        }
+    }
+
+    private int GetProductivity(Maquina machine)
+    {
+        var last = machine.Producciones?
+            .OrderByDescending(p => p.FechaRegistro)
+            .FirstOrDefault();
+
+        var realCycles = last?.CiclosReales ?? 0;
+
+        return Convert.ToInt32(ProductivityService.Calcular(realCycles, machine.CiclosObjetivo));
+    }
+
+    private string GetColor(int productivity)
+    {
+        
+
+        if (productivity >= 70) return "green";
+        if (productivity >= 30) return "yellow";
+        return "red";
+    }
+
+    private void Seleccionar(int id)
+    {
+        Console.WriteLine($"Máquina seleccionada: {id}");
+    }
+}

@@ -17,6 +17,7 @@ namespace Proyecto_FUXA.Services
         public async Task<List<Maquina>> GetAllAsync()
         {
             return await _db.Maquinas
+                .Include(m => m.Producciones)
                 .OrderBy(m => m.Nombre)
                 .ToListAsync();
         }
