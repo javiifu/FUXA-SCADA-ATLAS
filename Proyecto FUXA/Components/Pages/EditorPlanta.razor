@@ -1,0 +1,173 @@
+@page "/planta-editor"
+@using Proyecto_FUXA.Models
+@using Proyecto_FUXA.Services
+@rendermode InteractiveServer
+
+@inject ServicioPlantaVisual ServicioPlantaVisual
+@inject ServicioMaquina ServicioMaquina
+
+<h3>Editor visual de planta</h3>
+
+<div class="editor-planta-grid">
+    <div>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong>Lienzo</strong>
+            <button class="btn btn-primary btn-sm" @onclick="AgregarRectangulo">+ Añadir rectángulo</button>
+        </div>
+
+        <div class="planta-canvas">
+            @foreach (var objeto in objetos)
+            {
+                <div class="planta-objeto @(objeto.Id == selectedId ? "selected" : string.Empty)"
+                     style="@BuildObjectStyle(objeto)"
+                     title="@objeto.Nombre"
+                     @onclick="() => Seleccionar(objeto.Id)">
+                    <div class="planta-objeto-titulo">@objeto.Nombre</div>
+                    @if (!string.IsNullOrWhiteSpace(objeto.Maquina?.Nombre))
+                    {
+                        <div class="planta-objeto-subtitulo">@objeto.Maquina.Nombre</div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="planta-editor-panel">
+        <h5>Propiedades</h5>
+
+        @if (seleccionado is null)
+        {
+            <p class="text-muted">Selecciona un rectángulo para editar sus propiedades.</p>
+        }
+        else
+        {
+            <div class="mb-2">
+                <label class="form-label">Nombre</label>
+                <input class="form-control" @bind="seleccionado.Nombre" />
+            </div>
+
+            <div class="row g-2">
+                <div class="col-6">
+                    <label class="form-label">X</label>
+                    <input type="number" class="form-control" @bind="seleccionado.PosX" />
+                </div>
+                <div class="col-6">
+                    <label class="form-label">Y</label>
+                    <input type="number" class="form-control" @bind="seleccionado.PosY" />
+                </div>
+                <div class="col-6">
+                    <label class="form-label">Width</label>
+                    <input type="number" class="form-control" @bind="seleccionado.Width" />
+                </div>
+                <div class="col-6">
+                    <label class="form-label">Height</label>
+                    <input type="number" class="form-control" @bind="seleccionado.Height" />
+                </div>
+            </div>
+
+            <div class="mb-2 mt-2">
+                <label class="form-label">Color (hex)</label>
+                <input class="form-control" @bind="seleccionado.ColorHex" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Máquina asociada</label>
+                <select class="form-select" @bind="selectedMaquinaId">
+                    <option value="">-- Sin máquina --</option>
+                    @foreach (var maquina in maquinas)
+                    {
+                        <option value="@maquina.Id">@maquina.Nombre</option>
+                    }
+                </select>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button class="btn btn-success" @onclick="GuardarSeleccion">Guardar</button>
+                <button class="btn btn-outline-danger" @onclick="EliminarSeleccion">Eliminar</button>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<PlantaObjetoVisual> objetos = new();
+    private List<Maquina> maquinas = new();
+    private PlantaObjetoVisual? seleccionado;
+    private int? selectedId;
+    private int? selectedMaquinaId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatosAsync();
+    }
+
+    private async Task CargarDatosAsync()
+    {
+        objetos = await ServicioPlantaVisual.GetAllAsync();
+        maquinas = await ServicioMaquina.GetAllAsync();
+    }
+
+    private async Task AgregarRectangulo()
+    {
+        var nombre = $"Rectángulo {objetos.Count + 1}";
+        var nuevo = await ServicioPlantaVisual.AddRectanguloAsync(nombre);
+
+        await CargarDatosAsync();
+        Seleccionar(nuevo.Id);
+    }
+
+    private void Seleccionar(int id)
+    {
+        selectedId = id;
+        seleccionado = objetos.FirstOrDefault(x => x.Id == id);
+        selectedMaquinaId = seleccionado?.MaquinaId;
+    }
+
+    private async Task GuardarSeleccion()
+    {
+        if (seleccionado is null)
+        {
+            return;
+        }
+
+        seleccionado.Width = Math.Max(20, seleccionado.Width);
+        seleccionado.Height = Math.Max(20, seleccionado.Height);
+        seleccionado.ColorHex = NormalizarColorHex(seleccionado.ColorHex);
+
+        await ServicioPlantaVisual.UpdateAsync(seleccionado);
+        await ServicioPlantaVisual.VincularMaquinaAsync(seleccionado.Id, selectedMaquinaId);
+
+        await CargarDatosAsync();
+        Seleccionar(seleccionado.Id);
+    }
+
+    private async Task EliminarSeleccion()
+    {
+        if (selectedId is null)
+        {
+            return;
+        }
+
+        await ServicioPlantaVisual.DeleteAsync(selectedId.Value);
+        await CargarDatosAsync();
+
+        seleccionado = null;
+        selectedId = null;
+        selectedMaquinaId = null;
+    }
+
+    private static string NormalizarColorHex(string? color)
+    {
+        if (string.IsNullOrWhiteSpace(color))
+        {
+            return "#2f80ed";
+        }
+
+        return color.StartsWith('#') ? color : $"#{color}";
+    }
+
+    private static string BuildObjectStyle(PlantaObjetoVisual objeto)
+    {
+        return $"left:{objeto.PosX}px;top:{objeto.PosY}px;width:{Math.Max(20, objeto.Width)}px;height:{Math.Max(20, objeto.Height)}px;background:{NormalizarColorHex(objeto.ColorHex)};";
+    }
+}

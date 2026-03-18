@@ -15,6 +15,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddScoped<ServicioMaquina>();
 builder.Services.AddScoped<ServicioProductividad>();
+builder.Services.AddScoped<ServicioPlantaVisual>();
 builder.Services.AddScoped<FuxaService>();
 
 builder.Services.AddScoped(sp => new HttpClient

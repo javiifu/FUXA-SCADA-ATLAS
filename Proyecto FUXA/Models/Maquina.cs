@@ -20,6 +20,8 @@ namespace Proyecto_FUXA.Models
 
         public virtual ICollection<MaquinaProduccion> Producciones { get; set; } = new List<MaquinaProduccion>();
 
+        public virtual ICollection<PlantaObjetoVisual> ObjetosVisualesPlanta { get; set; } = new List<PlantaObjetoVisual>();
+
         [ForeignKey("EstadoActualId")]
         public virtual MaquinaEstatus? EstadoActual { get; set; }
 
