@@ -1,7 +1,8 @@
 @page "/dashboard-maquina/{machineId:int}"
-@using Proyecto_FUXA.Services
-@using Proyecto_FUXA.Models
+@page "/dashboard-maquina"
 @using System.Linq
+@using Proyecto_FUXA.Models
+@using Proyecto_FUXA.Services
 
 @inject ServicioMaquina MachineService
 @inject ServicioProductividad ProductivityService
@@ -10,7 +11,7 @@
 
 @if (machine == null)
 {
-    <p>Cargando...</p>
+    <p>@mensajeCarga</p>
 }
 else
 {
@@ -23,29 +24,44 @@ else
         <h4>@machine.Nombre</h4>
 
         <p><b>Sección:</b> @machine.NombreSeccion</p>
-
+        <p><b>Objeto FUXA:</b> @(machine.IdentificadorObjetoFuxa ?? "-")</p>
         <p><b>Estado:</b> @machine.EstadoActual?.Nombre (@machine.EstadoActualId)</p>
-
         <p><b>Objetivo ciclos:</b> @machine.CiclosObjetivo</p>
-
         <p><b>Ciclos reales:</b> @realCycles</p>
-
         <p><b>Productividad:</b> @productivity %</p>
 
     </div>
 }
 
 @code {
-
     [Parameter]
-    public int machineId { get; set; }
+    public int? machineId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "fuxaObjectId")]
+    public string? fuxaObjectId { get; set; }
 
     private Maquina? machine;
+    private string mensajeCarga = "Cargando...";
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
-        var machines = await MachineService.GetMachinesAsync();
-        machine = machines.FirstOrDefault(x => x.Id == machineId);
+        machine = null;
+
+        if (machineId.HasValue)
+        {
+            machine = await MachineService.GetByIdAsync(machineId.Value);
+        }
+        else if (!string.IsNullOrWhiteSpace(fuxaObjectId))
+        {
+            machine = await MachineService.GetByIdentificadorObjetoFuxaAsync(fuxaObjectId);
+        }
+
+        if (machine is null)
+        {
+            mensajeCarga = string.IsNullOrWhiteSpace(fuxaObjectId)
+                ? "No se encontró la máquina solicitada."
+                : $"No existe una máquina vinculada al objeto FUXA '{fuxaObjectId}'.";
+        }
     }
 
     string GetColor(string? status)
@@ -58,5 +74,4 @@ else
             _ => "white"
         };
     }
-
 }

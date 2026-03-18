@@ -34,10 +34,16 @@ public class ServicioMaquina
 
     public async Task<Maquina?> GetByIdentificadorObjetoFuxaAsync(string identificadorObjetoFuxa)
     {
+        var objetoNormalizado = identificadorObjetoFuxa.Trim();
+        if (string.IsNullOrWhiteSpace(objetoNormalizado))
+        {
+            return null;
+        }
+
         return await _db.Machines
             .Include(m => m.EstadoActual)
             .Include(m => m.Producciones)
-            .FirstOrDefaultAsync(m => m.IdentificadorObjetoFuxa == identificadorObjetoFuxa);
+            .FirstOrDefaultAsync(m => m.IdentificadorObjetoFuxa == objetoNormalizado);
     }
 
     public async Task AddAsync(Maquina machine)

@@ -5,14 +5,28 @@ BEGIN
 END;
 GO
 
+IF EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = 'IX_Maquina_IdentificadorObjetoFuxa'
+      AND object_id = OBJECT_ID('Maquina')
+      AND is_unique = 0
+)
+BEGIN
+    DROP INDEX [IX_Maquina_IdentificadorObjetoFuxa] ON [Maquina];
+END;
+GO
+
 IF NOT EXISTS (
     SELECT 1
     FROM sys.indexes
     WHERE name = 'IX_Maquina_IdentificadorObjetoFuxa'
       AND object_id = OBJECT_ID('Maquina')
+      AND is_unique = 1
 )
 BEGIN
-    CREATE INDEX [IX_Maquina_IdentificadorObjetoFuxa]
-        ON [Maquina]([IdentificadorObjetoFuxa]);
+    CREATE UNIQUE INDEX [IX_Maquina_IdentificadorObjetoFuxa]
+        ON [Maquina]([IdentificadorObjetoFuxa])
+        WHERE [IdentificadorObjetoFuxa] IS NOT NULL;
 END;
 GO

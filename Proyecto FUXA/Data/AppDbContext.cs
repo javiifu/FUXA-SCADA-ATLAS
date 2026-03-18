@@ -16,7 +16,7 @@ public class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        // Alinea explícitamente los nombres de tablas con las entidades existentes
+        // Alinea explÃ­citamente los nombres de tablas con las entidades existentes
         modelBuilder.Entity<Maquina>().ToTable("Maquina");
         modelBuilder.Entity<MaquinaEstatus>().ToTable("MaquinaEstatus");
         modelBuilder.Entity<MaquinaProduccion>().ToTable("MaquinaProduccion");
@@ -33,6 +33,8 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Maquina>()
             .HasIndex(m => m.IdentificadorObjetoFuxa)
+            .IsUnique()
+            .HasFilter("[IdentificadorObjetoFuxa] IS NOT NULL")
             .HasDatabaseName("IX_Maquina_IdentificadorObjetoFuxa");
 
         modelBuilder.Entity<MaquinaProduccion>()
