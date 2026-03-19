@@ -81,9 +81,10 @@ else
     private static string GetColor(int productivity, string fallbackColor)
     {
         if (productivity >= 90) return "#2e7d32";
-        if (productivity >= 60) return "007BFF";
+        if (productivity >= 60) return "#3a1fde";
         if (productivity >= 40) return "#f9a825";
-        if (productivity < 40) return "#c62828";
+        if (productivity >= 0) return "#c62828";
+        
 
         return string.IsNullOrWhiteSpace(fallbackColor)
             ? "#2f80ed"
