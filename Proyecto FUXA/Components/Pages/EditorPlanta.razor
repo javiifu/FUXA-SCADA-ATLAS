@@ -34,6 +34,23 @@
                           stroke="@NormalizarColorHex(objeto.ColorHex)"
                           @onmousedown="@((e) => IniciarArrastre(objeto.Id, e))"
                           @onclick="@(() => Seleccionar(objeto.Id))" />
+
+                    
+                    @if (objeto.Id == selectedId)
+                    {
+                        <circle class="planta-linea-handle"
+                                cx="@objeto.PosX"
+                                cy="@objeto.PosY"
+                                r="7"
+                                @onmousedown:stopPropagation="true"
+                                @onmousedown="@((e) => IniciarRedimensionLinea(objeto.Id, true, e))" />
+                        <circle class="planta-linea-handle"
+                                cx="@(objeto.PosX + objeto.Width)"
+                                cy="@(objeto.PosY + objeto.Height)"
+                                r="7"
+                                @onmousedown:stopPropagation="true"
+                                @onmousedown="@((e) => IniciarRedimensionLinea(objeto.Id, false, e))" />
+                    }
                 }
             </svg>
 
@@ -44,10 +61,21 @@
                      title="@objeto.Nombre"
                      @onmousedown="@((e) => IniciarArrastre(objeto.Id, e))"
                      @onclick="@(() => Seleccionar(objeto.Id))">
-                    <div class="planta-objeto-titulo">@objeto.Nombre</div>
-                    @if (!string.IsNullOrWhiteSpace(objeto.Maquina?.Nombre))
+                     @if (!string.IsNullOrWhiteSpace(objeto.Maquina?.Nombre))
+                     {
+                        <div class="planta-objeto-titulo">@objeto.Maquina.Nombre</div>
+                     }
+                    
+                    @if (!string.IsNullOrWhiteSpace(objeto.Nombre))
                     {
-                        <div class="planta-objeto-subtitulo">@objeto.Maquina.Nombre</div>
+                        <div class="planta-objeto-subtitulo">@objeto.Nombre</div>
+                    }
+                    @if (objeto.Id == selectedId)
+                    {
+                        <div class="planta-resize-handle"
+                             title="Redimensionar"
+                             @onmousedown:stopPropagation="true"
+                             @onmousedown="@((e) => IniciarRedimensionForma(objeto.Id, e))"></div>
                     }
                 </div>
             }
@@ -119,15 +147,27 @@
     private PlantaObjetoVisual? seleccionado;
     private int? selectedId;
     private int? selectedMaquinaId;
-    private int? draggingId;
-    private bool dragConMovimiento;
+    private int? interaccionId;
+    private bool interaccionConMovimiento;
+    private TipoInteraccion interaccionActiva = TipoInteraccion.Ninguna;
     private int dragStartClientX;
     private int dragStartClientY;
     private int dragStartPosX;
     private int dragStartPosY;
+    private int dragStartWidth;
+    private int dragStartHeight;
 
     private const int CanvasWidth = 1200;
     private const int CanvasHeight = 520;
+
+    private enum TipoInteraccion
+    {
+        Ninguna,
+        Arrastre,
+        RedimensionForma,
+        RedimensionLineaInicio,
+        RedimensionLineaFin
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -228,22 +268,75 @@
         }
 
         Seleccionar(id);
-        draggingId = id;
-        dragConMovimiento = false;
+        interaccionId = id;
+        interaccionActiva = TipoInteraccion.Arrastre;
+        interaccionConMovimiento = false;
         dragStartClientX = (int)e.ClientX;
         dragStartClientY = (int)e.ClientY;
         dragStartPosX = objeto.PosX;
         dragStartPosY = objeto.PosY;
+        dragStartWidth = objeto.Width;
+        dragStartHeight = objeto.Height;
     }
 
-    private void MoverArrastre(MouseEventArgs e)
+    private void IniciarRedimensionForma(int id, MouseEventArgs e)
     {
-        if (draggingId is null)
+        if (e.Button != 0)
         {
             return;
         }
 
-        var objeto = objetos.FirstOrDefault(x => x.Id == draggingId.Value);
+        var objeto = objetos.FirstOrDefault(x => x.Id == id && x.Tipo != "Linea");
+        if (objeto is null)
+        {
+            return;
+        }
+
+        Seleccionar(id);
+        interaccionId = id;
+        interaccionActiva = TipoInteraccion.RedimensionForma;
+        interaccionConMovimiento = false;
+        dragStartClientX = (int)e.ClientX;
+        dragStartClientY = (int)e.ClientY;
+        dragStartPosX = objeto.PosX;
+        dragStartPosY = objeto.PosY;
+        dragStartWidth = Math.Max(20, objeto.Width);
+        dragStartHeight = Math.Max(20, objeto.Height);
+    }
+
+    private void IniciarRedimensionLinea(int id, bool puntoInicio, MouseEventArgs e)
+    {
+        if (e.Button != 0)
+        {
+            return;
+        }
+
+        var objeto = objetos.FirstOrDefault(x => x.Id == id && x.Tipo == "Linea");
+        if (objeto is null)
+        {
+            return;
+        }
+
+        Seleccionar(id);
+        interaccionId = id;
+        interaccionActiva = puntoInicio ? TipoInteraccion.RedimensionLineaInicio : TipoInteraccion.RedimensionLineaFin;
+        interaccionConMovimiento = false;
+        dragStartClientX = (int)e.ClientX;
+        dragStartClientY = (int)e.ClientY;
+        dragStartPosX = objeto.PosX;
+        dragStartPosY = objeto.PosY;
+        dragStartWidth = objeto.Width;
+        dragStartHeight = objeto.Height;
+    }
+
+    private void MoverArrastre(MouseEventArgs e)
+    {
+        if (interaccionId is null || interaccionActiva == TipoInteraccion.Ninguna)
+        {
+            return;
+        }
+
+        var objeto = objetos.FirstOrDefault(x => x.Id == interaccionId.Value);
         if (objeto is null)
         {
             return;
@@ -256,25 +349,56 @@
             return;
         }
 
-        var nuevoX = dragStartPosX + deltaX;
-        var nuevoY = dragStartPosY + deltaY;
+        if (interaccionActiva == TipoInteraccion.Arrastre)
+        {
+            var nuevoX = dragStartPosX + deltaX;
+            var nuevoY = dragStartPosY + deltaY;
+            (objeto.PosX, objeto.PosY) = LimitarPosicionEnLienzo(objeto, nuevoX, nuevoY);
+        }
+        else if (interaccionActiva == TipoInteraccion.RedimensionForma)
+        {
+            var nuevoAncho = Math.Clamp(dragStartWidth + deltaX, 20, CanvasWidth - objeto.PosX);
+            var nuevoAlto = Math.Clamp(dragStartHeight + deltaY, 20, CanvasHeight - objeto.PosY);
+            objeto.Width = nuevoAncho;
+            objeto.Height = nuevoAlto;
+        }
+        else if (interaccionActiva == TipoInteraccion.RedimensionLineaInicio)
+        {
+            var x2 = dragStartPosX + dragStartWidth;
+            var y2 = dragStartPosY + dragStartHeight;
+            var x1 = Math.Clamp(dragStartPosX + deltaX, 0, CanvasWidth);
+            var y1 = Math.Clamp(dragStartPosY + deltaY, 0, CanvasHeight);
 
-        (objeto.PosX, objeto.PosY) = LimitarPosicionEnLienzo(objeto, nuevoX, nuevoY);
-        dragConMovimiento = true;
+            objeto.PosX = x1;
+            objeto.PosY = y1;
+            objeto.Width = x2 - x1;
+            objeto.Height = y2 - y1;
+        }
+        else if (interaccionActiva == TipoInteraccion.RedimensionLineaFin)
+        {
+            var x2 = Math.Clamp(dragStartPosX + dragStartWidth + deltaX, 0, CanvasWidth);
+            var y2 = Math.Clamp(dragStartPosY + dragStartHeight + deltaY, 0, CanvasHeight);
+
+            objeto.Width = x2 - dragStartPosX;
+            objeto.Height = y2 - dragStartPosY;
+        }
+
+        interaccionConMovimiento = true;
     }
 
     private async Task FinalizarArrastre()
     {
-        if (draggingId is null)
+        if (interaccionId is null)
         {
             return;
         }
 
-        var objeto = objetos.FirstOrDefault(x => x.Id == draggingId.Value);
-        var huboMovimiento = dragConMovimiento;
+        var objeto = objetos.FirstOrDefault(x => x.Id == interaccionId.Value);
+        var huboMovimiento = interaccionConMovimiento;
 
-        draggingId = null;
-        dragConMovimiento = false;
+        interaccionId = null;
+        interaccionConMovimiento = false;
+        interaccionActiva = TipoInteraccion.Ninguna;
 
         if (!huboMovimiento || objeto is null)
         {

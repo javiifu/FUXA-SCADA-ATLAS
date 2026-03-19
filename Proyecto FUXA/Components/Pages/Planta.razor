@@ -37,16 +37,17 @@ else
 
             <div class="planta-visor-objeto @(GetClaseObjeto(objeto))"
                  style="@BuildObjectStyle(objeto, colorFondo)">
-                <div class="planta-visor-nombre">@objeto.Nombre</div>
+                
 
                 @if (objeto.Maquina is null)
                 {
-                    <div class="planta-visor-detalle">Sin máquina vinculada</div>
+                    <div class="planta-visor-nombre">Sin máquina vinculada</div>
                 }
                 else
                 {
-                    <div class="planta-visor-detalle">@objeto.Maquina.Nombre</div>
+                    <div class="planta-visor-nombre">@objeto.Maquina.Nombre</div>
                     <div class="planta-visor-detalle">Prod: @productividad%</div>
+                    <div class="planta-visor-detalle">@objeto.Nombre</div>
                 }
             </div>
         }

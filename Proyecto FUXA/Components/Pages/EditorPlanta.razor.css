@@ -6,10 +6,12 @@
 
 .planta-canvas {
     position: relative;
-    min-height: 520px;
+    width: 1200px;
+    height: 520px;
     border: 1px solid #d0d7de;
     background: #f8fafc;
-    overflow: auto;
+    overflow: hidden;
+    user-select: none;
 }
 
 .planta-canvas-lineas {
@@ -31,7 +33,24 @@
     align-items: center;
     padding: 0.25rem;
     text-align: center;
-    cursor: pointer;
+    cursor: grab;
+}
+
+.planta-objeto:active {
+    cursor: grabbing;
+}
+
+.planta-resize-handle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    right: -6px;
+    bottom: -6px;
+    background: #fff;
+    border: 2px solid #2563eb;
+    border-radius: 2px;
+    cursor: nwse-resize;
+    z-index: 2;
 }
 
 .planta-objeto-circulo {
@@ -44,13 +63,21 @@
 
 .planta-linea {
     stroke-width: 4;
-    cursor: pointer;
+    cursor: grab;
     pointer-events: auto;
 }
 
 .planta-linea.selected {
     stroke: #2563eb;
     stroke-width: 6;
+}
+
+.planta-linea-handle {
+    fill: #fff;
+    stroke: #2563eb;
+    stroke-width: 2;
+    cursor: crosshair;
+    pointer-events: auto;
 }
 
 .planta-objeto-titulo {
