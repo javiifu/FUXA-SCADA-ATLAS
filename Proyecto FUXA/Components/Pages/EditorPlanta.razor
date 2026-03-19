@@ -19,7 +19,10 @@
             </div>
         </div>
 
-        <div class="planta-canvas">
+        <div class="planta-canvas"
+            @onmousemove="MoverArrastre"
+            @onmouseup="FinalizarArrastre"
+            @onmouseleave="FinalizarArrastre">
             <svg class="planta-canvas-lineas">
                 @foreach (var objeto in objetos.Where(x => x.Tipo == "Linea"))
                 {
@@ -29,6 +32,7 @@
                           x2="@(objeto.PosX + objeto.Width)"
                           y2="@(objeto.PosY + objeto.Height)"
                           stroke="@NormalizarColorHex(objeto.ColorHex)"
+                          @onmousedown="@((e) => IniciarArrastre(objeto.Id, e))"
                           @onclick="@(() => Seleccionar(objeto.Id))" />
                 }
             </svg>
@@ -38,6 +42,7 @@
                 <div class="planta-objeto @(GetClaseObjeto(objeto)) @(objeto.Id == selectedId ? "selected" : string.Empty)"
                      style="@BuildObjectStyle(objeto)"
                      title="@objeto.Nombre"
+                     @onmousedown="@((e) => IniciarArrastre(objeto.Id, e))"
                      @onclick="@(() => Seleccionar(objeto.Id))">
                     <div class="planta-objeto-titulo">@objeto.Nombre</div>
                     @if (!string.IsNullOrWhiteSpace(objeto.Maquina?.Nombre))
@@ -87,10 +92,7 @@
                 </div>
             </div>
 
-            <div class="mb-2 mt-2">
-                <label class="form-label">Color (hex)</label>
-                <input class="form-control" @bind="seleccionado.ColorHex" />
-            </div>
+
 
             <div class="mb-3">
                 <label class="form-label">Máquina asociada</label>
@@ -117,6 +119,15 @@
     private PlantaObjetoVisual? seleccionado;
     private int? selectedId;
     private int? selectedMaquinaId;
+    private int? draggingId;
+    private bool dragConMovimiento;
+    private int dragStartClientX;
+    private int dragStartClientY;
+    private int dragStartPosX;
+    private int dragStartPosY;
+
+    private const int CanvasWidth = 1200;
+    private const int CanvasHeight = 520;
 
     protected override async Task OnInitializedAsync()
     {
@@ -203,6 +214,77 @@
         selectedMaquinaId = null;
     }
 
+    private void IniciarArrastre(int id, MouseEventArgs e)
+    {
+        if (e.Button != 0)
+        {
+            return;
+        }
+
+        var objeto = objetos.FirstOrDefault(x => x.Id == id);
+        if (objeto is null)
+        {
+            return;
+        }
+
+        Seleccionar(id);
+        draggingId = id;
+        dragConMovimiento = false;
+        dragStartClientX = (int)e.ClientX;
+        dragStartClientY = (int)e.ClientY;
+        dragStartPosX = objeto.PosX;
+        dragStartPosY = objeto.PosY;
+    }
+
+    private void MoverArrastre(MouseEventArgs e)
+    {
+        if (draggingId is null)
+        {
+            return;
+        }
+
+        var objeto = objetos.FirstOrDefault(x => x.Id == draggingId.Value);
+        if (objeto is null)
+        {
+            return;
+        }
+
+        var deltaX = (int)e.ClientX - dragStartClientX;
+        var deltaY = (int)e.ClientY - dragStartClientY;
+        if (deltaX == 0 && deltaY == 0)
+        {
+            return;
+        }
+
+        var nuevoX = dragStartPosX + deltaX;
+        var nuevoY = dragStartPosY + deltaY;
+
+        (objeto.PosX, objeto.PosY) = LimitarPosicionEnLienzo(objeto, nuevoX, nuevoY);
+        dragConMovimiento = true;
+    }
+
+    private async Task FinalizarArrastre()
+    {
+        if (draggingId is null)
+        {
+            return;
+        }
+
+        var objeto = objetos.FirstOrDefault(x => x.Id == draggingId.Value);
+        var huboMovimiento = dragConMovimiento;
+
+        draggingId = null;
+        dragConMovimiento = false;
+
+        if (!huboMovimiento || objeto is null)
+        {
+            return;
+        }
+
+        await ServicioPlantaVisual.UpdateAsync(objeto);
+    }
+
+
     private static string NormalizarColorHex(string? color)
     {
         if (string.IsNullOrWhiteSpace(color))
@@ -219,6 +301,44 @@
     }
 
     private bool EsLineaSeleccionada => seleccionado?.Tipo == "Linea";
+
+    private static (int X, int Y) LimitarPosicionEnLienzo(PlantaObjetoVisual objeto, int posX, int posY)
+    {
+        if (objeto.Tipo == "Linea")
+        {
+            var minX = Math.Min(posX, posX + objeto.Width);
+            var maxX = Math.Max(posX, posX + objeto.Width);
+            var minY = Math.Min(posY, posY + objeto.Height);
+            var maxY = Math.Max(posY, posY + objeto.Height);
+
+            if (minX < 0)
+            {
+                posX -= minX;
+            }
+            else if (maxX > CanvasWidth)
+            {
+                posX -= maxX - CanvasWidth;
+            }
+
+            if (minY < 0)
+            {
+                posY -= minY;
+            }
+            else if (maxY > CanvasHeight)
+            {
+                posY -= maxY - CanvasHeight;
+            }
+
+            return (posX, posY);
+        }
+
+        var ancho = Math.Max(20, objeto.Width);
+        var alto = Math.Max(20, objeto.Height);
+        var x = Math.Clamp(posX, 0, CanvasWidth - ancho);
+        var y = Math.Clamp(posY, 0, CanvasHeight - alto);
+
+        return (x, y);
+    }
 
     private static string GetClaseObjeto(PlantaObjetoVisual objeto)
     {

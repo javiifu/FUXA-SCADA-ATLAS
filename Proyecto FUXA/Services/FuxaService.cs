@@ -18,18 +18,14 @@ namespace Proyecto_FUXA.Services
 
         public async Task<List<Maquina>> GetMaquinasDesdeFuxa()
         {
-            //var project = await _http.GetFromJsonAsync<FuxaProject>("/api/project", new JsonSerializerOptions
-            //{
-            //    PropertyNameCaseInsensitive = true
-            //});
+            var project = await _http.GetFromJsonAsync<FuxaProject>("/api/project", new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
 
-            //Console.WriteLine(project == null ? "PROJECT NULL" : "PROJECT OK");
-            //Console.WriteLine(project?.Devices?.Count ?? 0);
+            Console.WriteLine(project == null ? "PROJECT NULL" : "PROJECT OK");
+            Console.WriteLine(project?.Devices?.Count ?? 0);
 
-            var project = await _http.GetFromJsonAsync<FuxaProject>("/api/project",new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
 
             Console.WriteLine(project == null ? "PROJECT NULL" : "PROJECT OK");
 
@@ -51,7 +47,7 @@ namespace Proyecto_FUXA.Services
 
                 foreach (var item in itemsValidos.Values)
                 {
-                    
+
                     maquinas.Add(new Maquina
                     {
                         Nombre = ObtenerNombreVisible(item),
@@ -94,7 +90,7 @@ namespace Proyecto_FUXA.Services
             return resultado;
         }
 
-        //Filtra y devuelve SOLO las tuberías que hay en el svgContent. 
+        //Filtra y devuelve SOLO las tuberías que hay en el svgContent.
         public async Task<List<FuxaItemDto>> GetTuberiasDesdeFuxa()
         {
             var items = await GetItemsValidosDesdeFuxa();
@@ -167,13 +163,13 @@ namespace Proyecto_FUXA.Services
             return item.Type;
         }*/
 
-        //Devuelve un nombre visible para el item, usando su Name si está informado. 
+        //Devuelve un nombre visible para el item, usando su Name si está informado.
         private string ObtenerNombreVisible(FuxaItemDto item)
         {
             if (!string.IsNullOrWhiteSpace(item.Name))
                 return item.Name;
 
-            // Si no tiene nombre, generamos uno a partir del tipo
+            //Si no tiene nombre, generamos uno a partir del tipo
             return item.Name;
         }
 
