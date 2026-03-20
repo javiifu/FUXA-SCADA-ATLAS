@@ -25,7 +25,7 @@ public class ServicioPlantaVisual
             .Include(x => x.Maquina)
             .ThenInclude(m => m!.Producciones)
             .OrderBy(x => x.Id)
-            .ToListAsync();
+            .ToListAsync();  
     }
 
     public async Task<PlantaObjetoVisual?> GetByIdAsync(int id)

@@ -26,6 +26,7 @@ namespace Proyecto_FUXA.Services
         public async Task<Maquina?> GetByIdAsync(int id)
         {
             return await _db.Maquinas
+                .Include(m => m.Producciones)
                 .FirstOrDefaultAsync(m => m.Id == id);
         }
 
@@ -90,34 +91,28 @@ namespace Proyecto_FUXA.Services
         public async Task<Maquina?> ObtenerPorIdFuxa(string idFuxa)
         {
             return await _db.Maquinas
-                .FirstOrDefaultAsync(m => m.IdFuxa == idFuxa);
+                .FirstOrDefaultAsync(m => m.FuxaDeviceId == idFuxa);
         }
 
         public async Task GuardarMaquina(Maquina maquina)
         {
-<<<<<<< HEAD
-            var existe = await _db.Maquinas
-                .AnyAsync(m => m.IdFuxa == maquina.IdFuxa);
 
-            if (!existe)
-            {
-=======
-            var existe = await _db.Maquinas.AnyAsync(m => m.IdFuxa == maquina.IdFuxa);
+            var existe = maquina.Id > 0 || await _db.Maquinas.AnyAsync(m => m.FuxaDeviceId == maquina.FuxaDeviceId);
 
             maquina.FechaActualizacion = DateTime.UtcNow;
 
-            if (!existe)
-            {
-                maquina.FechaCreacion = DateTime.UtcNow;
->>>>>>> yago
-                _db.Maquinas.Add(maquina);
-            }
-            else
-            {
-                _db.Maquinas.Update(maquina);
-            }
+                if (!existe)
+                {
+                    maquina.FechaCreacion = DateTime.UtcNow;
 
-            await _db.SaveChangesAsync();
+                    _db.Maquinas.Add(maquina);
+                }
+                else
+                {
+                    _db.Maquinas.Update(maquina);
+                }
+
+                await _db.SaveChangesAsync();
+            }
         }
     }
-}

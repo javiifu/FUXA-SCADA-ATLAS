@@ -1,15 +1,10 @@
-<<<<<<< HEAD
-@page "/editar-maquina/{IdFuxa}"
-=======
-@page "/editar-maquina/{idFuxa}"
->>>>>>> yago
+@page "/editar-maquina/{id:int}"
+
 @using Proyecto_FUXA.Models
 @using Proyecto_FUXA.Services
 
-
 @inject ServicioMaquina MachineService
 @inject NavigationManager Navigation
-
 
 <h3>@(machine?.Id == 0 ? "Registrar nueva máquina" : "Editar máquina")</h3>
 
@@ -21,23 +16,10 @@ else
 {
     <div style="border-radius: 8px; border:1px solid #ccc; padding:20px; width:500px; background-color: #f9f9f9;">
 
-        <div class="alert alert-info" style="font-size: 0.9rem;">
-            ID Técnico (FUXA): <strong>@idFuxa</strong>
-        </div>
-
-<<<<<<< HEAD
-        <div>
-            <label>ID Fuxa</label><br/>
-            <input class="form-control" @bind="machine.IdFuxa" disabled/>
-        </div>
-
-        <br />
-=======
         <div class="mb-3">
             <label class="form-label">Nombre de la Máquina</label>
             <input class="form-control" @bind="machine.Nombre" placeholder="Ej: Prensa Hidráulica" />
         </div>
->>>>>>> yago
 
         <div class="mb-3">
             <label class="form-label">Número de Orden</label>
@@ -64,82 +46,53 @@ else
             </select>
         </div>
 
-        <div class="mt-4">
+        <div class="mt-4 d-flex gap-2">
             <button class="btn btn-primary" @onclick="Guardar">
                 <i class="bi bi-save"></i> Guardar datos
             </button>
             <button class="btn btn-secondary" @onclick="Cancelar">Cancelar</button>
         </div>
     </div>
+
 }
 
 @code {
     [Parameter]
-<<<<<<< HEAD
-    public String IdFuxa { get; set; }
-=======
-    public string idFuxa { get; set; } = string.Empty;
->>>>>>> yago
+    public int id { get; set; }
 
     private Maquina? machine;
 
     protected override async Task OnInitializedAsync()
     {
-<<<<<<< HEAD
-        machine = await MachineService.ObtenerPorIdFuxa(IdFuxa);
 
-        if (machine == null)
-        {
-            machine = new Maquina
+        var maquinaExistente = await MachineService.GetByIdAsync(id);
+        machine = maquinaExistente ?? new Maquina
             {
-                IdFuxa = IdFuxa,
-                Nombre = "Nueva Máquina",
-                FechaCreacion = DateTime.Now,
-                EstaActivo = true,
-                EstadoActualId = 1
-=======
-        // buscamos la maquina en la base de datos
-        var maquinaExistente = await MachineService.ObtenerPorIdFuxa(idFuxa);
-
-        if (maquinaExistente != null)
-        {
-            machine = maquinaExistente;
-        }
-        else
-        {
-            // sino existe se crea un objeto vacio para que se rellene
-            machine = new Maquina
-            {
-                IdFuxa = idFuxa,
-                Nombre = "",
-                NombreSeccion = "",
+                Nombre = string.Empty,
+                NombreSeccion = string.Empty,
                 CiclosObjetivo = 0,
-                EstadoActualId = 1, // por defecto la ponemos activa
-                FechaCreacion = DateTime.Now
->>>>>>> yago
+                EstadoActualId = 1,
+                FechaCreacion = DateTime.UtcNow
             };
-        }
     }
+
+
 
     private async Task Guardar()
     {
-<<<<<<< HEAD
-        if (machine is null)return;
 
-        machine.FechaActualizacion = DateTime.Now;
+        if (machine == null)
+        {
+            return;
+        }
 
-        await MachineService.GuardarMaquina(machine);
-=======
-        if (machine == null) return;
+            await MachineService.GuardarMaquina(machine);
 
-        await MachineService.GuardarMaquina(machine);
+            Navigation.NavigateTo("/maquinas");
+        }
 
->>>>>>> yago
-        Navigation.NavigateTo("/maquinas");
-    }
-
-    private void Cancelar()
-    {
-        Navigation.NavigateTo("/maquinas");
-    }
+        private void Cancelar()
+        {
+            Navigation.NavigateTo("/maquinas");
+        }
 }
