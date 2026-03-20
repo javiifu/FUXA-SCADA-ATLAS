@@ -67,11 +67,21 @@ namespace Proyecto_FUXA.Services
 
         public async Task GuardarMaquina(Maquina maquina)
         {
+<<<<<<< HEAD
             var existe = await _db.Maquinas
                 .AnyAsync(m => m.IdFuxa == maquina.IdFuxa);
 
             if (!existe)
             {
+=======
+            var existe = await _db.Maquinas.AnyAsync(m => m.IdFuxa == maquina.IdFuxa);
+
+            maquina.FechaActualizacion = DateTime.UtcNow;
+
+            if (!existe)
+            {
+                maquina.FechaCreacion = DateTime.UtcNow;
+>>>>>>> yago
                 _db.Maquinas.Add(maquina);
             }
             else
