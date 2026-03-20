@@ -8,7 +8,7 @@ namespace Proyecto_FUXA.Models
     {
         [Key]
         public int Id { get; set; }
-        public string? IdFuxa { get; set; }
+        public string? FuxaDeviceId { get; set; }
         public string Nombre { get; set; } = string.Empty;
         public int NumeroOrden { get; set; }
         public string NombreSeccion { get; set; } = string.Empty;
@@ -17,8 +17,7 @@ namespace Proyecto_FUXA.Models
         public DateTime FechaCreacion { get; set; }
         public DateTime FechaActualizacion { get; set; }
 
-        [NotMapped]
-        public string? FuxaDeviceId { get; set; }
+        
 
         public virtual ICollection<MaquinaProduccion> Producciones { get; set; } = new List<MaquinaProduccion>();
 

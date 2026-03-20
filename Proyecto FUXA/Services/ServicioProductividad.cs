@@ -1,5 +1,3 @@
-using Proyecto_FUXA.Models;
-using static Proyecto_FUXA.Components.Pages.Maquinas;
 
 namespace Proyecto_FUXA.Services;
 
