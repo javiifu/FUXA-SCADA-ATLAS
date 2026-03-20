@@ -88,16 +88,16 @@ namespace Proyecto_FUXA.Services
             await _db.SaveChangesAsync();
         }
 
-        //public async Task<Maquina?> ObtenerPorIdFuxa(string idFuxa)
-        //{
-        //    return await _db.Maquinas
-        //        .FirstOrDefaultAsync(m => m.IdFuxa == idFuxa);
-        //}
+        public async Task<Maquina?> ObtenerPorIdFuxa(string idFuxa)
+        {
+            return await _db.Maquinas
+                .FirstOrDefaultAsync(m => m.FuxaDeviceId == idFuxa);
+        }
 
         public async Task GuardarMaquina(Maquina maquina)
         {
 
-            var existe = maquina.Id > 0 || await _db.Maquinas.AnyAsync(m => m.IdFuxa == maquina.IdFuxa);
+            var existe = maquina.Id > 0 || await _db.Maquinas.AnyAsync(m => m.FuxaDeviceId == maquina.FuxaDeviceId);
 
             maquina.FechaActualizacion = DateTime.UtcNow;
 
