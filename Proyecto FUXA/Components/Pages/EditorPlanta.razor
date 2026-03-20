@@ -1,10 +1,12 @@
 @page "/planta-editor"
+@using Microsoft.EntityFrameworkCore
 @using Proyecto_FUXA.Models
 @using Proyecto_FUXA.Services
 @rendermode InteractiveServer
 
 @inject ServicioPlantaVisual ServicioPlantaVisual
 @inject ServicioMaquina ServicioMaquina
+@inject NotificationService NotificationService
 
 <h3>Editor visual de planta</h3>
 
@@ -221,22 +223,54 @@
             return;
         }
 
-        if (!EsLineaSeleccionada)
+        try
         {
-            seleccionado.Width = Math.Max(20, seleccionado.Width);
-            seleccionado.Height = Math.Max(20, seleccionado.Height);
+            if (!EsLineaSeleccionada)
+            {
+                seleccionado.Width = Math.Max(20, seleccionado.Width);
+                seleccionado.Height = Math.Max(20, seleccionado.Height);
+            }
+
+            seleccionado.ColorHex = NormalizarColorHex(seleccionado.ColorHex);
+            seleccionado.Nombre = string.IsNullOrWhiteSpace(seleccionado.Nombre)
+                ? $"{seleccionado.Tipo} {seleccionado.Id}"
+                : seleccionado.Nombre.Trim();
+
+            // Validación previa: no guardar nada si la máquina ya pertenece a otra forma
+            if (selectedMaquinaId.HasValue)
+            {
+                var maquinaYaOcupada = objetos.Any(x =>
+                    x.Id != seleccionado.Id &&
+                    x.MaquinaId.HasValue &&
+                    x.MaquinaId.Value == selectedMaquinaId.Value);
+
+                if (maquinaYaOcupada)
+                {
+                    MostrarErrorMaquinaYaVinculada();
+                    return;
+                }
+            }
+
+            // Aplicamos la máquina seleccionada al objeto actual antes de guardar
+            seleccionado.MaquinaId = selectedMaquinaId;
+
+            await ServicioPlantaVisual.UpdateAsync(seleccionado);
+
+            await CargarDatosAsync();
+            Seleccionar(seleccionado.Id);
+
+            NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Success,
+                Summary = "Guardado correcto",
+                Detail = "Se ha registrado los datos correctamente.",
+                Duration = 3000
+            });
         }
-
-        seleccionado.ColorHex = NormalizarColorHex(seleccionado.ColorHex);
-        seleccionado.Nombre = string.IsNullOrWhiteSpace(seleccionado.Nombre)
-            ? $"{seleccionado.Tipo} {seleccionado.Id}"
-            : seleccionado.Nombre.Trim();
-
-        await ServicioPlantaVisual.UpdateAsync(seleccionado);
-        await ServicioPlantaVisual.VincularMaquinaAsync(seleccionado.Id, selectedMaquinaId);
-
-        await CargarDatosAsync();
-        Seleccionar(seleccionado.Id);
+        catch (DbUpdateException)
+        {
+            MostrarErrorMaquinaYaVinculada();
+        }
     }
 
     private async Task EliminarSeleccion()
@@ -471,5 +505,16 @@
             "Circulo" => "planta-objeto-circulo",
             _ => "planta-objeto-rectangulo"
         };
+    }
+
+    private void MostrarErrorMaquinaYaVinculada()
+    {
+        NotificationService.Notify(new NotificationMessage
+        {
+            Severity = NotificationSeverity.Error,
+            Summary = "Vinculación no permitida",
+            Detail = "Esa máquina ya está asociada. Modifique las propiedades para poder cambiarla.",
+            Duration = 4000
+        });
     }
 }

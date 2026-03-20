@@ -92,6 +92,12 @@ public class ServicioPlantaVisual
             return;
         }
 
+        if(maquinaId.HasValue)
+        {
+            var yaVinculada = await _db.ObjetosVisualesPlanta
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.MaquinaId == maquinaId.Value && x.Id != objetoId);
+        }
         objeto.MaquinaId = maquinaId;
         objeto.FechaActualizacion = DateTime.UtcNow;
         await _db.SaveChangesAsync();
