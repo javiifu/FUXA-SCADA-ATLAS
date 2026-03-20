@@ -8,21 +8,23 @@
 @inject ServicioProductividad ServicioProductividad
 @using Radzen
 @using Radzen.Blazor
-@if (maquinasHMI == null || !maquinasHMI.Any())
+
+
+@if (maquinasFiltradas == null || !maquinasHMI.Any())
 {
     <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
 }
 else
 {
     <RadzenStack Gap="2rem">
-        @* FILA 1: LA TABLA PRINCIPAL (Ocupa todo el ancho) *@
+        @* fila de arriba*@
         <RadzenRow>
             <RadzenColumn Size="12">
                 <RadzenCard Variant="Variant.Outlined">
-                    <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">Lista de Máquinas en Planta</RadzenText>
-
+                    <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">Lista de máquinas en planta</RadzenText>
+                    <RadzenTextBox Placeholder="Buscar..." @oninput="@(args => AlEscribirNombre(args.Value.ToString()))"/>
                     <RadzenDataGrid AllowFiltering="true" AllowPaging="true" PageSize="10" AllowSorting="true"
-                                    Data="@maquinasHMI" TItem="MaquinaHMI" @bind-Value="@SelectedMaquinas"
+                                    Data="@maquinasFiltradas" TItem="MaquinaHMI" @bind-Value="@SelectedMaquinas"
                                     SelectionMode="DataGridSelectionMode.Single" Responsive="true">
                         <Columns>
                             <RadzenDataGridColumn TItem="MaquinaHMI" Title="Nº" Width="60px" TextAlign="TextAlign.Center">
@@ -32,18 +34,39 @@ else
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MaquinaHMI" Property="Nombre" Title="Nombre Máquina" />
                             <RadzenDataGridColumn TItem="MaquinaHMI" Property="Seccion" Title="Sección" />
-                            <RadzenDataGridColumn TItem="MaquinaHMI" Title="Estado" Width="100px" TextAlign="TextAlign.Center">
+                            <RadzenDataGridColumn TItem="MaquinaHMI" Title="Estado" Width="150px" TextAlign="TextAlign.Center">
                                 <Template Context="m">
-                                    <RadzenBadge BadgeStyle="@(m.Activa? BadgeStyle.Success: BadgeStyle.Danger)"
-                                                 Text="@(m.Activa ? "Activa" : "Inactiva")" />
+                                    @if (m.EstadoActualId == 1)
+                                    {
+                                        <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="Activa" />
+                                    }
+                                    else if (m.EstadoActualId == 2)
+                                    {
+                                        <RadzenBadge BadgeStyle="BadgeStyle.Warning" Text="Incidencia" />
+                                    }
+                                    else if (m.EstadoActualId == 3)
+                                    {
+                                        <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text="Parada" />
+                                    }
+                                    else if (m.EstadoActualId == 4)
+                                    {
+                                        <RadzenBadge BadgeStyle="BadgeStyle.Dark" Text="No disponible" />
+                                    }
+                                    else
+                                    {
+                                        <RadzenBadge BadgeStyle="BadgeStyle.Info" Text="Desconocido" />
+                                    }
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="CiclosReales" Title="Reales" Width="200px" TextAlign="TextAlign.Center" />
-                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="CiclosObjetivo" Title="Objetivo" Width="100px" TextAlign="TextAlign.Center" />
+                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="CiclosReales" Title="Reales" Width="140px" TextAlign="TextAlign.Center" />
+                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="CiclosObjetivo" Title="Objetivo" Width="140px" TextAlign="TextAlign.Center" />
                             <RadzenDataGridColumn TItem="MaquinaHMI" Title="Eficiencia">
                                 <Template Context="m">
-                                    <RadzenProgressBar Value="@((double)m.PorcentajeCiclos)" Max="100" Unit="%"
-                                                       ProgressBarStyle="ProgressBarStyle.Info" />
+                                    <RadzenProgressBar Value="@(Math.Round((double)m.PorcentajeCiclos, 1))"
+                                                       Max="100"
+                                                       Unit="%"
+                                                       ShowValue="true"
+                                                       ProgressBarStyle="@CambiarColorBarraProgreso(m.PorcentajeCiclos)" />
                                 </Template>
                             </RadzenDataGridColumn>
 
@@ -57,71 +80,62 @@ else
                     </RadzenDataGrid>
                 </RadzenCard>
             </RadzenColumn>
+            <RadzenText>
+                Mostrando @maquinasFiltradas.Count() de @maquinasHMI.Count() maquinas.
+            </RadzenText>
         </RadzenRow>
-
-        @* FILA 2: EL PANEL DE DETALLES (Debajo y a todo el ancho) *@
-        <RadzenRow>
-            <RadzenColumn Size="12">
-                <RadzenCard Variant="Variant.Filled" class="rz-background-color-base-100">
-                    @if (SelectedMaquinas?.Any() == true)
-                    {
-                        var seleccionada = SelectedMaquinas.First();
-                        <RadzenRow Gap="1rem">
-                            <RadzenColumn Size="12" SizeMD="4">
-                                <RadzenText TextStyle="TextStyle.H5">Detalles de: <b>@seleccionada.Nombre</b></RadzenText>
-                                <hr />
-                                <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem">
-                                    <RadzenBadge BadgeStyle="BadgeStyle.Secondary" IsPill="true" Text="ID FUXA" />
-                                    <RadzenText TextStyle="TextStyle.Body2">@seleccionada.Id</RadzenText>
-                                </RadzenStack>
-                            </RadzenColumn>
-
-                            <RadzenColumn Size="12" SizeMD="8">
-                                <RadzenTabs RenderMode="TabRenderMode.Client">
-                                    <Tabs>
-                                        <RadzenTabsItem Text="Producción Detallada" Icon="analytics">
-                                            <RadzenStack Gap="1rem" class="rz-p-4">
-                                                <RadzenText TextStyle="TextStyle.Subtitle2">Rendimiento Actual:</RadzenText>
-                                                <RadzenText TextStyle="TextStyle.H3" class="rz-color-info">@seleccionada.PorcentajeCiclos%</RadzenText>
-                                            </RadzenStack>
-                                        </RadzenTabsItem>
-                                        <RadzenTabsItem Text="Configuración HMI" Icon="settings_input_component">
-                                            <RadzenText TextStyle="TextStyle.Body1" class="rz-p-4">
-                                                Tipo Técnico: <b>@seleccionada.Tipo</b>
-                                            </RadzenText>
-                                        </RadzenTabsItem>
-                                    </Tabs>
-                                </RadzenTabs>
-                            </RadzenColumn>
-                        </RadzenRow>
-                    }
-                    else
-                    {
-                        <RadzenAlert Title="Información" AlertStyle="AlertStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter" AllowClose="false">
-                            Selecciona una máquina de la tabla para ver su ficha técnica aquí debajo.
-                        </RadzenAlert>
-                    }
-                </RadzenCard>
-            </RadzenColumn>
-        </RadzenRow>
+        <div class="rz-p-4 rz-text-align-center">
+            <RadzenBadge BadgeStyle="BadgeStyle.Success" Text=@($"Activas: {MaquinasActivas(1)}") Style="font-size: 1.1rem; padding: 12px 20px; border-radius: 8px" />
+            <RadzenBadge BadgeStyle="BadgeStyle.Warning" Text=@($"Incidencias: {MaquinasActivas(2)}") Style="font-size: 1.1rem; padding: 12px 20px; border-radius: 8px" />
+            <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text=@($"Paradas: {MaquinasActivas(3)}") Style="font-size: 1.1rem; padding: 12px 20px; border-radius: 8px" />
+            <RadzenBadge BadgeStyle="BadgeStyle.Dark" Text=@($"No disponibles: {MaquinasActivas(4)}") Style="font-size: 1.1rem; padding: 12px 20px; border-radius: 8px" />
+        </div>
     </RadzenStack>
+    @*Parte de abajo*@
+    <RadzenTabs RenderMode="TabRenderMode.Client" class="rz-w-100 rz-mt-4">
+        <Tabs>
+            @*Primera ventana*@
+            <RadzenTabsItem Text="Producción total fábrica">
+                <RadzenCard Variant="Variant.Flat" class="rz-p-4" Style="background-color: var(--rz-primary-lighter);">
+                    <RadzenText TextStyle="TextStyle.H4">Eficiencia de la fábrica: @ProduccionTotalFabricaPorcentaje()%</RadzenText>
+                    <RadzenProgressBar Value="@ProduccionTotalFabricaPorcentaje()" ProgressBarStyle="@CambiarColorBarraProgreso(ProduccionTotalFabricaPorcentaje())" Max="100" Style="height: 20px; width: 100%" ShowValue="false"/>
+                </RadzenCard>
+            </RadzenTabsItem>
+            @*Seunda ventana*@
+            <RadzenTabsItem Text="Produccion por secciones">
+                <RadzenRow Gap="1rem">
+                    @foreach (var nombreSeccion in NombreSecciones())
+                    {
+                        var porcentaje = ProduccionSeccionesPorcentaje(nombreSeccion);
+                        <RadzenColumn Size="12" SizeMD="6" SizeLG="4">
+                            <RadzenCard Variant="Variant.Outlined" class="rz-p-3">
+                                <RadzenText TextStyle="TextStyle.H5">@nombreSeccion @porcentaje%</RadzenText>
+                                <RadzenProgressBar ProgressBarStyle="@CambiarColorBarraProgreso(porcentaje)" Value="@porcentaje" Max="100" Unit="%" ShowValue="false"/>
+                            </RadzenCard>
+                        </RadzenColumn>
+                    }
+                </RadzenRow>
+            </RadzenTabsItem>
+        </Tabs>
+    </RadzenTabs>
 }
 
 @code {
     public class MaquinaHMI
     {
-        public string Id { get; set; } // IdFuxa
-        public string Nombre { get; set; }
-        public string Tipo { get; set; }
-        public string Seccion { get; set; }
-        public bool Activa { get; set; }
+        public string Id { get; set; } = string.Empty; // IdFuxa
+        public string Nombre { get; set; } = string.Empty;
+        public string Tipo { get; set; } = string.Empty;
+        public string Seccion { get; set; } = string.Empty;
+        public int EstadoActualId { get; set; }
         public int CiclosObjetivo { get; set; }
         public int CiclosReales { get; set; }
         public float PorcentajeCiclos { get; set; }
     }
 
     private List<MaquinaHMI> maquinasHMI = new();
-    private IList<MaquinaHMI> SelectedMaquinas;
+    private IList<MaquinaHMI> SelectedMaquinas = new List<MaquinaHMI>();
+    private List<MaquinaHMI> maquinasFiltradas = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -151,29 +165,27 @@ else
 
                 foreach (var item in items.EnumerateObject())
                 {
-                    string tipoTecnico = item.Value.GetProperty("type").GetString();
+                    string tipoTecnico = item.Value.GetProperty("type").GetString() ?? "";
 
                     if (tipoTecnico.Contains("proceng") || tipoTecnico.Contains("svg-ext"))
                     {
                         string idFuxa = item.Name;
 
-                        // CRUCE DE DATOS: Buscamos por la nueva columna IdFuxa
+                        // curuce de datos fuxa
                         var datosDb = maquinasEnSQL.FirstOrDefault(m => m.IdFuxa == idFuxa);
 
                         var nuevaMaquina = new MaquinaHMI
                         {
-                            Id = idFuxa,
-                            // Si existe en SQL usamos Nombre, si no, el Label de FUXA
+                            Id = idFuxa,                        
                             Nombre = datosDb?.Nombre ?? (item.Value.TryGetProperty("label", out var l) ? l.GetString() : "Nueva Máquina"),
                             Tipo = tipoTecnico.Replace("svg-ext-proceng-", ""),
                             Seccion = datosDb?.NombreSeccion ?? "Sin asignar",
+                            EstadoActualId = datosDb?.EstadoActualId ?? 1,
                             CiclosObjetivo = datosDb?.CiclosObjetivo ?? 0,
-                            // Aquí asumo que ciclos actuales es 0 o vendrá de otra propiedad
-                            CiclosReales = 0,
-                            Activa = datosDb?.EstaActivo ?? false
+                            CiclosReales = 500,
                         };
 
-                        // Calculamos porcentaje con tu servicio
+                        // Calculamos porcentaje 
                         nuevaMaquina.PorcentajeCiclos = (float)ServicioProductividad.CalcularProductividadPorHora(
                             nuevaMaquina.CiclosReales,
                             nuevaMaquina.CiclosObjetivo
@@ -186,6 +198,7 @@ else
                 if (maquinasHMI.Any())
                 {
                     SelectedMaquinas = new List<MaquinaHMI>() { maquinasHMI.First() };
+                    maquinasFiltradas = maquinasHMI.ToList();
                 }
 
                 StateHasChanged();
@@ -195,5 +208,113 @@ else
         {
             Console.WriteLine("Error al sincronizar FUXA y SQL: " + ex.Message);
         }
+    }
+
+    private ProgressBarStyle CambiarColorBarraProgreso(double progreso)
+    {
+        if(progreso >= 90)
+        {
+            return ProgressBarStyle.Success;
+
+        }else if(progreso >= 60)
+        {
+            return ProgressBarStyle.Info;
+        }
+        else if (progreso >= 40)
+        {
+            return ProgressBarStyle.Warning;
+        }
+        else
+        {
+            return ProgressBarStyle.Danger;
+        }
+    }
+
+    public void AlEscribirNombre(string escrito)
+    {
+
+        if(string.IsNullOrWhiteSpace(escrito))
+        {
+            maquinasFiltradas = maquinasHMI.ToList();
+        }
+        else
+        {
+
+            var temp = new List<MaquinaHMI>();
+
+
+            foreach(var m in maquinasHMI)
+            {
+                if (m.Nombre != null && m.Nombre.Contains(escrito, StringComparison.OrdinalIgnoreCase))
+                {
+                    temp.Add(m);
+                }
+            }
+            maquinasFiltradas = temp;
+        }
+        StateHasChanged();
+    }
+
+    public int MaquinasActivas(int idEstado)
+    {
+        int maquinas = 0;
+        foreach(var m in maquinasHMI)
+        {
+            if(m.EstadoActualId == idEstado)
+            {
+                maquinas++;
+            }
+        }
+        return maquinas;
+    }
+
+    public double ProduccionTotalFabricaPorcentaje()
+    {
+        int contador = 0;
+        double porcentajeMaquinasTotal= 0;
+        double totalProcentaje = 0;
+
+        foreach(var m in maquinasHMI)
+        {
+            if(m.EstadoActualId != 4)
+            {
+                contador++;
+                porcentajeMaquinasTotal += m.PorcentajeCiclos;
+            }
+        }
+        if (contador == 0) return 0;
+        return Math.Round(totalProcentaje = porcentajeMaquinasTotal / contador, 2);
+    }
+
+    public double ProduccionSeccionesPorcentaje(string nombreSeccion)
+    {
+        int contador = 0;
+        double porcentajeSeccionTotal = 0;
+        double totalPorcentaje = 0;
+
+        foreach(var m in maquinasHMI)
+        {
+            if(m.Seccion == nombreSeccion && m.EstadoActualId != 4)
+            {
+                contador++;
+                porcentajeSeccionTotal += m.PorcentajeCiclos;
+            }
+        }
+        if (contador == 0) return 0;
+        return Math.Round(totalPorcentaje = porcentajeSeccionTotal / contador, 2);
+    }
+
+    public List<string> NombreSecciones()
+    {
+        List<string> nombreSecciones = new List<string>();
+
+        foreach (var m in maquinasHMI)
+        {
+            if (!nombreSecciones.Contains(m.Seccion) && m.EstadoActualId != 4 && !string.IsNullOrEmpty(m.Seccion) && !m.Seccion.Contains("Sin asignar", StringComparison.OrdinalIgnoreCase))
+            {
+                nombreSecciones.Add(m.Seccion);
+            }
+        }
+        return nombreSecciones;
     }
 }
