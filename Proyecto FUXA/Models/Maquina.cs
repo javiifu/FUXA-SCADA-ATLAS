@@ -8,12 +8,12 @@ namespace Proyecto_FUXA.Models
     {
         [Key]
         public int Id { get; set; }
-        public string Nombre { get; set; }
+        public string? IdFuxa { get; set; }
+        public string Nombre { get; set; } = string.Empty;
         public int NumeroOrden { get; set; }
-        public string NombreSeccion { get; set; }
+        public string NombreSeccion { get; set; } = string.Empty;
         public int CiclosObjetivo { get; set; }
         public int EstadoActualId { get; set; }
-        public bool? EstaActivo { get; set; }
         public DateTime FechaCreacion { get; set; }
         public DateTime FechaActualizacion { get; set; }
 
