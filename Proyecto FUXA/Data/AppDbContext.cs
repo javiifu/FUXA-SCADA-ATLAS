@@ -10,12 +10,20 @@ namespace Proyecto_FUXA.Data
         public DbSet<Maquina> Maquinas { get; set; }
         public DbSet<MaquinaProduccion> Producciones { get; set; }
         public DbSet<MaquinaEstatus> Estatus { get; set; }
+        public DbSet<PlantaObjetoVisual> ObjetosVisualesPlanta { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Maquina>().ToTable("Maquina");
             modelBuilder.Entity<MaquinaProduccion>().ToTable("MaquinaProduccion");
             modelBuilder.Entity<MaquinaEstatus>().ToTable("MaquinaEstatus");
+            modelBuilder.Entity<PlantaObjetoVisual>().ToTable("PlantaObjetoVisual");
+
+            modelBuilder.Entity<PlantaObjetoVisual>()
+                .HasOne(x => x.Maquina)
+                .WithMany(m => m.ObjetosVisualesPlanta)
+                .HasForeignKey(x => x.MaquinaId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

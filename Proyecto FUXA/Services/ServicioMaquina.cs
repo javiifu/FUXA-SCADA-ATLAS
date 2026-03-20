@@ -17,6 +17,7 @@ namespace Proyecto_FUXA.Services
         public async Task<List<Maquina>> GetAllAsync()
         {
             return await _db.Maquinas
+                .Include(m => m.Producciones)
                 .OrderBy(m => m.Nombre)
                 .ToListAsync();
         }
@@ -31,10 +32,37 @@ namespace Proyecto_FUXA.Services
         // Añadir una nueva máquina
         public async Task AddAsync(Maquina maquina)
         {
+            maquina.Nombre = (maquina.Nombre ?? string.Empty).Trim();
             maquina.FechaCreacion = DateTime.UtcNow;
             maquina.FechaActualizacion = DateTime.UtcNow;
             _db.Maquinas.Add(maquina);
             await _db.SaveChangesAsync();
+
+            var yaExisteObjetoVisual = await _db.ObjetosVisualesPlanta
+                .AnyAsync(x => x.MaquinaId == maquina.Id);
+
+            if (!yaExisteObjetoVisual)
+            {
+                var totalObjetos = await _db.ObjetosVisualesPlanta.CountAsync();
+                var columna = totalObjetos % 5;
+                var fila = totalObjetos / 5;
+
+                _db.ObjetosVisualesPlanta.Add(new PlantaObjetoVisual
+                {
+                    Nombre = maquina.Nombre,
+                    Tipo = "Rectangulo",
+                    PosX = 20 + (columna * 150),
+                    PosY = 20 + (fila * 110),
+                    Width = 120,
+                    Height = 80,
+                    ColorHex = "#2f80ed",
+                    MaquinaId = maquina.Id,
+                    FechaCreacion = DateTime.UtcNow,
+                    FechaActualizacion = DateTime.UtcNow
+                });
+
+                await _db.SaveChangesAsync();
+            }
         }
 
         // Actualizar una máquina

@@ -10,7 +10,18 @@
 @using Radzen.Blazor
 
 
-@if (maquinasFiltradas == null || !maquinasHMI.Any())
+<h1>Maquinas</h1>
+
+<a class="btn btn-lg btn-primary float-lg-end" href="/anadir-maquina">+ Añadir maquina</a>
+
+@if (!string.IsNullOrWhiteSpace(errorCarga))
+{
+    <div class="alert alert-danger mt-3">
+        <strong>No se pudieron cargar las máquinas.</strong>
+        <div>@errorCarga</div>
+    </div>
+}
+else if (maquinas is null)
 {
     <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
 }

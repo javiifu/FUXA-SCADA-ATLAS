@@ -1,0 +1,475 @@
+@page "/planta-editor"
+@using Proyecto_FUXA.Models
+@using Proyecto_FUXA.Services
+@rendermode InteractiveServer
+
+@inject ServicioPlantaVisual ServicioPlantaVisual
+@inject ServicioMaquina ServicioMaquina
+
+<h3>Editor visual de planta</h3>
+
+<div class="editor-planta-grid">
+    <div>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong>Lienzo</strong>
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary btn-sm" @onclick="AgregarRectangulo">+ Rectángulo</button>
+                <button class="btn btn-primary btn-sm" @onclick="AgregarCirculo">+ Círculo</button>
+                <button class="btn btn-primary btn-sm" @onclick="AgregarLinea">+ Línea</button>
+            </div>
+        </div>
+
+        <div class="planta-canvas"
+            @onmousemove="MoverArrastre"
+            @onmouseup="FinalizarArrastre"
+            @onmouseleave="FinalizarArrastre">
+            <svg class="planta-canvas-lineas">
+                @foreach (var objeto in objetos.Where(x => x.Tipo == "Linea"))
+                {
+                    <line class="planta-linea @(objeto.Id == selectedId ? "selected" : string.Empty)"
+                          x1="@objeto.PosX"
+                          y1="@objeto.PosY"
+                          x2="@(objeto.PosX + objeto.Width)"
+                          y2="@(objeto.PosY + objeto.Height)"
+                          stroke="@NormalizarColorHex(objeto.ColorHex)"
+                          @onmousedown="@((e) => IniciarArrastre(objeto.Id, e))"
+                          @onclick="@(() => Seleccionar(objeto.Id))" />
+
+                    
+                    @if (objeto.Id == selectedId)
+                    {
+                        <circle class="planta-linea-handle"
+                                cx="@objeto.PosX"
+                                cy="@objeto.PosY"
+                                r="7"
+                                @onmousedown:stopPropagation="true"
+                                @onmousedown="@((e) => IniciarRedimensionLinea(objeto.Id, true, e))" />
+                        <circle class="planta-linea-handle"
+                                cx="@(objeto.PosX + objeto.Width)"
+                                cy="@(objeto.PosY + objeto.Height)"
+                                r="7"
+                                @onmousedown:stopPropagation="true"
+                                @onmousedown="@((e) => IniciarRedimensionLinea(objeto.Id, false, e))" />
+                    }
+                }
+            </svg>
+
+            @foreach (var objeto in objetos.Where(x => x.Tipo != "Linea"))
+            {
+                <div class="planta-objeto @(GetClaseObjeto(objeto)) @(objeto.Id == selectedId ? "selected" : string.Empty)"
+                     style="@BuildObjectStyle(objeto)"
+                     title="@objeto.Nombre"
+                     @onmousedown="@((e) => IniciarArrastre(objeto.Id, e))"
+                     @onclick="@(() => Seleccionar(objeto.Id))">
+                     @if (!string.IsNullOrWhiteSpace(objeto.Maquina?.Nombre))
+                     {
+                        <div class="planta-objeto-titulo">@objeto.Maquina.Nombre</div>
+                     }
+                    
+                    @if (!string.IsNullOrWhiteSpace(objeto.Nombre))
+                    {
+                        <div class="planta-objeto-subtitulo">@objeto.Nombre</div>
+                    }
+                    @if (objeto.Id == selectedId)
+                    {
+                        <div class="planta-resize-handle"
+                             title="Redimensionar"
+                             @onmousedown:stopPropagation="true"
+                             @onmousedown="@((e) => IniciarRedimensionForma(objeto.Id, e))"></div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="planta-editor-panel">
+        <h5>Propiedades</h5>
+
+        @if (seleccionado is null)
+        {
+            <p class="text-muted">Selecciona una forma para editar sus propiedades.</p>
+        }
+        else
+        {
+            <div class="mb-2">
+                <label class="form-label">Tipo</label>
+                <input class="form-control" value="@seleccionado.Tipo" readonly />
+            </div>
+
+            <div class="mb-2">
+                <label class="form-label">Nombre</label>
+                <input class="form-control" @bind="seleccionado.Nombre" />
+            </div>
+
+            <div class="row g-2">
+                <div class="col-6">
+                    <label class="form-label">@(EsLineaSeleccionada ? "X1" : "X")</label>
+                    <input type="number" class="form-control" @bind="seleccionado.PosX" />
+                </div>
+                <div class="col-6">
+                    <label class="form-label">@(EsLineaSeleccionada ? "Y1" : "Y")</label>
+                    <input type="number" class="form-control" @bind="seleccionado.PosY" />
+                </div>
+                <div class="col-6">
+                    <label class="form-label">@(EsLineaSeleccionada ? "Delta X" : "Ancho")</label>
+                    <input type="number" class="form-control" @bind="seleccionado.Width" />
+                </div>
+                <div class="col-6">
+                    <label class="form-label">@(EsLineaSeleccionada ? "Delta Y" : "Alto")</label>
+                    <input type="number" class="form-control" @bind="seleccionado.Height" />
+                </div>
+            </div>
+
+
+
+            <div class="mb-3">
+                <label class="form-label">Máquina asociada</label>
+                <select class="form-select" @bind="selectedMaquinaId">
+                    <option value="">-- Sin máquina --</option>
+                    @foreach (var maquina in maquinas)
+                    {
+                        <option value="@maquina.Id">@maquina.Nombre</option>
+                    }
+                </select>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button class="btn btn-success" @onclick="GuardarSeleccion">Guardar</button>
+                <button class="btn btn-outline-danger" @onclick="EliminarSeleccion">Eliminar</button>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<PlantaObjetoVisual> objetos = new();
+    private List<Maquina> maquinas = new();
+    private PlantaObjetoVisual? seleccionado;
+    private int? selectedId;
+    private int? selectedMaquinaId;
+    private int? interaccionId;
+    private bool interaccionConMovimiento;
+    private TipoInteraccion interaccionActiva = TipoInteraccion.Ninguna;
+    private int dragStartClientX;
+    private int dragStartClientY;
+    private int dragStartPosX;
+    private int dragStartPosY;
+    private int dragStartWidth;
+    private int dragStartHeight;
+
+    private const int CanvasWidth = 1200;
+    private const int CanvasHeight = 520;
+
+    private enum TipoInteraccion
+    {
+        Ninguna,
+        Arrastre,
+        RedimensionForma,
+        RedimensionLineaInicio,
+        RedimensionLineaFin
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatosAsync();
+    }
+
+    private async Task CargarDatosAsync()
+    {
+        objetos = await ServicioPlantaVisual.GetAllAsync();
+        maquinas = await ServicioMaquina.GetAllAsync();
+    }
+
+    private async Task AgregarRectangulo()
+    {
+        var nombre = $"Rectángulo {objetos.Count(x => x.Tipo == "Rectangulo") + 1}";
+        var nuevo = await ServicioPlantaVisual.AddAsync("Rectangulo", nombre);
+
+        await CargarDatosAsync();
+        Seleccionar(nuevo.Id);
+    }
+
+    private async Task AgregarCirculo()
+    {
+        var nombre = $"Círculo {objetos.Count(x => x.Tipo == "Circulo") + 1}";
+        var nuevo = await ServicioPlantaVisual.AddAsync("Circulo", nombre);
+
+        await CargarDatosAsync();
+        Seleccionar(nuevo.Id);
+    }
+
+    private async Task AgregarLinea()
+    {
+        var nombre = $"Línea {objetos.Count(x => x.Tipo == "Linea") + 1}";
+        var nuevo = await ServicioPlantaVisual.AddAsync("Linea", nombre);
+
+        await CargarDatosAsync();
+        Seleccionar(nuevo.Id);
+    }
+
+    private void Seleccionar(int id)
+    {
+        selectedId = id;
+        seleccionado = objetos.FirstOrDefault(x => x.Id == id);
+        selectedMaquinaId = seleccionado?.MaquinaId;
+    }
+
+    private async Task GuardarSeleccion()
+    {
+        if (seleccionado is null)
+        {
+            return;
+        }
+
+        if (!EsLineaSeleccionada)
+        {
+            seleccionado.Width = Math.Max(20, seleccionado.Width);
+            seleccionado.Height = Math.Max(20, seleccionado.Height);
+        }
+
+        seleccionado.ColorHex = NormalizarColorHex(seleccionado.ColorHex);
+        seleccionado.Nombre = string.IsNullOrWhiteSpace(seleccionado.Nombre)
+            ? $"{seleccionado.Tipo} {seleccionado.Id}"
+            : seleccionado.Nombre.Trim();
+
+        await ServicioPlantaVisual.UpdateAsync(seleccionado);
+        await ServicioPlantaVisual.VincularMaquinaAsync(seleccionado.Id, selectedMaquinaId);
+
+        await CargarDatosAsync();
+        Seleccionar(seleccionado.Id);
+    }
+
+    private async Task EliminarSeleccion()
+    {
+        if (selectedId is null)
+        {
+            return;
+        }
+
+        await ServicioPlantaVisual.DeleteAsync(selectedId.Value);
+        await CargarDatosAsync();
+
+        seleccionado = null;
+        selectedId = null;
+        selectedMaquinaId = null;
+    }
+
+    private void IniciarArrastre(int id, MouseEventArgs e)
+    {
+        if (e.Button != 0)
+        {
+            return;
+        }
+
+        var objeto = objetos.FirstOrDefault(x => x.Id == id);
+        if (objeto is null)
+        {
+            return;
+        }
+
+        Seleccionar(id);
+        interaccionId = id;
+        interaccionActiva = TipoInteraccion.Arrastre;
+        interaccionConMovimiento = false;
+        dragStartClientX = (int)e.ClientX;
+        dragStartClientY = (int)e.ClientY;
+        dragStartPosX = objeto.PosX;
+        dragStartPosY = objeto.PosY;
+        dragStartWidth = objeto.Width;
+        dragStartHeight = objeto.Height;
+    }
+
+    private void IniciarRedimensionForma(int id, MouseEventArgs e)
+    {
+        if (e.Button != 0)
+        {
+            return;
+        }
+
+        var objeto = objetos.FirstOrDefault(x => x.Id == id && x.Tipo != "Linea");
+        if (objeto is null)
+        {
+            return;
+        }
+
+        Seleccionar(id);
+        interaccionId = id;
+        interaccionActiva = TipoInteraccion.RedimensionForma;
+        interaccionConMovimiento = false;
+        dragStartClientX = (int)e.ClientX;
+        dragStartClientY = (int)e.ClientY;
+        dragStartPosX = objeto.PosX;
+        dragStartPosY = objeto.PosY;
+        dragStartWidth = Math.Max(20, objeto.Width);
+        dragStartHeight = Math.Max(20, objeto.Height);
+    }
+
+    private void IniciarRedimensionLinea(int id, bool puntoInicio, MouseEventArgs e)
+    {
+        if (e.Button != 0)
+        {
+            return;
+        }
+
+        var objeto = objetos.FirstOrDefault(x => x.Id == id && x.Tipo == "Linea");
+        if (objeto is null)
+        {
+            return;
+        }
+
+        Seleccionar(id);
+        interaccionId = id;
+        interaccionActiva = puntoInicio ? TipoInteraccion.RedimensionLineaInicio : TipoInteraccion.RedimensionLineaFin;
+        interaccionConMovimiento = false;
+        dragStartClientX = (int)e.ClientX;
+        dragStartClientY = (int)e.ClientY;
+        dragStartPosX = objeto.PosX;
+        dragStartPosY = objeto.PosY;
+        dragStartWidth = objeto.Width;
+        dragStartHeight = objeto.Height;
+    }
+
+    private void MoverArrastre(MouseEventArgs e)
+    {
+        if (interaccionId is null || interaccionActiva == TipoInteraccion.Ninguna)
+        {
+            return;
+        }
+
+        var objeto = objetos.FirstOrDefault(x => x.Id == interaccionId.Value);
+        if (objeto is null)
+        {
+            return;
+        }
+
+        var deltaX = (int)e.ClientX - dragStartClientX;
+        var deltaY = (int)e.ClientY - dragStartClientY;
+        if (deltaX == 0 && deltaY == 0)
+        {
+            return;
+        }
+
+        if (interaccionActiva == TipoInteraccion.Arrastre)
+        {
+            var nuevoX = dragStartPosX + deltaX;
+            var nuevoY = dragStartPosY + deltaY;
+            (objeto.PosX, objeto.PosY) = LimitarPosicionEnLienzo(objeto, nuevoX, nuevoY);
+        }
+        else if (interaccionActiva == TipoInteraccion.RedimensionForma)
+        {
+            var nuevoAncho = Math.Clamp(dragStartWidth + deltaX, 20, CanvasWidth - objeto.PosX);
+            var nuevoAlto = Math.Clamp(dragStartHeight + deltaY, 20, CanvasHeight - objeto.PosY);
+            objeto.Width = nuevoAncho;
+            objeto.Height = nuevoAlto;
+        }
+        else if (interaccionActiva == TipoInteraccion.RedimensionLineaInicio)
+        {
+            var x2 = dragStartPosX + dragStartWidth;
+            var y2 = dragStartPosY + dragStartHeight;
+            var x1 = Math.Clamp(dragStartPosX + deltaX, 0, CanvasWidth);
+            var y1 = Math.Clamp(dragStartPosY + deltaY, 0, CanvasHeight);
+
+            objeto.PosX = x1;
+            objeto.PosY = y1;
+            objeto.Width = x2 - x1;
+            objeto.Height = y2 - y1;
+        }
+        else if (interaccionActiva == TipoInteraccion.RedimensionLineaFin)
+        {
+            var x2 = Math.Clamp(dragStartPosX + dragStartWidth + deltaX, 0, CanvasWidth);
+            var y2 = Math.Clamp(dragStartPosY + dragStartHeight + deltaY, 0, CanvasHeight);
+
+            objeto.Width = x2 - dragStartPosX;
+            objeto.Height = y2 - dragStartPosY;
+        }
+
+        interaccionConMovimiento = true;
+    }
+
+    private async Task FinalizarArrastre()
+    {
+        if (interaccionId is null)
+        {
+            return;
+        }
+
+        var objeto = objetos.FirstOrDefault(x => x.Id == interaccionId.Value);
+        var huboMovimiento = interaccionConMovimiento;
+
+        interaccionId = null;
+        interaccionConMovimiento = false;
+        interaccionActiva = TipoInteraccion.Ninguna;
+
+        if (!huboMovimiento || objeto is null)
+        {
+            return;
+        }
+
+        await ServicioPlantaVisual.UpdateAsync(objeto);
+    }
+
+
+    private static string NormalizarColorHex(string? color)
+    {
+        if (string.IsNullOrWhiteSpace(color))
+        {
+            return "#2f80ed";
+        }
+
+        return color.StartsWith('#') ? color : $"#{color}";
+    }
+
+    private static string BuildObjectStyle(PlantaObjetoVisual objeto)
+    {
+        return $"left:{objeto.PosX}px;top:{objeto.PosY}px;width:{Math.Max(20, objeto.Width)}px;height:{Math.Max(20, objeto.Height)}px;background:{NormalizarColorHex(objeto.ColorHex)};";
+    }
+
+    private bool EsLineaSeleccionada => seleccionado?.Tipo == "Linea";
+
+    private static (int X, int Y) LimitarPosicionEnLienzo(PlantaObjetoVisual objeto, int posX, int posY)
+    {
+        if (objeto.Tipo == "Linea")
+        {
+            var minX = Math.Min(posX, posX + objeto.Width);
+            var maxX = Math.Max(posX, posX + objeto.Width);
+            var minY = Math.Min(posY, posY + objeto.Height);
+            var maxY = Math.Max(posY, posY + objeto.Height);
+
+            if (minX < 0)
+            {
+                posX -= minX;
+            }
+            else if (maxX > CanvasWidth)
+            {
+                posX -= maxX - CanvasWidth;
+            }
+
+            if (minY < 0)
+            {
+                posY -= minY;
+            }
+            else if (maxY > CanvasHeight)
+            {
+                posY -= maxY - CanvasHeight;
+            }
+
+            return (posX, posY);
+        }
+
+        var ancho = Math.Max(20, objeto.Width);
+        var alto = Math.Max(20, objeto.Height);
+        var x = Math.Clamp(posX, 0, CanvasWidth - ancho);
+        var y = Math.Clamp(posY, 0, CanvasHeight - alto);
+
+        return (x, y);
+    }
+
+    private static string GetClaseObjeto(PlantaObjetoVisual objeto)
+    {
+        return objeto.Tipo switch
+        {
+            "Circulo" => "planta-objeto-circulo",
+            _ => "planta-objeto-rectangulo"
+        };
+    }
+}
