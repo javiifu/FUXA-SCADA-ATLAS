@@ -55,7 +55,6 @@ namespace Proyecto_FUXA.Services
                         NombreSeccion = item.Type,
                         CiclosObjetivo = 100,
                         EstadoActualId = 1,
-                        EstaActivo = !item.Hide,
                         FechaCreacion = DateTime.Now,
                         FechaActualizacion = DateTime.Now,
                         FuxaDeviceId = item.Id
