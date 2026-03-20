@@ -22,7 +22,7 @@ else
             <RadzenColumn Size="12">
                 <RadzenCard Variant="Variant.Outlined">
                     <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">Lista de máquinas en planta</RadzenText>
-                    <RadzenTextBox Placeholder="Buscar..." @oninput="@(args => AlEscribir(args.Value.ToString()))"/>
+                    <RadzenTextBox Placeholder="Buscar..." @oninput="@(args => AlEscribirNombre(args.Value.ToString()))"/>
                     <RadzenDataGrid AllowFiltering="true" AllowPaging="true" PageSize="10" AllowSorting="true"
                                     Data="@maquinasFiltradas" TItem="MaquinaHMI" @bind-Value="@SelectedMaquinas"
                                     SelectionMode="DataGridSelectionMode.Single" Responsive="true">
@@ -80,8 +80,44 @@ else
                     </RadzenDataGrid>
                 </RadzenCard>
             </RadzenColumn>
+            <RadzenText>
+                Mostrando @maquinasFiltradas.Count() de @maquinasHMI.Count() maquinas.
+            </RadzenText>
         </RadzenRow>
+        <div class="rz-p-4 rz-text-align-center">
+            <RadzenBadge BadgeStyle="BadgeStyle.Success" Text=@($"Activas: {MaquinasActivas(1)}") Style="font-size: 1.1rem; padding: 12px 20px; border-radius: 8px" />
+            <RadzenBadge BadgeStyle="BadgeStyle.Warning" Text=@($"Incidencias: {MaquinasActivas(2)}") Style="font-size: 1.1rem; padding: 12px 20px; border-radius: 8px" />
+            <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text=@($"Paradas: {MaquinasActivas(3)}") Style="font-size: 1.1rem; padding: 12px 20px; border-radius: 8px" />
+            <RadzenBadge BadgeStyle="BadgeStyle.Dark" Text=@($"No disponibles: {MaquinasActivas(4)}") Style="font-size: 1.1rem; padding: 12px 20px; border-radius: 8px" />
+        </div>
     </RadzenStack>
+    @*Parte de abajo*@
+    <RadzenTabs RenderMode="TabRenderMode.Client" class="rz-w-100 rz-mt-4">
+        <Tabs>
+            @*Primera ventana*@
+            <RadzenTabsItem Text="Producción total fábrica">
+                <RadzenCard Variant="Variant.Flat" class="rz-p-4" Style="background-color: var(--rz-primary-lighter);">
+                    <RadzenText TextStyle="TextStyle.H4">Eficiencia de la fábrica: @ProduccionTotalFabricaPorcentaje()%</RadzenText>
+                    <RadzenProgressBar Value="@ProduccionTotalFabricaPorcentaje()" ProgressBarStyle="@CambiarColorBarraProgreso(ProduccionTotalFabricaPorcentaje())" Max="100" Style="height: 20px; width: 100%" ShowValue="false"/>
+                </RadzenCard>
+            </RadzenTabsItem>
+            @*Seunda ventana*@
+            <RadzenTabsItem Text="Produccion por secciones">
+                <RadzenRow Gap="1rem">
+                    @foreach (var nombreSeccion in NombreSecciones())
+                    {
+                        var porcentaje = ProduccionSeccionesPorcentaje(nombreSeccion);
+                        <RadzenColumn Size="12" SizeMD="6" SizeLG="4">
+                            <RadzenCard Variant="Variant.Outlined" class="rz-p-3">
+                                <RadzenText TextStyle="TextStyle.H5">@nombreSeccion @porcentaje%</RadzenText>
+                                <RadzenProgressBar ProgressBarStyle="@CambiarColorBarraProgreso(porcentaje)" Value="@porcentaje" Max="100" Unit="%" ShowValue="false"/>
+                            </RadzenCard>
+                        </RadzenColumn>
+                    }
+                </RadzenRow>
+            </RadzenTabsItem>
+        </Tabs>
+    </RadzenTabs>
 }
 
 @code {
@@ -194,7 +230,7 @@ else
         }
     }
 
-    public void AlEscribir(string escrito)
+    public void AlEscribirNombre(string escrito)
     {
 
         if(string.IsNullOrWhiteSpace(escrito))
@@ -203,16 +239,82 @@ else
         }
         else
         {
-            maquinasFiltradas.Clear();
+
+            var temp = new List<MaquinaHMI>();
+
 
             foreach(var m in maquinasHMI)
             {
-                if (m.Nombre.Contains(escrito, StringComparison.OrdinalIgnoreCase))
+                if (m.Nombre != null && m.Nombre.Contains(escrito, StringComparison.OrdinalIgnoreCase))
                 {
-                    maquinasFiltradas.Add(m);
+                    temp.Add(m);
                 }
             }
-            StateHasChanged();
+            maquinasFiltradas = temp;
         }
+        StateHasChanged();
+    }
+
+    public int MaquinasActivas(int idEstado)
+    {
+        int maquinas = 0;
+        foreach(var m in maquinasHMI)
+        {
+            if(m.EstadoActualId == idEstado)
+            {
+                maquinas++;
+            }
+        }
+        return maquinas;
+    }
+
+    public double ProduccionTotalFabricaPorcentaje()
+    {
+        int contador = 0;
+        double porcentajeMaquinasTotal= 0;
+        double totalProcentaje = 0;
+
+        foreach(var m in maquinasHMI)
+        {
+            if(m.EstadoActualId != 4)
+            {
+                contador++;
+                porcentajeMaquinasTotal += m.PorcentajeCiclos;
+            }
+        }
+        if (contador == 0) return 0;
+        return Math.Round(totalProcentaje = porcentajeMaquinasTotal / contador, 2);
+    }
+
+    public double ProduccionSeccionesPorcentaje(string nombreSeccion)
+    {
+        int contador = 0;
+        double porcentajeSeccionTotal = 0;
+        double totalPorcentaje = 0;
+
+        foreach(var m in maquinasHMI)
+        {
+            if(m.Seccion == nombreSeccion && m.EstadoActualId != 4)
+            {
+                contador++;
+                porcentajeSeccionTotal += m.PorcentajeCiclos;
+            }
+        }
+        if (contador == 0) return 0;
+        return Math.Round(totalPorcentaje = porcentajeSeccionTotal / contador, 2);
+    }
+
+    public List<string> NombreSecciones()
+    {
+        List<string> nombreSecciones = new List<string>();
+
+        foreach (var m in maquinasHMI)
+        {
+            if (!nombreSecciones.Contains(m.Seccion) && m.EstadoActualId != 4 && !string.IsNullOrEmpty(m.Seccion) && !m.Seccion.Contains("Sin asignar", StringComparison.OrdinalIgnoreCase))
+            {
+                nombreSecciones.Add(m.Seccion);
+            }
+        }
+        return nombreSecciones;
     }
 }
