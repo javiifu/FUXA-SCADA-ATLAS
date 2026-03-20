@@ -5,6 +5,7 @@
 
 @inject ServicioMaquina MachineService
 @inject NavigationManager Navigation
+@rendermode InteractiveServer
 
 <h3>Registrar ciclos de máquina</h3>
 
@@ -27,6 +28,7 @@ else
         <br />
 
         <button class="btn btn-primary" @onclick="Guardar">Registrar ciclos</button>
+        <button class="btn btn-secondary" @onclick="Cancelar">Cancelar</button>
     </div>
 }
 
@@ -46,5 +48,9 @@ else
     {
         await MachineService.AddCycleAsync(maquinaId, realCycles);
         Navigation.NavigateTo($"/dashboard-maquina/{maquinaId}");
+    }
+    private void Cancelar()
+    {
+        Navigation.NavigateTo("/maquinas");
     }
 }

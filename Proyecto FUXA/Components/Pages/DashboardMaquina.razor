@@ -2,6 +2,7 @@
 @using Proyecto_FUXA.Services
 @using Proyecto_FUXA.Models
 @using System.Linq
+@rendermode InteractiveServer
 
 @rendermode InteractiveServer
 
@@ -38,6 +39,8 @@ else
         <button class="btn btn-secondary" @onclick="Volver">Volver</button>
 
     </div>
+    <br />
+    <button class="btn btn-primary" @onclick="Volver">Volver </button>
 }
 
 @code {
@@ -65,7 +68,6 @@ else
             _ => "white"
         };
     }
-
     private void Volver()
     {
         Navigation.NavigateTo("/maquinas");
