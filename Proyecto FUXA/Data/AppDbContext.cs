@@ -8,6 +8,7 @@ namespace Proyecto_FUXA.Data
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
         public DbSet<Maquina> Maquinas { get; set; }
+        public DbSet<Empleado> Empleados { get; set; }
         public DbSet<MaquinaProduccion> Producciones { get; set; }
         public DbSet<MaquinaEstatus> Estatus { get; set; }
 

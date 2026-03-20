@@ -16,9 +16,20 @@ namespace Proyecto_FUXA.Services
         // Obtener todas las máquinas ordenadas por nombre
         public async Task<List<Maquina>> GetAllAsync()
         {
-            return await _db.Maquinas
-                .OrderBy(m => m.Nombre)
-                .ToListAsync();
+            return await _db.Maquinas.ToListAsync();
+        }
+
+        public async Task<List<Empleado>> GetAllEmpleadosAsync()
+        {
+            try
+            {
+                return await _db.Empleados.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error cargando empleados: {ex.Message}");
+                return new List<Empleado>();
+            }
         }
 
         // Obtener una máquina por su ID
@@ -67,6 +78,7 @@ namespace Proyecto_FUXA.Services
 
         public async Task GuardarMaquina(Maquina maquina)
         {
+
             var existe = await _db.Maquinas.AnyAsync(m => m.IdFuxa == maquina.IdFuxa);
 
             maquina.FechaActualizacion = DateTime.UtcNow;

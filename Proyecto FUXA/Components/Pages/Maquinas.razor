@@ -8,6 +8,7 @@
 @inject ServicioProductividad ServicioProductividad
 @using Radzen
 @using Radzen.Blazor
+@using Proyecto_FUXA.Models
 
 
 @if (maquinasFiltradas == null || !maquinasHMI.Any())
@@ -34,6 +35,18 @@ else
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MaquinaHMI" Property="Nombre" Title="Nombre Máquina" />
                             <RadzenDataGridColumn TItem="MaquinaHMI" Property="Seccion" Title="Sección" />
+                            <RadzenDataGridColumn TItem="MaquinaHMI" Title="Encargado" Width="200px">
+                                <Template Context="m">
+                                    <div style="display: flex; flex-direction: column;">
+                                        <span style="font-weight: bold; color: var(--rz-text-color);">
+                                            @m.NombreOperario
+                                        </span>
+                                        <span style="font-size: 0.75rem; color: var(--rz-text-secondary-color);">
+                                            @m.CargoOperario
+                                        </span>
+                                    </div>
+                                </Template>
+                            </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MaquinaHMI" Title="Estado" Width="150px" TextAlign="TextAlign.Center">
                                 <Template Context="m">
                                     @if (m.EstadoActualId == 1)
@@ -128,6 +141,9 @@ else
         public string Tipo { get; set; } = string.Empty;
         public string Seccion { get; set; } = string.Empty;
         public int EstadoActualId { get; set; }
+        public int? EmpleadoId { get; set; }
+        public string NombreOperario { get; set; } = "Sin asignar";
+        public string CargoOperario { get; set; } = "N/A";
         public int CiclosObjetivo { get; set; }
         public int CiclosReales { get; set; }
         public float PorcentajeCiclos { get; set; }
@@ -147,68 +163,84 @@ else
         NavManager.NavigateTo($"/editar-maquina/{id}");
     }
 
-    private async Task CargarDesdeFuxa()
+   private async Task CargarDesdeFuxa()
+{
+    try
     {
-        try
+        var response = await Http.GetAsync("api/project");
+        if (response.IsSuccessStatusCode)
         {
-            var response = await Http.GetAsync("api/project");
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                using JsonDocument doc = JsonDocument.Parse(json);
-                var items = doc.RootElement.GetProperty("hmi").GetProperty("views")[0].GetProperty("items");
+            var json = await response.Content.ReadAsStringAsync();
+            using JsonDocument doc = JsonDocument.Parse(json);
+            
+            var items = doc.RootElement.GetProperty("hmi").GetProperty("views")[0].GetProperty("items");
 
-                // Traemos los datos de SQL usando tu servicio
                 var maquinasEnSQL = await ServicioMaquina.GetAllAsync();
+                var listaEmpleados = await ServicioMaquina.GetAllEmpleadosAsync();
 
-                maquinasHMI.Clear();
+                if (maquinasEnSQL == null) maquinasEnSQL = new List<Maquina>();
+                if (listaEmpleados == null) listaEmpleados = new List<Empleado>();
 
-                foreach (var item in items.EnumerateObject())
+            maquinasHMI.Clear();
+
+                Console.WriteLine($"DEBUG: Máquinas en SQL: {maquinasEnSQL.Count}");
+                Console.WriteLine($"DEBUG: Empleados en SQL: {listaEmpleados.Count}");
+
+            foreach (var item in items.EnumerateObject())
+            {
+                string tipoTecnico = item.Value.TryGetProperty("type", out var t) ? t.GetString() : "";
+
+                if (tipoTecnico.Contains("proceng") || tipoTecnico.Contains("svg-ext"))
                 {
-                    string tipoTecnico = item.Value.GetProperty("type").GetString() ?? "";
+                    string idFuxa = item.Name;
 
-                    if (tipoTecnico.Contains("proceng") || tipoTecnico.Contains("svg-ext"))
+                    var datosDb = maquinasEnSQL.FirstOrDefault(m => m.IdFuxa == idFuxa);
+                    
+                    var emp = (datosDb?.EmpleadoId != null) 
+                              ? listaEmpleados.FirstOrDefault(e => e.Id == datosDb.EmpleadoId) 
+                              : null;
+
+                    var nuevaMaquina = new MaquinaHMI
                     {
-                        string idFuxa = item.Name;
+                        Id = idFuxa,
+                        Nombre = datosDb?.Nombre ?? (item.Value.TryGetProperty("label", out var l) ? l.GetString() : "Nueva Máquina"),
+                        Tipo = tipoTecnico.Replace("svg-ext-proceng-", ""),
+                        Seccion = datosDb?.NombreSeccion ?? "Sin asignar",
+                        EmpleadoId = datosDb?.EmpleadoId,
+                        
+                        NombreOperario = (emp != null && emp.Cargo == "Encargado") ? $"{emp.Nombre} {emp.Apellidos}" : "Sin asignar",
 
-                        // curuce de datos fuxa
-                        var datosDb = maquinasEnSQL.FirstOrDefault(m => m.IdFuxa == idFuxa);
+                        EstadoActualId = datosDb?.EstadoActualId ?? 1,
+                        CiclosObjetivo = datosDb?.CiclosObjetivo ?? 0,
+                        CiclosReales = 500
+                    };
 
-                        var nuevaMaquina = new MaquinaHMI
-                        {
-                            Id = idFuxa,                        
-                            Nombre = datosDb?.Nombre ?? (item.Value.TryGetProperty("label", out var l) ? l.GetString() : "Nueva Máquina"),
-                            Tipo = tipoTecnico.Replace("svg-ext-proceng-", ""),
-                            Seccion = datosDb?.NombreSeccion ?? "Sin asignar",
-                            EstadoActualId = datosDb?.EstadoActualId ?? 1,
-                            CiclosObjetivo = datosDb?.CiclosObjetivo ?? 0,
-                            CiclosReales = 500,
-                        };
+                    // Calculamos el porcentaje de eficiencia
+                    nuevaMaquina.PorcentajeCiclos = (float)ServicioProductividad.CalcularProductividadPorHora(
+                        nuevaMaquina.CiclosReales,
+                        nuevaMaquina.CiclosObjetivo
+                    );
 
-                        // Calculamos porcentaje 
-                        nuevaMaquina.PorcentajeCiclos = (float)ServicioProductividad.CalcularProductividadPorHora(
-                            nuevaMaquina.CiclosReales,
-                            nuevaMaquina.CiclosObjetivo
-                        );
-
-                        maquinasHMI.Add(nuevaMaquina);
-                    }
+                    maquinasHMI.Add(nuevaMaquina);
                 }
-
-                if (maquinasHMI.Any())
-                {
-                    SelectedMaquinas = new List<MaquinaHMI>() { maquinasHMI.First() };
-                    maquinasFiltradas = maquinasHMI.ToList();
-                }
-
-                StateHasChanged();
             }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("Error al sincronizar FUXA y SQL: " + ex.Message);
+
+            // Actualizamos la vista y los filtros
+            if (maquinasHMI.Any())
+            {
+                maquinasFiltradas = maquinasHMI.ToList();
+                SelectedMaquinas = new List<MaquinaHMI>() { maquinasHMI.First() };
+            }
+
+            StateHasChanged();
         }
     }
+    catch (Exception ex)
+    {
+        // Esto te mostrará el error real en la consola de depuración si algo falla
+        Console.WriteLine($"Error en CargarDesdeFuxa: {ex.Message}");
+    }
+}
 
     private ProgressBarStyle CambiarColorBarraProgreso(double progreso)
     {
