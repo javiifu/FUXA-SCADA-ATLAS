@@ -6,6 +6,7 @@
 @using Proyecto_FUXA.Services
 @inject ServicioMaquina ServicioMaquina
 @inject ServicioProductividad ServicioProductividad
+@inject Radzen.DialogService DialogService
 @using Radzen
 @using Radzen.Blazor
 @using Proyecto_FUXA.Models
@@ -163,84 +164,66 @@ else
         NavManager.NavigateTo($"/editar-maquina/{id}");
     }
 
-   private async Task CargarDesdeFuxa()
-{
-    try
+    private async Task CargarDesdeFuxa()
     {
-        var response = await Http.GetAsync("api/project");
-        if (response.IsSuccessStatusCode)
+        try
         {
+            var response = await Http.GetAsync("api/project");
+            if (!response.IsSuccessStatusCode) return;
+
             var json = await response.Content.ReadAsStringAsync();
             using JsonDocument doc = JsonDocument.Parse(json);
-            
             var items = doc.RootElement.GetProperty("hmi").GetProperty("views")[0].GetProperty("items");
 
-                var maquinasEnSQL = await ServicioMaquina.GetAllAsync();
-                var listaEmpleados = await ServicioMaquina.GetAllEmpleadosAsync();
-
-                if (maquinasEnSQL == null) maquinasEnSQL = new List<Maquina>();
-                if (listaEmpleados == null) listaEmpleados = new List<Empleado>();
+            // Cargamos datos de SQL (si fallan, inicializamos lista vacía para evitar errores)
+            var maquinasEnSQL = await ServicioMaquina.GetAllAsync() ?? new();
+            var listaEmpleados = await ServicioMaquina.GetAllEmpleadosAsync() ?? new();
 
             maquinasHMI.Clear();
 
-                Console.WriteLine($"DEBUG: Máquinas en SQL: {maquinasEnSQL.Count}");
-                Console.WriteLine($"DEBUG: Empleados en SQL: {listaEmpleados.Count}");
-
             foreach (var item in items.EnumerateObject())
             {
-                string tipoTecnico = item.Value.TryGetProperty("type", out var t) ? t.GetString() : "";
+                string type = item.Value.TryGetProperty("type", out var t) ? t.GetString() : "";
 
-                if (tipoTecnico.Contains("proceng") || tipoTecnico.Contains("svg-ext"))
+                if (type.Contains("proceng") || type.Contains("svg-ext"))
                 {
-                    string idFuxa = item.Name;
-
-                    var datosDb = maquinasEnSQL.FirstOrDefault(m => m.IdFuxa == idFuxa);
-                    
-                    var emp = (datosDb?.EmpleadoId != null) 
-                              ? listaEmpleados.FirstOrDefault(e => e.Id == datosDb.EmpleadoId) 
-                              : null;
+                    var datosDb = maquinasEnSQL.FirstOrDefault(m => m.IdFuxa == item.Name);
+                    var emp = listaEmpleados.FirstOrDefault(e => e.Id == datosDb?.EmpleadoId);
 
                     var nuevaMaquina = new MaquinaHMI
                     {
-                        Id = idFuxa,
+                        Id = item.Name,
                         Nombre = datosDb?.Nombre ?? (item.Value.TryGetProperty("label", out var l) ? l.GetString() : "Nueva Máquina"),
-                        Tipo = tipoTecnico.Replace("svg-ext-proceng-", ""),
+                        Tipo = type.Replace("svg-ext-proceng-", ""),
                         Seccion = datosDb?.NombreSeccion ?? "Sin asignar",
                         EmpleadoId = datosDb?.EmpleadoId,
-                        
-                        NombreOperario = (emp != null && emp.Cargo == "Encargado") ? $"{emp.Nombre} {emp.Apellidos}" : "Sin asignar",
+
+                        // Si encontramos al empleado y es Encargado, ponemos Nombre + Apellidos
+                        NombreOperario = (emp?.Cargo == "Encargado") ? $"{emp.Nombre} {emp.Apellidos}" : "Sin asignar",
+                        CargoOperario = emp?.Cargo ?? "Sin Cargo",
 
                         EstadoActualId = datosDb?.EstadoActualId ?? 1,
                         CiclosObjetivo = datosDb?.CiclosObjetivo ?? 0,
-                        CiclosReales = 500
+                        CiclosReales = 500,
                     };
 
-                    // Calculamos el porcentaje de eficiencia
                     nuevaMaquina.PorcentajeCiclos = (float)ServicioProductividad.CalcularProductividadPorHora(
-                        nuevaMaquina.CiclosReales,
-                        nuevaMaquina.CiclosObjetivo
-                    );
+                        nuevaMaquina.CiclosReales, nuevaMaquina.CiclosObjetivo);
 
                     maquinasHMI.Add(nuevaMaquina);
                 }
             }
 
-            // Actualizamos la vista y los filtros
-            if (maquinasHMI.Any())
-            {
-                maquinasFiltradas = maquinasHMI.ToList();
-                SelectedMaquinas = new List<MaquinaHMI>() { maquinasHMI.First() };
-            }
+            maquinasFiltradas = maquinasHMI.ToList();
+            if (maquinasHMI.Any()) SelectedMaquinas = new List<MaquinaHMI> { maquinasHMI.First() };
 
             StateHasChanged();
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error crítico: {ex.Message}");
+        }
     }
-    catch (Exception ex)
-    {
-        // Esto te mostrará el error real en la consola de depuración si algo falla
-        Console.WriteLine($"Error en CargarDesdeFuxa: {ex.Message}");
-    }
-}
 
     private ProgressBarStyle CambiarColorBarraProgreso(double progreso)
     {
@@ -348,5 +331,24 @@ else
             }
         }
         return nombreSecciones;
+    }
+
+    private async Task AbrirAsignarTrabajador(MaquinaHMI maquina)
+    {
+        var resultado = await DialogService.OpenAsync<AsignarDialog>("Asignar Personal",
+            new Dictionary<string, object> {
+                { "Datos", new AsignarTrabajador {
+                    MaquinaId = maquina.Id,
+                    NombreMaquina = maquina.Nombre,
+                    Seccion = maquina.Seccion,
+                    EmpleadoId = maquina.EmpleadoId
+                }}
+            },
+            new DialogOptions() { Width = "500px", Resizable = true, Draggable = true });
+
+        if (resultado == true)
+        {
+            await CargarDesdeFuxa();
+        }
     }
 }

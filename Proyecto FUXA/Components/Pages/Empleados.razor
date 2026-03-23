@@ -1,0 +1,148 @@
+﻿@page "/empleados"
+@using Proyecto_FUXA.Models
+@using Radzen.Blazor
+@using Radzen
+@inject Proyecto_FUXA.Services.ServicioMaquina ServicioMaquina
+
+<RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Class="rz-mb-4">
+    <RadzenText TextStyle="TextStyle.H3" Class="rz-m-0">Gestión de Personal</RadzenText>
+    <RadzenButton Text="Nuevo Empleado" Icon="add_circle" ButtonStyle="ButtonStyle.Primary" Click="@InsertarFila" />
+</RadzenStack>
+
+<RadzenDataGrid @ref="empleadosGrid" Data="@empleados" TItem="Empleado"
+                Style="height: 623px; width: 100%; border: 2px solid #e0e0e0; border-radius: 8px;"
+                AllowPaging="true" PageSize="10" EditMode="DataGridEditMode.Single">
+    <Columns>
+        @* nombre *@
+        <RadzenDataGridColumn TItem="Empleado" Property="Nombre" Title="Nombre">
+            <EditTemplate Context="e">
+                <RadzenTextBox @bind-Value="e.Nombre" Name="Nombre" Style="width:100%; display: block;" />
+                <RadzenRequiredValidator Component="Nombre" Text="El nombre no puede estar vacío"
+                                         Popup="false" Style="position: absolute; color: var(--rz-danger); font-size: 0.8rem;" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        @* apellidos *@
+        <RadzenDataGridColumn TItem="Empleado" Property="Apellidos" Title="Apellidos">
+            <EditTemplate Context="e">
+                <RadzenTextBox @bind-Value="e.Apellidos" Name="Apellidos" Style="width:100%; display: block;" />
+                <RadzenRequiredValidator Component="Apellidos" Text="Los apellidos no pueden estar vacíos"
+                                         Popup="false" Style="position: absolute; color: var(--rz-danger); font-size: 0.8rem;" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        @* cargo *@
+        <RadzenDataGridColumn TItem="Empleado" Property="Cargo" Title="Cargo">
+            <Template Context="e">@e.Cargo</Template>
+            <EditTemplate Context="e">
+                <RadzenDropDown @bind-Value="e.Cargo" Data="@cargos" Style="width:100%" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        @* editar y borrar *@
+        <RadzenDataGridColumn TItem="Empleado" Context="e" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Width="200px">
+            <Template Context="e">
+                @* editar *@
+                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => EditarFila(e))" />
+
+                @* borrar *@
+                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Flat" Size="ButtonSize.Medium"
+                              Class="rz-ml-2" Click="@(args => BorrarFila(e))" />
+            </Template>
+
+            <EditTemplate Context="e">
+                @* comfirmar borrar *@
+                <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@((args) => GuardarFila(e))" />
+
+                @* cancelar *@
+                <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@((args) => CancelarEdicion(e))" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+    RadzenDataGrid<Empleado> empleadosGrid;
+    List<Empleado> empleados = new();
+    List<Empleado> encargados = new();
+    List<string> cargos = new() { "Encargado", "Operario" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+    }
+
+    async Task CargarDatos() => empleados = await ServicioMaquina.GetAllEmpleadosAsync();
+
+    async Task InsertarFila()
+    {
+        var nuevo = new Empleado
+        {
+            Nombre = "",
+            Apellidos = "",
+            CodigoEmpleado = "EMP-" + DateTime.Now.ToString("ssfff"),
+            Cargo = "Operario",
+            EstaActivo = true
+        };
+
+        await empleadosGrid.InsertRow(nuevo);
+    }
+
+    async Task GuardarFila(Empleado e)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(e.CodigoEmpleado))
+            {
+                Console.WriteLine("ERROR: El Código de Empleado es obligatorio");
+
+            }
+
+            if (e.Id == 0) 
+            {
+                Console.WriteLine($"Intentando insertar empleado: {e.Nombre} con código {e.CodigoEmpleado}");
+                await ServicioMaquina.AddEmpleadoAsync(e);
+            }
+            else 
+            {
+                Console.WriteLine($"Actualizando empleado ID: {e.Id}");
+                await ServicioMaquina.UpdateEmpleadoAsync(e);
+            }
+
+            await empleadosGrid.UpdateRow(e);
+            await CargarDatos(); 
+            Console.WriteLine("Empleado guardado correctamente en SQL Server");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"ERROR CRÍTICO AL GUARDAR: {ex.Message}");
+            if (ex.InnerException != null)
+                Console.WriteLine($"DETALLE INTERNO: {ex.InnerException.Message}");
+
+            empleadosGrid.CancelEditRow(e);
+        }
+    }
+
+    async Task BorrarFila(Empleado e)
+    {
+        // si es un empleado nuevo que aún no está en SQL lo quitamos de la lista
+        if (e.Id == 0)
+        {
+            empleados.Remove(e);
+            await empleadosGrid.Reload();
+        }
+        else
+        {
+            await ServicioMaquina.DeleteEmpleadoAsync(e);
+            await CargarDatos(); //despues de borrar cargamos la lista
+        }
+    }
+
+    private async Task CargarEncargados()
+    {
+        encargados = await ServicioMaquina.GetAllEmpleadosAsync();
+    }
+
+    void EditarFila(Empleado e) => empleadosGrid.EditRow(e);
+    void CancelarEdicion(Empleado e) => empleadosGrid.CancelEditRow(e);
+}

@@ -12,13 +12,37 @@ namespace Proyecto_FUXA.Services
         {
             _db = db;
         }
-
-        // Obtener todas las máquinas ordenadas por nombre
         public async Task<List<Maquina>> GetAllAsync()
         {
             return await _db.Maquinas.ToListAsync();
         }
 
+        public async Task<Maquina?> GetByIdAsync(int id)
+        {
+            return await _db.Maquinas.FirstOrDefaultAsync(m => m.Id == id);
+        }
+
+        public async Task<Maquina?> ObtenerPorIdFuxa(string idFuxa)
+        {
+            return await _db.Maquinas.FirstOrDefaultAsync(m => m.IdFuxa == idFuxa);
+        }
+
+        public async Task GuardarMaquina(Maquina maquina)
+        {
+            var existe = await _db.Maquinas.AnyAsync(m => m.IdFuxa == maquina.IdFuxa);
+            maquina.FechaActualizacion = DateTime.UtcNow;
+
+            if (!existe)
+            {
+                maquina.FechaCreacion = DateTime.UtcNow;
+                _db.Maquinas.Add(maquina);
+            }
+            else
+            {
+                _db.Maquinas.Update(maquina);
+            }
+            await _db.SaveChangesAsync();
+        }
         public async Task<List<Empleado>> GetAllEmpleadosAsync()
         {
             try
@@ -31,32 +55,27 @@ namespace Proyecto_FUXA.Services
                 return new List<Empleado>();
             }
         }
-
-        // Obtener una máquina por su ID
-        public async Task<Maquina?> GetByIdAsync(int id)
+        public async Task<bool> AddEmpleadoAsync(Empleado empleado)
         {
-            return await _db.Maquinas
-                .FirstOrDefaultAsync(m => m.Id == id);
+            try
+            {
+                _db.Empleados.Add(empleado);
+                await _db.SaveChangesAsync();
+                return true; 
+            }
+            catch (DbUpdateException ex)
+            {
+                Console.WriteLine("Error: El código de empleado ya existe.");
+                _db.Entry(empleado).State = EntityState.Detached;
+                return false; 
+            }
         }
-
-        // Añadir una nueva máquina
-        public async Task AddAsync(Maquina maquina)
+        public async Task UpdateEmpleadoAsync(Empleado empleado)
         {
-            maquina.FechaCreacion = DateTime.UtcNow;
-            maquina.FechaActualizacion = DateTime.UtcNow;
-            _db.Maquinas.Add(maquina);
+            _db.Empleados.Update(empleado);
             await _db.SaveChangesAsync();
         }
 
-        // Actualizar una máquina
-        public async Task UpdateAsync(Maquina maquina)
-        {
-            maquina.FechaActualizacion = DateTime.UtcNow;
-            _db.Maquinas.Update(maquina);
-            await _db.SaveChangesAsync();
-        }
-
-        // Registrar un ciclo de producción
         public async Task AddCycleAsync(int maquinaId, int ciclosReales)
         {
             var log = new MaquinaProduccion
@@ -70,29 +89,9 @@ namespace Proyecto_FUXA.Services
             await _db.SaveChangesAsync();
         }
 
-        public async Task<Maquina?> ObtenerPorIdFuxa(string idFuxa)
+        public async Task DeleteEmpleadoAsync(Empleado empleado)
         {
-            return await _db.Maquinas
-                .FirstOrDefaultAsync(m => m.IdFuxa == idFuxa);
-        }
-
-        public async Task GuardarMaquina(Maquina maquina)
-        {
-
-            var existe = await _db.Maquinas.AnyAsync(m => m.IdFuxa == maquina.IdFuxa);
-
-            maquina.FechaActualizacion = DateTime.UtcNow;
-
-            if (!existe)
-            {
-                maquina.FechaCreacion = DateTime.UtcNow;
-                _db.Maquinas.Add(maquina);
-            }
-            else
-            {
-                _db.Maquinas.Update(maquina);
-            }
-
+            _db.Empleados.Remove(empleado);
             await _db.SaveChangesAsync();
         }
     }
