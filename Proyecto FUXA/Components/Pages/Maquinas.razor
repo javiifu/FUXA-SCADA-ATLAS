@@ -23,8 +23,18 @@ else
         <RadzenRow>
             <RadzenColumn Size="12">
                 <RadzenCard Variant="Variant.Outlined">
-                    <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">Lista de máquinas en planta</RadzenText>
-                    <RadzenTextBox Placeholder="Buscar..." @oninput="@(args => AlEscribirNombre(args.Value.ToString()))"/>
+                    @* Cabecera con título y buscador a la derecha *@
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" class="rz-mb-4">
+                        <RadzenText TextStyle="TextStyle.H5" class="rz-m-0">Lista de máquinas en planta</RadzenText>
+
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                            <RadzenIcon Icon="search" />
+                            <RadzenTextBox Placeholder="Buscar máquina..."
+                                           @oninput="@(args => AlEscribirNombre(args.Value.ToString()))"
+                                           Style="width: 400px; height: 40px; font-size: 1.1rem;" />
+                        </RadzenStack>
+                    </RadzenStack>
+
                     <RadzenDataGrid AllowFiltering="true" AllowPaging="true" PageSize="10" AllowSorting="true"
                                     Data="@maquinasFiltradas" TItem="MaquinaHMI" @bind-Value="@SelectedMaquinas"
                                     SelectionMode="DataGridSelectionMode.Single" Responsive="true">
@@ -74,7 +84,9 @@ else
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MaquinaHMI" Property="CiclosReales" Title="Reales" Width="140px" TextAlign="TextAlign.Center" />
                             <RadzenDataGridColumn TItem="MaquinaHMI" Property="CiclosObjetivo" Title="Objetivo" Width="140px" TextAlign="TextAlign.Center" />
-                            <RadzenDataGridColumn TItem="MaquinaHMI" Title="Eficiencia">
+
+                            @* Columna de Eficiencia con Property para permitir ordenación *@
+                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="PorcentajeCiclos" Title="Eficiencia">
                                 <Template Context="m">
                                     <RadzenProgressBar Value="@(Math.Round((double)m.PorcentajeCiclos, 1))"
                                                        Max="100"
@@ -112,7 +124,7 @@ else
             <RadzenTabsItem Text="Producción total fábrica">
                 <RadzenCard Variant="Variant.Flat" class="rz-p-4" Style="background-color: var(--rz-primary-lighter);">
                     <RadzenText TextStyle="TextStyle.H4">Eficiencia de la fábrica: @ProduccionTotalFabricaPorcentaje()%</RadzenText>
-                    <RadzenProgressBar Value="@ProduccionTotalFabricaPorcentaje()" ProgressBarStyle="@CambiarColorBarraProgreso(ProduccionTotalFabricaPorcentaje())" Max="100" Style="height: 20px; width: 100%" ShowValue="false"/>
+                    <RadzenProgressBar Value="@ProduccionTotalFabricaPorcentaje()" ProgressBarStyle="@CambiarColorBarraProgreso(ProduccionTotalFabricaPorcentaje())" Max="100" Style="height: 20px; width: 100%" ShowValue="false" />
                 </RadzenCard>
             </RadzenTabsItem>
             @*Seunda ventana*@
@@ -124,7 +136,7 @@ else
                         <RadzenColumn Size="12" SizeMD="6" SizeLG="4">
                             <RadzenCard Variant="Variant.Outlined" class="rz-p-3">
                                 <RadzenText TextStyle="TextStyle.H5">@nombreSeccion @porcentaje%</RadzenText>
-                                <RadzenProgressBar ProgressBarStyle="@CambiarColorBarraProgreso(porcentaje)" Value="@porcentaje" Max="100" Unit="%" ShowValue="false"/>
+                                <RadzenProgressBar ProgressBarStyle="@CambiarColorBarraProgreso(porcentaje)" Value="@porcentaje" Max="100" Unit="%" ShowValue="false" />
                             </RadzenCard>
                         </RadzenColumn>
                     }
