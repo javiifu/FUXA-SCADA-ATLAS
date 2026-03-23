@@ -1,9 +1,13 @@
 @page "/maquinas"
 @inject NavigationManager NavManager
 @rendermode InteractiveServer
+@using Proyecto_FUXA.DTO
 @using Proyecto_FUXA.Services
 @inject ServicioMaquina ServicioMaquina
 @inject ServicioProductividad ServicioProductividad
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+
 @using Radzen
 @using Radzen.Blazor
 
@@ -43,9 +47,46 @@ else
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MaquinaHMI" Property="Nombre" Title="Nombre Máquina" />
                             <RadzenDataGridColumn TItem="MaquinaHMI" Property="Seccion" Title="Sección" />
-                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="Incidencia" Title="Incidencia"></RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="Último Mantenimiento" Title="Último Mantenimiento" />
-                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="Próximo Mantenimiento" Title="Próximo Mantenimiento" />
+                            <RadzenDataGridColumn TItem="MaquinaHMI" Title="Incidencias abiertas" Width="220px">
+                                <Template Context="maquina">
+                                    @if (maquina.IncidenciasActivas == 0)
+                                    {
+                                        <RadzenText class="text-muted">No hay incidencias</RadzenText>
+                                    }
+                                    else
+                                    {
+                                        <RadzenButton ButtonStyle="ButtonStyle.Warning"
+                                                      Variant="Variant.Flat"
+                                                      Icon="report_problem"
+                                                      Text="@($"{maquina.IncidenciasActivas} activas")"
+                                                      Click="@(async (_) => await VerIncidenciasActivas(maquina))" />
+                                    }
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            <RadzenDataGridColumn TItem="MaquinaHMI" Title="Último mantenimiento" Width="190px">
+                                <Template Context="maquina">
+                                    @if (maquina.UltimoMantenimiento.HasValue)
+                                    {
+                                        @maquina.UltimoMantenimiento.Value.ToString("dd/MM/yyyy HH:mm")
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Sin registros</span>
+                                    }
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            <RadzenDataGridColumn TItem="MaquinaHMI" Title="Próximo mantenimiento" Width="220px">
+                                <Template Context="maquina">
+                                    <RadzenDatePicker TValue="DateTime?"
+                                                      DateFormat="dd/MM/yyyy"
+                                                      ShowTime="false"
+                                                      Style="width: 100%;"
+                                                      @bind-Value="maquina.ProximoMantenimiento"
+                                                      Change="@(async (DateTime? fecha) => await AlCambiarProximoMantenimiento(maquina, fecha))" />
+                                </Template>
+                            </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MaquinaHMI" Title="Estado" Width="150px" TextAlign="TextAlign.Center">
                                 <Template Context="m">
                                     @if (m.EstadoActualId == 1)
@@ -140,12 +181,18 @@ else
     {
         public int Id { get; set; }
         public string Nombre { get; set; } = string.Empty;
-        public string Tipo { get; set; } = string.Empty;
         public string Seccion { get; set; } = string.Empty;
         public int EstadoActualId { get; set; }
         public int CiclosObjetivo { get; set; }
         public int CiclosReales { get; set; }
         public float PorcentajeCiclos { get; set; }
+        public int IncidenciasActivas { get; set; }
+        public List<IncidenciaActivaDto> IncidenciasActivasDetalle { get; set; } = new();
+        public DateTime? UltimoMantenimiento { get; set; }
+        public DateTime? ProximoMantenimiento { get; set; }
+
+
+
     }
 
     private readonly List<MaquinaHMI> maquinasHMI = new();
@@ -171,24 +218,27 @@ else
             cargando = true;
             errorCarga = null;
 
-            var maquinasEnSql = await ServicioMaquina.GetAllAsync();
+            var maquinasEnSql = await ServicioMaquina.GetMaquinasGridAsync();
             maquinasHMI.Clear();
 
             foreach (var maquina in maquinasEnSql)
             {
-                var ciclosReales = maquina.Producciones?
-                    .OrderByDescending(p => p.FechaRegistro)
-                    .FirstOrDefault()?.CiclosReales ?? 0;
+                
                 maquinasHMI.Add(new MaquinaHMI
-                    {
-                        Id = maquina.Id,
-                        Nombre = maquina.Nombre,
-                        Seccion = string.IsNullOrWhiteSpace(maquina.NombreSeccion) ? "Sin asignar" : maquina.NombreSeccion,
-                        EstadoActualId = maquina.EstadoActualId,
-                        CiclosObjetivo = maquina.CiclosObjetivo,
-                        CiclosReales = ciclosReales,
-                        PorcentajeCiclos = (float)ServicioProductividad.CalcularProductividadPorHora(ciclosReales, maquina.CiclosObjetivo)
-                    });
+                {
+                    Id = maquina.Id,
+                    Nombre = maquina.Nombre,
+                    Seccion = string.IsNullOrWhiteSpace(maquina.Seccion) ? "Sin asignar" : maquina.Seccion,
+                    EstadoActualId = maquina.EstadoActualId,
+                    CiclosObjetivo = maquina.CiclosObjetivo,
+                    CiclosReales = maquina.CiclosReales,
+                    IncidenciasActivas = maquina.IncidenciasActivas,
+                    IncidenciasActivasDetalle = maquina.IncidenciasActivasDetalle,
+                    UltimoMantenimiento = maquina.UltimoMantenimiento,
+                    ProximoMantenimiento = maquina.ProximoMantenimiento,
+                    PorcentajeCiclos = (float)ServicioProductividad.CalcularProductividadPorHora(maquina.CiclosReales, maquina.CiclosObjetivo)
+                });
+                        
             }
             maquinasFiltradas = maquinasHMI.ToList();
             SelectedMaquinas = maquinasHMI.Any()
@@ -208,6 +258,60 @@ else
         }
     }
 
+
+    private async Task VerIncidenciasActivas(MaquinaHMI maquina)
+    {
+        await DialogService.OpenAsync($"Incidencias activas · {maquina.Nombre}", ds =>
+            @<RadzenStack Gap="1rem" class="rz-p-2">
+                @foreach (var incidencia in maquina.IncidenciasActivasDetalle)
+                {
+                    <RadzenCard Variant="Variant.Outlined" class="rz-p-3">
+                        <RadzenStack Gap="0.5rem">
+                            <RadzenText TextStyle="TextStyle.Subtitle1"><b>ID:</b> @incidencia.Id · <b>Máquina:</b> @incidencia.MaquinaId</RadzenText>
+                            <RadzenText><b>Título:</b> @incidencia.Titulo</RadzenText>
+                            <RadzenText><b>Descripción:</b> @TextoO(incidencia.Descripcion, "Sin descripción")</RadzenText>
+                            <RadzenText><b>Prioridad:</b> @incidencia.Prioridad</RadzenText>
+                            <RadzenText><b>Estado:</b> @incidencia.Estado</RadzenText>
+                            <RadzenText><b>Fecha apertura:</b> @incidencia.FechaApertura.ToString("dd/MM/yyyy HH:mm")</RadzenText>
+                            <RadzenText><b>Fecha cierre:</b> @TextoFecha(incidencia.FechaCierre, "Sin fecha de cierre")</RadzenText>
+                            <RadzenText><b>Usuario apertura:</b> @TextoO(incidencia.UsuarioApertura, "Sin usuario de apertura")</RadzenText>
+                            <RadzenText><b>Usuario asignado:</b> @TextoO(incidencia.UsuarioAsignado, "Sin usuario asignado")</RadzenText>
+                        </RadzenStack>
+                    </RadzenCard>
+                }
+            </RadzenStack>,
+            new DialogOptions
+            {
+                Width = "920px",
+                Height = "650px",
+                Resizable = true,
+                Draggable = true,
+                CloseDialogOnOverlayClick = true
+            });
+    }
+
+    private async Task AlCambiarProximoMantenimiento(MaquinaHMI maquina, DateTime? fecha)
+    {
+        try
+        {
+            maquina.ProximoMantenimiento = await ServicioMaquina.GuardarProximoMantenimientoAsync(maquina.Id, fecha);
+            NotificationService.Notify(NotificationSeverity.Success, "Mantenimiento", "Próximo mantenimiento actualizado correctamente.");
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"No se pudo actualizar el mantenimiento: {ex.Message}");
+        }
+    }
+
+    private static string TextoO(string? value, string fallback)
+    {
+        return string.IsNullOrWhiteSpace(value) ? fallback : value;
+    }
+
+    private static string TextoFecha(DateTime? value, string fallback)
+    {
+        return value.HasValue ? value.Value.ToString("dd/MM/yyyy HH:mm") : fallback;
+    }
 
     private ProgressBarStyle CambiarColorBarraProgreso(double progreso)
     {

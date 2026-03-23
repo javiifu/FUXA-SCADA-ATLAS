@@ -1,12 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using Proyecto_FUXA.Data;
 using Proyecto_FUXA.Models;
+using Proyecto_FUXA.DTO;
 
 namespace Proyecto_FUXA.Services
 {
     public class ServicioMaquina
     {
         private readonly AppDbContext _db;
+        private static readonly string[] EstadosIncidenciaCerrada = ["Resuelta", "Cerrada"];
 
         public ServicioMaquina(AppDbContext db)
         {
@@ -20,6 +22,111 @@ namespace Proyecto_FUXA.Services
                 .Include(m => m.Producciones)
                 .OrderBy(m => m.Nombre)
                 .ToListAsync();
+        }
+
+        public async Task<List<MaquinaGridDto>> GetMaquinasGridAsync()
+        {
+            var maquinas = await _db.Maquinas
+                .AsNoTracking()
+                .OrderBy(m => m.Nombre)
+                .Select(m => new MaquinaGridDto
+                {
+                    Id = m.Id,
+                    Nombre = m.Nombre,
+                    Seccion = m.NombreSeccion,
+                    EstadoActualId = m.EstadoActualId,
+                    CiclosObjetivo = m.CiclosObjetivo,
+                    CiclosReales = m.Producciones
+                        .OrderByDescending(p => p.FechaRegistro)
+                        .Select(p => p.CiclosReales)
+                        .FirstOrDefault()
+                })
+                .ToListAsync();
+
+            var incidenciasActivas = await _db.Incidencias
+                .AsNoTracking()
+                .Where(i => !EstadosIncidenciaCerrada.Contains(i.Estado))
+                .OrderByDescending(i => i.FechaApertura)
+                .Select(i => new IncidenciaActivaDto
+                {
+                    Id = i.Id,
+                    MaquinaId = i.MaquinaId,
+                    Titulo = i.Titulo,
+                    Descripcion = i.Descripcion,
+                    Prioridad = i.Prioridad,
+                    Estado = i.Estado,
+                    FechaApertura = i.FechaApertura,
+                    FechaCierre = i.FechaCierre,
+                    UsuarioApertura = i.UsuarioApertura,
+                    UsuarioAsignado = i.UsuarioAsignado
+                })
+                .ToListAsync();
+
+            var incidenciasPorMaquina = incidenciasActivas
+                .GroupBy(i => i.MaquinaId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var ultimosMantenimientos = await _db.Mantenimientos
+                .AsNoTracking()
+                .Where(m => m.FechaRealizada != null)
+                .Select(m => new
+                {
+                    m.MaquinaId,
+                    m.Estado,
+                    m.FechaRealizada
+                })
+                .ToListAsync();
+
+            var ultimoMantenimientoPorMaquina = ultimosMantenimientos
+                .GroupBy(m => m.MaquinaId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Where(m => m.Estado == "Realizado")
+                            .Select(m => m.FechaRealizada)
+                            .DefaultIfEmpty(null)
+                            .Max()
+                        ?? g.Select(m => m.FechaRealizada).Max());
+
+            var proximosMantenimientos = await _db.Mantenimientos
+                .AsNoTracking()
+                .Where(m => m.FechaProgramada != null)
+                .Select(m => new
+                {
+                    m.MaquinaId,
+                    m.FechaProgramada,
+                    m.Id
+                })
+                .ToListAsync();
+
+            var proximoMantenimientoPorMaquina = proximosMantenimientos
+                .GroupBy(m => m.MaquinaId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderByDescending(x => x.FechaProgramada)
+                          .ThenByDescending(x => x.Id)
+                          .Select(x => x.FechaProgramada)
+                          .FirstOrDefault());
+
+            foreach (var maquina in maquinas)
+            {
+                if (incidenciasPorMaquina.TryGetValue(maquina.Id, out var incidencias))
+                {
+                    maquina.IncidenciasActivas = incidencias.Count;
+                    maquina.IncidenciasActivasDetalle = incidencias;
+                }
+
+                if (ultimoMantenimientoPorMaquina.TryGetValue(maquina.Id, out var ultimoMantenimiento))
+                {
+                    maquina.UltimoMantenimiento = ultimoMantenimiento;
+                }
+
+                if (proximoMantenimientoPorMaquina.TryGetValue(maquina.Id, out var proximoMantenimiento))
+                {
+                    maquina.ProximoMantenimiento = proximoMantenimiento;
+                }
+            }
+
+            return maquinas;
         }
 
         // Obtener una máquina por su ID
@@ -101,18 +208,54 @@ namespace Proyecto_FUXA.Services
 
             maquina.FechaActualizacion = DateTime.UtcNow;
 
-                if (!existe)
-                {
-                    maquina.FechaCreacion = DateTime.UtcNow;
+            if (!existe)
+            {
+                maquina.FechaCreacion = DateTime.UtcNow;
 
-                    _db.Maquinas.Add(maquina);
-                }
-                else
-                {
-                    _db.Maquinas.Update(maquina);
-                }
-
-                await _db.SaveChangesAsync();
+                _db.Maquinas.Add(maquina);
             }
+            else
+            {
+                _db.Maquinas.Update(maquina);
+            }
+
+            await _db.SaveChangesAsync();
+        }
+        
+        
+    public async Task<DateTime?> GuardarProximoMantenimientoAsync(int maquinaId, DateTime? fechaProgramada)
+        {
+            var mantenimiento = await _db.Mantenimientos
+                .Where(m => m.MaquinaId == maquinaId && m.FechaProgramada != null)
+                .OrderByDescending(m => m.FechaProgramada)
+                .ThenByDescending(m => m.Id)
+                .FirstOrDefaultAsync();
+
+            if (mantenimiento is null)
+            {
+                if (fechaProgramada is null)
+                {
+                    return null;
+                }
+                mantenimiento = new Mantenimiento
+                {
+                    MaquinaId = maquinaId,
+                    Estado = "Programado",
+                    Tipo = "Preventivo",
+                    FechaProgramada = fechaProgramada,
+                    FechaCreacion = DateTime.UtcNow,
+                    Observaciones = null
+                };
+
+                _db.Mantenimientos.Add(mantenimiento);
+            }
+            else
+            {
+                mantenimiento.FechaProgramada = fechaProgramada;
+            }
+
+            await _db.SaveChangesAsync();
+            return mantenimiento.FechaProgramada;
         }
     }
+}
