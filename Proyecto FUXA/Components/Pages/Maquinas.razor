@@ -43,6 +43,9 @@ else
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MaquinaHMI" Property="Nombre" Title="Nombre Máquina" />
                             <RadzenDataGridColumn TItem="MaquinaHMI" Property="Seccion" Title="Sección" />
+                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="Incidencia" Title="Incidencia"></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="Último Mantenimiento" Title="Último Mantenimiento" />
+                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="Próximo Mantenimiento" Title="Próximo Mantenimiento" />
                             <RadzenDataGridColumn TItem="MaquinaHMI" Title="Estado" Width="150px" TextAlign="TextAlign.Center">
                                 <Template Context="m">
                                     @if (m.EstadoActualId == 1)
