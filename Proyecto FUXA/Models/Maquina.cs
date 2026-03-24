@@ -11,15 +11,23 @@ namespace Proyecto_FUXA.Models
     {
         [Key]
         public int Id { get; set; }
-        public string? IdFuxa { get; set; }
         public string Nombre { get; set; } = string.Empty;
         public int NumeroOrden { get; set; }
         public string NombreSeccion { get; set; } = string.Empty;
         public int? EmpleadoId { get; set; }
-        public int CiclosObjetivo { get; set; }
         public int EstadoActualId { get; set; }
         public DateTime FechaCreacion { get; set; }
         public DateTime FechaActualizacion { get; set; }
+        [NotMapped]
+        public string NombreOperario { get; set; } = string.Empty ;
+        [NotMapped]
+        public string CargoOperario { get; set; } = string.Empty;
+        [NotMapped]
+        public float PorcentajeCiclos { get; set;  }
+        [NotMapped]
+        public int CiclosObjetivo { get; set; }
+        [NotMapped]
+        public int CiclosReales { get; set; }
         [JsonIgnore]
         public Empleado? Empleado { get; set; }
 

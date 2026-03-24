@@ -12,7 +12,7 @@ else
 {
     <RadzenStack Gap="1.5rem" Class="rz-p-4">
         <RadzenAlert AllowClose="false" AlertStyle="AlertStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter">
-            Configurando personal para: <b>@Datos.NombreMaquina</b> (@Datos.Seccion)
+            Configurando personal para: <b>@Datos.NombreMaquina</b> (@Datos.NombreSeccion)
         </RadzenAlert>
 
         <RadzenFieldset Text="Detalles de Asignación">
@@ -81,9 +81,9 @@ else
                 await ServicioMaquina.UpdateEmpleadoAsync(emp);
             }
 
-            if (!string.IsNullOrEmpty(Datos.MaquinaId) && Datos.MaquinaId != "N/A")
+            if (Datos.MaquinaId > 0)
             {
-                var maquinaDb = await ServicioMaquina.ObtenerPorIdFuxa(Datos.MaquinaId);
+                var maquinaDb = await ServicioMaquina.ObtenerPorId(Datos.MaquinaId);
                 if (maquinaDb != null)
                 {
                     maquinaDb.EmpleadoId = Datos.EmpleadoId;

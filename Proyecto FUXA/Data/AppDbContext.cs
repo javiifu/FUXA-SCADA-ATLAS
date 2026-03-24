@@ -11,12 +11,14 @@ namespace Proyecto_FUXA.Data
         public DbSet<Empleado> Empleados { get; set; }
         public DbSet<MaquinaProduccion> Producciones { get; set; }
         public DbSet<MaquinaEstatus> Estatus { get; set; }
+        public DbSet<MaquinasOrdenes> Ordenes { get; set;  }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Maquina>().ToTable("Maquina");
             modelBuilder.Entity<MaquinaProduccion>().ToTable("MaquinaProduccion");
             modelBuilder.Entity<MaquinaEstatus>().ToTable("MaquinaEstatus");
+            modelBuilder.Entity<MaquinasOrdenes>().ToTable("MaquinasOrdenes");
         }
     }
 }

@@ -22,23 +22,24 @@ namespace Proyecto_FUXA.Services
             return await _db.Maquinas.FirstOrDefaultAsync(m => m.Id == id);
         }
 
-        public async Task<Maquina?> ObtenerPorIdFuxa(string idFuxa)
+        public async Task<Maquina?> ObtenerPorId(int id)
         {
-            return await _db.Maquinas.FirstOrDefaultAsync(m => m.IdFuxa == idFuxa);
+            return await _db.Maquinas.FirstOrDefaultAsync(m => m.Id == id);
         }
 
         public async Task GuardarMaquina(Maquina maquina)
         {
-            var existe = await _db.Maquinas.AnyAsync(m => m.IdFuxa == maquina.IdFuxa);
+            var existe = await _db.Maquinas.AnyAsync(m => m.Id == maquina.Id);
             maquina.FechaActualizacion = DateTime.UtcNow;
 
-            if (!existe)
+            if (maquina.Id == 0)
             {
                 maquina.FechaCreacion = DateTime.UtcNow;
                 _db.Maquinas.Add(maquina);
             }
             else
             {
+                maquina.FechaActualizacion = DateTime.UtcNow;
                 _db.Maquinas.Update(maquina);
             }
             await _db.SaveChangesAsync();
@@ -93,6 +94,19 @@ namespace Proyecto_FUXA.Services
         {
             _db.Empleados.Remove(empleado);
             await _db.SaveChangesAsync();
+        }
+
+        public async Task<List<MaquinasOrdenes>> GetAllOrdenes()
+        {
+            try
+            {
+                return await _db.Ordenes.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.Write($"Error al carar las ordenes {ex.Message}");
+                return new List<MaquinasOrdenes>();
+            }
         }
     }
 }

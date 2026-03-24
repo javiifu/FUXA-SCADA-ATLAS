@@ -12,7 +12,7 @@
 @using Proyecto_FUXA.Models
 
 
-@if (maquinasFiltradas == null || !maquinasHMI.Any())
+@if (maquinasFiltradas == null)
 {
     <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
 }
@@ -36,17 +36,18 @@ else
                     </RadzenStack>
 
                     <RadzenDataGrid AllowFiltering="true" AllowPaging="true" PageSize="10" AllowSorting="true"
-                                    Data="@maquinasFiltradas" TItem="MaquinaHMI" @bind-Value="@SelectedMaquinas"
+                                    Data="@maquinasFiltradas" TItem="Maquina" @bind-Value="@SelectedMaquinas"
                                     SelectionMode="DataGridSelectionMode.Single" Responsive="true">
+
                         <Columns>
-                            <RadzenDataGridColumn TItem="MaquinaHMI" Title="Nº" Width="60px" TextAlign="TextAlign.Center">
+                            <RadzenDataGridColumn TItem="Maquina" Title="Nº" Width="60px" TextAlign="TextAlign.Center">
                                 <Template Context="item">
-                                    @(maquinasHMI.IndexOf(item) + 1)
+                                    @(maquinasFiltradas.IndexOf(item) + 1)
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="Nombre" Title="Nombre Máquina" />
-                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="Seccion" Title="Sección" />
-                            <RadzenDataGridColumn TItem="MaquinaHMI" Title="Encargado" Width="200px">
+                            <RadzenDataGridColumn TItem="Maquina" Property="Nombre" Title="Nombre Máquina" />
+                            <RadzenDataGridColumn TItem="Maquina" Property="NombreSeccion" Title="Sección" />
+                            <RadzenDataGridColumn TItem="Maquina" Title="Encargado" Width="200px">
                                 <Template Context="m">
                                     <div style="display: flex; flex-direction: column;">
                                         <span style="font-weight: bold; color: var(--rz-text-color);">
@@ -58,7 +59,7 @@ else
                                     </div>
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MaquinaHMI" Title="Estado" Width="150px" TextAlign="TextAlign.Center">
+                            <RadzenDataGridColumn TItem="Maquina" Title="Estado" Width="150px" TextAlign="TextAlign.Center">
                                 <Template Context="m">
                                     @if (m.EstadoActualId == 1)
                                     {
@@ -82,11 +83,12 @@ else
                                     }
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="CiclosReales" Title="Reales" Width="140px" TextAlign="TextAlign.Center" />
-                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="CiclosObjetivo" Title="Objetivo" Width="140px" TextAlign="TextAlign.Center" />
 
-                            @* Columna de Eficiencia con Property para permitir ordenación *@
-                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="PorcentajeCiclos" Title="Eficiencia">
+                            <RadzenDataGridColumn TItem="Maquina" Property="CiclosReales" Title="Reales" Width="140px" TextAlign="TextAlign.Center" />
+                            <RadzenDataGridColumn TItem="Maquina" Property="CiclosObjetivo" Title="Objetivo" Width="140px" TextAlign="TextAlign.Center" />
+
+                            @*para permitir ordenar por eficiencia *@
+                            <RadzenDataGridColumn TItem="Maquina" Property="PorcentajeCiclos" Title="Eficiencia">
                                 <Template Context="m">
                                     <RadzenProgressBar Value="@(Math.Round((double)m.PorcentajeCiclos, 1))"
                                                        Max="100"
@@ -94,12 +96,26 @@ else
                                                        ShowValue="true"
                                                        ProgressBarStyle="@CambiarColorBarraProgreso(m.PorcentajeCiclos)" />
                                 </Template>
+
                             </RadzenDataGridColumn>
 
-                            <RadzenDataGridColumn TItem="MaquinaHMI" Title="Editar" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
+                            @* Boton de editar *@
+                            <RadzenDataGridColumn TItem="Maquina" Title="Editar" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
                                 <Template Context="maquina">
                                     <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat"
                                                   Size="ButtonSize.Medium" Click="@(args => IrAEditar(maquina.Id))" />
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            @* Boton orden *@
+                            <RadzenDataGridColumn TItem="Maquina" Title="Orden" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
+                                <Template Context="maquina">
+                                    <RadzenButton Icon="add"
+                                                  ButtonStyle="ButtonStyle.Info"
+                                                  Variant="Variant.Flat"
+                                                  Size="ButtonSize.Medium"
+                                                  Click="@(args =>AbrirDialogoNuevaOrden(maquina.Id))"
+                                                  ToolTip="Nueva Orden de Trabajo" />
                                 </Template>
                             </RadzenDataGridColumn>
                         </Columns>
@@ -107,7 +123,7 @@ else
                 </RadzenCard>
             </RadzenColumn>
             <RadzenText>
-                Mostrando @maquinasFiltradas.Count() de @maquinasHMI.Count() maquinas.
+                Mostrando @maquinasFiltradas.Count() de @maquinasDB.Count() maquinas.
             </RadzenText>
         </RadzenRow>
         <div class="rz-p-4 rz-text-align-center">
@@ -147,93 +163,56 @@ else
 }
 
 @code {
-    public class MaquinaHMI
-    {
-        public string Id { get; set; } = string.Empty; // IdFuxa
-        public string Nombre { get; set; } = string.Empty;
-        public string Tipo { get; set; } = string.Empty;
-        public string Seccion { get; set; } = string.Empty;
-        public int EstadoActualId { get; set; }
-        public int? EmpleadoId { get; set; }
-        public string NombreOperario { get; set; } = "Sin asignar";
-        public string CargoOperario { get; set; } = "N/A";
-        public int CiclosObjetivo { get; set; }
-        public int CiclosReales { get; set; }
-        public float PorcentajeCiclos { get; set; }
-    }
 
-    private List<MaquinaHMI> maquinasHMI = new();
-    private IList<MaquinaHMI> SelectedMaquinas = new List<MaquinaHMI>();
-    private List<MaquinaHMI> maquinasFiltradas = new();
+    private IList<Maquina> SelectedMaquinas = new List<Maquina>();
+    private List<Maquina> maquinasFiltradas = new();
+    private List<Maquina> maquinasDB = new();
 
     protected override async Task OnInitializedAsync()
     {
-        await CargarDesdeFuxa();
+        await CargarMaquinasDesdeSQL();
     }
 
-    private void IrAEditar(string id)
+    private void IrAEditar(int id)
     {
         NavManager.NavigateTo($"/editar-maquina/{id}");
     }
 
-    private async Task CargarDesdeFuxa()
+    private async Task CargarMaquinasDesdeSQL()
     {
         try
         {
-            var response = await Http.GetAsync("api/project");
-            if (!response.IsSuccessStatusCode) return;
+            var resultado = await ServicioMaquina.GetAllAsync();
+            var todasLasOrdenes = await ServicioMaquina.GetAllOrdenes();
+            var todosLosEmpleados = await ServicioMaquina.GetAllEmpleadosAsync();
 
-            var json = await response.Content.ReadAsStringAsync();
-            using JsonDocument doc = JsonDocument.Parse(json);
-            var items = doc.RootElement.GetProperty("hmi").GetProperty("views")[0].GetProperty("items");
-
-            // Cargamos datos de SQL (si fallan, inicializamos lista vacía para evitar errores)
-            var maquinasEnSQL = await ServicioMaquina.GetAllAsync() ?? new();
-            var listaEmpleados = await ServicioMaquina.GetAllEmpleadosAsync() ?? new();
-
-            maquinasHMI.Clear();
-
-            foreach (var item in items.EnumerateObject())
+            foreach (var m in resultado)
             {
-                string type = item.Value.TryGetProperty("type", out var t) ? t.GetString() : "";
+                var orden = todasLasOrdenes.FirstOrDefault(o => o.IdMaquina == m.Id &&
+                            (o.Estado == "Abierta" || o.Estado == "Abierto"));
 
-                if (type.Contains("proceng") || type.Contains("svg-ext"))
+                m.CiclosObjetivo = orden?.CiclosObjetivo ?? 0;
+                m.CiclosReales = 500;
+
+                if (m.CiclosObjetivo > 0)
                 {
-                    var datosDb = maquinasEnSQL.FirstOrDefault(m => m.IdFuxa == item.Name);
-                    var emp = listaEmpleados.FirstOrDefault(e => e.Id == datosDb?.EmpleadoId);
+                    m.PorcentajeCiclos = (float)((double)m.CiclosReales / m.CiclosObjetivo * 100);
+                }
 
-                    var nuevaMaquina = new MaquinaHMI
-                    {
-                        Id = item.Name,
-                        Nombre = datosDb?.Nombre ?? (item.Value.TryGetProperty("label", out var l) ? l.GetString() : "Nueva Máquina"),
-                        Tipo = type.Replace("svg-ext-proceng-", ""),
-                        Seccion = datosDb?.NombreSeccion ?? "Sin asignar",
-                        EmpleadoId = datosDb?.EmpleadoId,
-
-                        // Si encontramos al empleado y es Encargado, ponemos Nombre + Apellidos
-                        NombreOperario = (emp?.Cargo == "Encargado") ? $"{emp.Nombre} {emp.Apellidos}" : "Sin asignar",
-                        CargoOperario = emp?.Cargo ?? "Sin Cargo",
-
-                        EstadoActualId = datosDb?.EstadoActualId ?? 1,
-                        CiclosObjetivo = datosDb?.CiclosObjetivo ?? 0,
-                        CiclosReales = 500,
-                    };
-
-                    nuevaMaquina.PorcentajeCiclos = (float)ServicioProductividad.CalcularProductividadPorHora(
-                        nuevaMaquina.CiclosReales, nuevaMaquina.CiclosObjetivo);
-
-                    maquinasHMI.Add(nuevaMaquina);
+                var emp = todosLosEmpleados.FirstOrDefault(e => e.Id == m.EmpleadoId);
+                if (emp != null)
+                {
+                    m.NombreOperario = $"{emp.Nombre} {emp.Apellidos}";
+                    m.CargoOperario = emp.Cargo;
                 }
             }
-
-            maquinasFiltradas = maquinasHMI.ToList();
-            if (maquinasHMI.Any()) SelectedMaquinas = new List<MaquinaHMI> { maquinasHMI.First() };
-
+            maquinasDB = resultado.OrderByDescending(m => m.Id).ToList();
+            maquinasFiltradas = maquinasDB;
             StateHasChanged();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error crítico: {ex.Message}");
+            Console.WriteLine($"Error al cargar: {ex.Message}");
         }
     }
 
@@ -262,22 +241,13 @@ else
 
         if(string.IsNullOrWhiteSpace(escrito))
         {
-            maquinasFiltradas = maquinasHMI.ToList();
+            maquinasFiltradas = maquinasDB.ToList();
         }
         else
         {
-
-            var temp = new List<MaquinaHMI>();
-
-
-            foreach(var m in maquinasHMI)
-            {
-                if (m.Nombre != null && m.Nombre.Contains(escrito, StringComparison.OrdinalIgnoreCase))
-                {
-                    temp.Add(m);
-                }
-            }
-            maquinasFiltradas = temp;
+            maquinasFiltradas = maquinasDB
+                .Where(m => m.Nombre.Contains(escrito, StringComparison.OrdinalIgnoreCase))
+                .ToList();
         }
         StateHasChanged();
     }
@@ -285,7 +255,7 @@ else
     public int MaquinasActivas(int idEstado)
     {
         int maquinas = 0;
-        foreach(var m in maquinasHMI)
+        foreach(var m in maquinasFiltradas)
         {
             if(m.EstadoActualId == idEstado)
             {
@@ -301,7 +271,7 @@ else
         double porcentajeMaquinasTotal= 0;
         double totalProcentaje = 0;
 
-        foreach(var m in maquinasHMI)
+        foreach (var m in maquinasFiltradas)
         {
             if(m.EstadoActualId != 4)
             {
@@ -319,9 +289,9 @@ else
         double porcentajeSeccionTotal = 0;
         double totalPorcentaje = 0;
 
-        foreach(var m in maquinasHMI)
+        foreach (var m in maquinasFiltradas)
         {
-            if(m.Seccion == nombreSeccion && m.EstadoActualId != 4)
+            if(m.NombreSeccion == nombreSeccion && m.EstadoActualId != 4)
             {
                 contador++;
                 porcentajeSeccionTotal += m.PorcentajeCiclos;
@@ -335,24 +305,24 @@ else
     {
         List<string> nombreSecciones = new List<string>();
 
-        foreach (var m in maquinasHMI)
+        foreach (var m in maquinasFiltradas)
         {
-            if (!nombreSecciones.Contains(m.Seccion) && m.EstadoActualId != 4 && !string.IsNullOrEmpty(m.Seccion) && !m.Seccion.Contains("Sin asignar", StringComparison.OrdinalIgnoreCase))
+            if (!nombreSecciones.Contains(m.NombreSeccion) && m.EstadoActualId != 4 && !string.IsNullOrEmpty(m.NombreSeccion) && !m.NombreSeccion.Contains("Sin asignar", StringComparison.OrdinalIgnoreCase))
             {
-                nombreSecciones.Add(m.Seccion);
+                nombreSecciones.Add(m.NombreSeccion);
             }
         }
         return nombreSecciones;
     }
 
-    private async Task AbrirAsignarTrabajador(MaquinaHMI maquina)
+    private async Task AbrirAsignarTrabajador(Maquina maquina)
     {
         var resultado = await DialogService.OpenAsync<AsignarDialog>("Asignar Personal",
             new Dictionary<string, object> {
                 { "Datos", new AsignarTrabajador {
                     MaquinaId = maquina.Id,
                     NombreMaquina = maquina.Nombre,
-                    Seccion = maquina.Seccion,
+                    NombreSeccion = maquina.NombreSeccion,
                     EmpleadoId = maquina.EmpleadoId
                 }}
             },
@@ -360,7 +330,12 @@ else
 
         if (resultado == true)
         {
-            await CargarDesdeFuxa();
+            await CargarMaquinasDesdeSQL();
         }
+    }
+
+    private void AbrirDialogoNuevaOrden(int maquinaId)
+    {
+        Console.WriteLine($"Abriendo orden para la maquina ID: {maquinaId}");
     }
 }

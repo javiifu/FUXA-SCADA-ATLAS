@@ -1,4 +1,4 @@
-@page "/editar-maquina/{idFuxa}"
+@page "/editar-maquina/{id:int}"
 @using Proyecto_FUXA.Models
 @using Proyecto_FUXA.Services
 @using Radzen
@@ -22,7 +22,7 @@ else
     <div style="border-radius: 8px; border:1px solid #ccc; padding:20px; width:500px; background-color: #f9f9f9;">
 
         <div class="alert alert-info" style="font-size: 0.9rem;">
-            ID Técnico (FUXA): <strong>@idFuxa</strong>
+            ID Técnico: <strong>@id</strong>
         </div>
 
         <div class="mb-3">
@@ -81,7 +81,7 @@ else
 
 @code {
     [Parameter]
-    public string idFuxa { get; set; } = string.Empty;
+    public int id { get; set; }
     List<Empleado> encargados = new();
 
     private Maquina? machine;
@@ -92,7 +92,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         // buscamos la maquina en la base de datos
-        var maquinaExistente = await MachineService.ObtenerPorIdFuxa(idFuxa);
+        var maquinaExistente = await MachineService.ObtenerPorId(id);
 
         if (maquinaExistente != null)
         {
@@ -103,7 +103,6 @@ else
             // sino existe se crea un objeto vacio para que se rellene
             machine = new Maquina
             {
-                IdFuxa = idFuxa,
                 Nombre = "",
                 NombreSeccion = "",
                 CiclosObjetivo = 0,
