@@ -257,9 +257,314 @@ namespace Proyecto_FUXA.Services
             await _db.SaveChangesAsync();
             return mantenimiento.FechaProgramada;
         }
-    
 
-    public async Task<int> CrearIncidenciaAsync(IncidenciaActivaDto dto)
+
+        public async Task<List<Maquina>> ObtenerMaquinasActivasAsync()
+        {
+            return await _db.Maquinas
+                .AsNoTracking()
+                .Where(m => m.EstaActivo)
+                .OrderBy(m => m.Nombre)
+                .ToListAsync();
+        }
+
+        public async Task<List<Operacion>> ObtenerOperacionesActivasAsync()
+        {
+            return await _db.Operaciones
+                .AsNoTracking()
+                .Where(o => o.Activa)
+                .OrderBy(o => o.Nombre)
+                .ToListAsync();
+        }
+
+        public async Task<List<Empleado>> ObtenerEmpleadosActivosAsync()
+        {
+            return await _db.Empleados
+                .AsNoTracking()
+                .Where(e => e.EstaActivo)
+                .OrderBy(e => e.Nombre)
+                .ThenBy(e => e.Apellidos)
+                .ToListAsync();
+        }
+
+        public async Task<EstadoImputacionMaquinaDto?> ObtenerEstadoImputacionMaquinaAsync(int maquinaId)
+        {
+            var maquina = await _db.Maquinas
+                .AsNoTracking()
+                .Include(m => m.Seccion)
+                .FirstOrDefaultAsync(m => m.Id == maquinaId);
+
+            if (maquina is null)
+            {
+                return null;
+            }
+
+            var ordenActiva = await _db.MaquinasOrdenes
+                .AsNoTracking()
+                .Where(mo => mo.MaquinaId == maquinaId && mo.FechaFin == null)
+                .OrderByDescending(mo => mo.FechaInicio)
+                .FirstOrDefaultAsync();
+
+            var estado = new EstadoImputacionMaquinaDto
+            {
+                MaquinaId = maquina.Id,
+                NombreMaquina = maquina.Nombre,
+                Seccion = maquina.Seccion?.Nombre ?? maquina.NombreSeccion,
+                MaquinaOrdenId = ordenActiva?.Id,
+                OrdenCodigo = ordenActiva?.CodigoOrden
+            };
+
+            if (ordenActiva is null)
+            {
+                return estado;
+            }
+
+            var imputacionAbierta = await _db.ImputacionesMaquina
+                .AsNoTracking()
+                .Include(i => i.Operacion)
+                .Where(i => i.MaquinaOrdenId == ordenActiva.Id && i.FechaFin == null)
+                .OrderByDescending(i => i.FechaInicio)
+                .FirstOrDefaultAsync();
+
+            if (imputacionAbierta is null)
+            {
+                return estado;
+            }
+
+            estado.ImputacionMaquinaId = imputacionAbierta.Id;
+            estado.OperacionId = imputacionAbierta.OperacionId;
+            estado.OperacionNombre = imputacionAbierta.Operacion?.Nombre;
+            estado.FechaInicioMaquina = imputacionAbierta.FechaInicio;
+            estado.FechaFinMaquina = imputacionAbierta.FechaFin;
+            estado.EstadoMaquina = imputacionAbierta.Estado;
+            estado.CantidadProducida = imputacionAbierta.CantidadProducida;
+            estado.OperariosActivos = await _db.ImputacionesOperario
+                .AsNoTracking()
+                .Include(o => o.Empleado)
+                .Where(o => o.ImputacionMaquinaId == imputacionAbierta.Id && o.FechaFin == null)
+                .OrderBy(o => o.FechaInicio)
+                .Select(o => new OperarioActivoDto
+                {
+                    ImputacionOperarioId = o.Id,
+                    EmpleadoId = o.EmpleadoId,
+                    EmpleadoNombre = (o.Empleado!.Nombre + " " + o.Empleado.Apellidos).Trim(),
+                    FechaInicio = o.FechaInicio,
+                    FechaFin = o.FechaFin
+                })
+                .ToListAsync();
+
+            return estado;
+        }
+
+        public async Task<int> IniciarImputacionMaquinaAsync(IniciarImputacionMaquinaRequest request)
+        {
+            var ordenActiva = await _db.MaquinasOrdenes
+                .Where(mo => mo.MaquinaId == request.MaquinaId && mo.FechaFin == null)
+                .OrderByDescending(mo => mo.FechaInicio)
+                .FirstOrDefaultAsync();
+
+            if (ordenActiva is null)
+            {
+                throw new InvalidOperationException("La máquina no tiene orden activa.");
+            }
+
+            var existeAbierta = await _db.ImputacionesMaquina
+                .AnyAsync(i => i.MaquinaOrdenId == ordenActiva.Id && i.FechaFin == null);
+
+            if (existeAbierta)
+            {
+                throw new InvalidOperationException("Ya existe una imputación de máquina abierta para la orden activa.");
+            }
+
+            var nueva = new ImputacionMaquina
+            {
+                MaquinaOrdenId = ordenActiva.Id,
+                OperacionId = request.OperacionId,
+                EmpleadoId = request.EmpleadoResponsableId,
+                FechaInicio = DateTime.UtcNow,
+                Observaciones = request.Observaciones,
+                TipoImputacion = string.IsNullOrWhiteSpace(request.TipoImputacion) ? "Manual" : request.TipoImputacion.Trim(),
+                Estado = "Abierta",
+                FechaCreacion = DateTime.UtcNow,
+                FechaActualizacion = DateTime.UtcNow
+            };
+
+            _db.ImputacionesMaquina.Add(nueva);
+            await _db.SaveChangesAsync();
+            return nueva.Id;
+        }
+
+        public async Task FinalizarImputacionMaquinaAsync(FinalizarImputacionMaquinaRequest request)
+        {
+            var imputacion = await _db.ImputacionesMaquina
+                .FirstOrDefaultAsync(i => i.Id == request.ImputacionMaquinaId);
+
+            if (imputacion is null)
+            {
+                throw new InvalidOperationException("No existe la imputación de máquina indicada.");
+            }
+
+            var operariosActivos = await _db.ImputacionesOperario
+                .AnyAsync(i => i.ImputacionMaquinaId == imputacion.Id && i.FechaFin == null);
+
+            if (operariosActivos)
+            {
+                throw new InvalidOperationException("No se puede finalizar la máquina mientras haya operarios activos.");
+            }
+
+            imputacion.FechaFin = DateTime.UtcNow;
+            imputacion.Estado = "Cerrada";
+            imputacion.CantidadProducida = request.CantidadProducida;
+            imputacion.Observaciones = string.IsNullOrWhiteSpace(request.Observaciones) ? imputacion.Observaciones : request.Observaciones;
+            imputacion.FechaActualizacion = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+        }
+
+        public async Task<int> IniciarImputacionOperarioAsync(IniciarImputacionOperarioRequest request)
+        {
+            var imputacion = await _db.ImputacionesMaquina
+                .Include(i => i.MaquinaOrden)
+                .FirstOrDefaultAsync(i => i.Id == request.ImputacionMaquinaId);
+
+            if (imputacion is null || imputacion.FechaFin != null)
+            {
+                throw new InvalidOperationException("No existe una imputación de máquina abierta.");
+            }
+
+            var existeAbierta = await _db.ImputacionesOperario
+                .AnyAsync(i => i.ImputacionMaquinaId == request.ImputacionMaquinaId && i.EmpleadoId == request.EmpleadoId && i.FechaFin == null);
+
+            if (existeAbierta)
+            {
+                throw new InvalidOperationException("El operario ya tiene una imputación activa en esta máquina.");
+            }
+
+            var item = new ImputacionOperario
+            {
+                EmpleadoId = request.EmpleadoId,
+                MaquinaId = imputacion.MaquinaOrden!.MaquinaId,
+                OrdenId = imputacion.MaquinaOrdenId,
+                OperacionId = imputacion.OperacionId,
+                ImputacionMaquinaId = imputacion.Id,
+                FechaInicio = DateTime.UtcNow,
+                Observaciones = request.Observaciones,
+                FechaCreacion = DateTime.UtcNow
+            };
+
+            _db.ImputacionesOperario.Add(item);
+            await _db.SaveChangesAsync();
+            return item.Id;
+        }
+
+        public async Task FinalizarImputacionOperarioAsync(FinalizarImputacionOperarioRequest request)
+        {
+            var imputacion = await _db.ImputacionesOperario
+                .FirstOrDefaultAsync(i => i.Id == request.ImputacionOperarioId);
+
+            if (imputacion is null)
+            {
+                throw new InvalidOperationException("No existe la imputación de operario indicada.");
+            }
+
+            if (imputacion.FechaFin != null)
+            {
+                return;
+            }
+
+            imputacion.FechaFin = DateTime.UtcNow;
+            imputacion.Observaciones = string.IsNullOrWhiteSpace(request.Observaciones) ? imputacion.Observaciones : request.Observaciones;
+            await _db.SaveChangesAsync();
+        }
+
+        public async Task<List<ImputacionMaquinaListadoDto>> ObtenerImputacionesAsync(int? maquinaId = null, bool soloAbiertas = false)
+        {
+            var query = _db.ImputacionesMaquina
+                .AsNoTracking()
+                .Include(i => i.MaquinaOrden)!.ThenInclude(mo => mo!.Maquina)
+                .Include(i => i.Operacion)
+                .AsQueryable();
+
+            if (maquinaId.HasValue)
+            {
+                query = query.Where(i => i.MaquinaOrden!.MaquinaId == maquinaId.Value);
+            }
+
+            if (soloAbiertas)
+            {
+                query = query.Where(i => i.FechaFin == null);
+            }
+
+            return await query
+                .OrderByDescending(i => i.FechaInicio)
+                .Select(i => new ImputacionMaquinaListadoDto
+                {
+                    ImputacionMaquinaId = i.Id,
+                    Maquina = i.MaquinaOrden!.Maquina!.Nombre,
+                    Seccion = i.MaquinaOrden.Maquina.NombreSeccion,
+                    Orden = i.MaquinaOrden.CodigoOrden,
+                    Operacion = i.Operacion!.Nombre,
+                    Estado = i.Estado,
+                    FechaInicio = i.FechaInicio,
+                    FechaFin = i.FechaFin,
+                    CantidadProducida = i.CantidadProducida,
+                    OperariosAsociados = i.ImputacionesOperario.Count()
+                })
+                .ToListAsync();
+        }
+
+        public async Task<ImputacionDetalleDto?> ObtenerDetalleImputacionAsync(int imputacionMaquinaId)
+        {
+            var cabecera = await _db.ImputacionesMaquina
+                .AsNoTracking()
+                .Include(i => i.MaquinaOrden)!.ThenInclude(mo => mo!.Maquina)
+                .Include(i => i.Operacion)
+                .Where(i => i.Id == imputacionMaquinaId)
+                .Select(i => new ImputacionMaquinaListadoDto
+                {
+                    ImputacionMaquinaId = i.Id,
+                    Maquina = i.MaquinaOrden!.Maquina!.Nombre,
+                    Seccion = i.MaquinaOrden.Maquina.NombreSeccion,
+                    Orden = i.MaquinaOrden.CodigoOrden,
+                    Operacion = i.Operacion!.Nombre,
+                    Estado = i.Estado,
+                    FechaInicio = i.FechaInicio,
+                    FechaFin = i.FechaFin,
+                    CantidadProducida = i.CantidadProducida,
+                    OperariosAsociados = i.ImputacionesOperario.Count()
+                })
+                .FirstOrDefaultAsync();
+
+            if (cabecera is null)
+            {
+                return null;
+            }
+
+            var operarios = await _db.ImputacionesOperario
+                .AsNoTracking()
+                .Include(i => i.Empleado)
+                .Where(i => i.ImputacionMaquinaId == imputacionMaquinaId)
+                .OrderBy(i => i.FechaInicio)
+                .Select(i => new ImputacionOperarioDto
+                {
+                    Id = i.Id,
+                    EmpleadoId = i.EmpleadoId,
+                    EmpleadoNombre = (i.Empleado!.Nombre + " " + i.Empleado.Apellidos).Trim(),
+                    FechaInicio = i.FechaInicio,
+                    FechaFin = i.FechaFin,
+                    Observaciones = i.Observaciones
+                })
+                .ToListAsync();
+
+            return new ImputacionDetalleDto
+            {
+                Cabecera = cabecera,
+                Operarios = operarios
+            };
+        }
+
+
+        public async Task<int> CrearIncidenciaAsync(IncidenciaActivaDto dto)
         {
             var maquina = await _db.Maquinas.FirstOrDefaultAsync(m => m.Id == dto.MaquinaId);
 

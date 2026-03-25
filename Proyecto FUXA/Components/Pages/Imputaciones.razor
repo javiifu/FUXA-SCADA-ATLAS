@@ -1,0 +1,69 @@
+﻿@page "/imputaciones"
+@rendermode InteractiveServer
+@inject ServicioMaquina ServicioMaquina
+@inject NavigationManager Navigation
+
+@using Proyecto_FUXA.DTO
+@using Proyecto_FUXA.Models
+@using Proyecto_FUXA.Services
+@using Radzen
+@using Radzen.Blazor
+
+<h1>Supervisión de imputaciones</h1>
+
+<RadzenCard Variant="Variant.Outlined" class="rz-mb-3">
+    <RadzenStack Orientation="Orientation.Horizontal" Gap="1rem" AlignItems="AlignItems.End">
+        <RadzenDropDown Data="@maquinas"
+                        TValue="int?"
+                        TextProperty="Nombre"
+                        ValueProperty="Id"
+                        Placeholder="Todas las máquinas"
+                        Style="width: 320px"
+                        @bind-Value="maquinaIdFiltro"
+                        Change="@(async _ => await CargarAsync())" />
+
+        <RadzenCheckBox @bind-Value="soloAbiertas" Name="soloAbiertas" TValue="bool" Change="@(async _ => await CargarAsync())" />
+        <RadzenLabel Text="Solo abiertas" Component="soloAbiertas" />
+    </RadzenStack>
+</RadzenCard>
+
+<RadzenDataGrid Data="@items" TItem="ImputacionMaquinaListadoDto" AllowPaging="true" PageSize="15" AllowSorting="true">
+    <Columns>
+        <RadzenDataGridColumn TItem="ImputacionMaquinaListadoDto" Property="Maquina" Title="Máquina" />
+        <RadzenDataGridColumn TItem="ImputacionMaquinaListadoDto" Property="Seccion" Title="Sección" />
+        <RadzenDataGridColumn TItem="ImputacionMaquinaListadoDto" Property="Orden" Title="Orden" />
+        <RadzenDataGridColumn TItem="ImputacionMaquinaListadoDto" Property="Operacion" Title="Operación" />
+        <RadzenDataGridColumn TItem="ImputacionMaquinaListadoDto" Property="Estado" Title="Estado" />
+        <RadzenDataGridColumn TItem="ImputacionMaquinaListadoDto" Title="Inicio">
+            <Template Context="item">@item.FechaInicio.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ImputacionMaquinaListadoDto" Title="Fin">
+            <Template Context="item">@(item.FechaFin?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "-")</Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ImputacionMaquinaListadoDto" Property="CantidadProducida" Title="Cantidad" />
+        <RadzenDataGridColumn TItem="ImputacionMaquinaListadoDto" Property="OperariosAsociados" Title="Operarios" />
+        <RadzenDataGridColumn TItem="ImputacionMaquinaListadoDto" Title="Acciones" Width="120px" Sortable="false" Filterable="false">
+            <Template Context="item">
+                <RadzenButton Icon="visibility" Text="Detalle" Click="@(_ => Navigation.NavigateTo($"/imputaciones/{item.ImputacionMaquinaId}"))" />
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+    private List<ImputacionMaquinaListadoDto> items = new();
+    private List<Maquina> maquinas = new();
+    private int? maquinaIdFiltro;
+    private bool soloAbiertas;
+
+    protected override async Task OnInitializedAsync()
+    {
+        maquinas = await ServicioMaquina.ObtenerMaquinasActivasAsync();
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        items = await ServicioMaquina.ObtenerImputacionesAsync(maquinaIdFiltro, soloAbiertas);
+    }
+}

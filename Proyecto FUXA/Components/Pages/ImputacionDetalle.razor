@@ -1,0 +1,54 @@
+﻿@page "/imputaciones/{ImputacionId:int}"
+@rendermode InteractiveServer
+@inject ServicioMaquina ServicioMaquina
+
+@using Proyecto_FUXA.DTO
+@using Proyecto_FUXA.Services
+@using Radzen
+@using Radzen.Blazor
+
+<h1>Detalle de imputación</h1>
+
+@if (detalle == null)
+{
+    <RadzenAlert AlertStyle="AlertStyle.Warning">No existe la imputación solicitada.</RadzenAlert>
+}
+else
+{
+    <RadzenCard Variant="Variant.Outlined" class="rz-mb-3">
+        <RadzenStack Gap="0.5rem">
+            <RadzenText><b>Máquina:</b> @detalle.Cabecera.Maquina</RadzenText>
+            <RadzenText><b>Sección:</b> @detalle.Cabecera.Seccion</RadzenText>
+            <RadzenText><b>Orden:</b> @detalle.Cabecera.Orden</RadzenText>
+            <RadzenText><b>Operación:</b> @detalle.Cabecera.Operacion</RadzenText>
+            <RadzenText><b>Estado:</b> @detalle.Cabecera.Estado</RadzenText>
+            <RadzenText><b>Inicio:</b> @detalle.Cabecera.FechaInicio.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</RadzenText>
+            <RadzenText><b>Fin:</b> @(detalle.Cabecera.FechaFin?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "-")</RadzenText>
+            <RadzenText><b>Cantidad producida:</b> @(detalle.Cabecera.CantidadProducida?.ToString() ?? "-")</RadzenText>
+        </RadzenStack>
+    </RadzenCard>
+
+    <RadzenDataGrid Data="@detalle.Operarios" TItem="ImputacionOperarioDto" AllowPaging="true" PageSize="10">
+        <Columns>
+            <RadzenDataGridColumn TItem="ImputacionOperarioDto" Property="EmpleadoNombre" Title="Operario" />
+            <RadzenDataGridColumn TItem="ImputacionOperarioDto" Title="Inicio">
+                <Template Context="item">@item.FechaInicio.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="ImputacionOperarioDto" Title="Fin">
+                <Template Context="item">@(item.FechaFin?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "Activo")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="ImputacionOperarioDto" Property="Observaciones" Title="Observaciones" />
+        </Columns>
+    </RadzenDataGrid>
+}
+
+@code {
+    [Parameter] public int ImputacionId { get; set; }
+
+    private ImputacionDetalleDto? detalle;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        detalle = await ServicioMaquina.ObtenerDetalleImputacionAsync(ImputacionId);
+    }
+}
