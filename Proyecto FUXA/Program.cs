@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+
 using Proyecto_FUXA;
 using Proyecto_FUXA.Components;
 using Proyecto_FUXA.Data;
@@ -28,9 +29,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         }));
 
 builder.Services.AddScoped<ServicioMaquina>();
+builder.Services.AddScoped<ServicioIncidencia>();
 builder.Services.AddScoped<ServicioProductividad>();
 builder.Services.AddScoped<ServicioPlantaVisual>();
 builder.Services.AddScoped<FuxaService>();
+
+
 
 builder.Services.AddScoped(sp => new HttpClient
 {

@@ -221,9 +221,9 @@ namespace Proyecto_FUXA.Services
 
             await _db.SaveChangesAsync();
         }
-        
-        
-    public async Task<DateTime?> GuardarProximoMantenimientoAsync(int maquinaId, DateTime? fechaProgramada)
+
+
+        public async Task<DateTime?> GuardarProximoMantenimientoAsync(int maquinaId, DateTime? fechaProgramada)
         {
             var mantenimiento = await _db.Mantenimientos
                 .Where(m => m.MaquinaId == maquinaId && m.FechaProgramada != null)
@@ -256,6 +256,43 @@ namespace Proyecto_FUXA.Services
 
             await _db.SaveChangesAsync();
             return mantenimiento.FechaProgramada;
+        }
+    
+
+    public async Task<int> CrearIncidenciaAsync(IncidenciaActivaDto dto)
+        {
+            var maquina = await _db.Maquinas.FirstOrDefaultAsync(m => m.Id == dto.MaquinaId);
+
+            if (maquina is null)
+                throw new InvalidOperationException($"No existe la máquina con Id {dto.MaquinaId}.");
+
+            if (string.IsNullOrWhiteSpace(dto.Titulo))
+                throw new InvalidOperationException("El título es obligatorio.");
+
+            if (string.IsNullOrWhiteSpace(dto.Prioridad))
+                throw new InvalidOperationException("La prioridad es obligatoria.");
+
+            if (string.IsNullOrWhiteSpace(dto.Estado))
+                throw new InvalidOperationException("El estado es obligatorio.");
+
+            var incidencia = new Incidencia
+            {
+                MaquinaId = dto.MaquinaId,
+                Titulo = dto.Titulo.Trim(),
+                Descripcion = string.IsNullOrWhiteSpace(dto.Descripcion) ? null : dto.Descripcion.Trim(),
+                Prioridad = dto.Prioridad.Trim(),
+                Estado = dto.Estado.Trim(),
+                FechaApertura = dto.FechaApertura == default ? DateTime.Now : dto.FechaApertura,
+                FechaCierre = dto.FechaCierre,
+                UsuarioApertura = string.IsNullOrWhiteSpace(dto.UsuarioApertura) ? null : dto.UsuarioApertura.Trim(),
+                UsuarioAsignado = string.IsNullOrWhiteSpace(dto.UsuarioAsignado) ? null : dto.UsuarioAsignado.Trim()
+            };
+
+            _db.Incidencias.Add(incidencia);
+
+            await _db.SaveChangesAsync();
+
+            return incidencia.Id;
         }
     }
 }

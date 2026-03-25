@@ -5,7 +5,7 @@
 
 @inject ServicioMaquina MachineService
 @inject NavigationManager Navigation
-
+@rendermode InteractiveServer
 <h3>@(machine?.Id == 0 ? "Registrar nueva máquina" : "Editar máquina")</h3>
 
 @if (machine == null)
