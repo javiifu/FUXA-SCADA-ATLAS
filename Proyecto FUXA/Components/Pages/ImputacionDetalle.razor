@@ -24,7 +24,11 @@ else
             <RadzenText><b>Estado:</b> @detalle.Cabecera.Estado</RadzenText>
             <RadzenText><b>Inicio:</b> @detalle.Cabecera.FechaInicio.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</RadzenText>
             <RadzenText><b>Fin:</b> @(detalle.Cabecera.FechaFin?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "-")</RadzenText>
-            <RadzenText><b>Cantidad producida:</b> @(detalle.Cabecera.CantidadProducida?.ToString() ?? "-")</RadzenText>
+            <RadzenText><b>Cantidad total:</b> @(detalle.Cabecera.CantidadProducida?.ToString() ?? "-")</RadzenText>
+            <RadzenText><b>Cantidad buena:</b> @(detalle.Cabecera.CantidadBuena?.ToString() ?? "-")</RadzenText>
+            <RadzenText><b>Cantidad scrap:</b> @(detalle.Cabecera.CantidadScrap?.ToString() ?? "-")</RadzenText>
+            <RadzenText><b>Cantidad retrabajo:</b> @(detalle.Cabecera.CantidadRetrabajo?.ToString() ?? "-")</RadzenText>
+            <RadzenText><b>Motivo cierre:</b> @(detalle.Cabecera.MotivoCierre ?? "-")</RadzenText>
         </RadzenStack>
     </RadzenCard>
 

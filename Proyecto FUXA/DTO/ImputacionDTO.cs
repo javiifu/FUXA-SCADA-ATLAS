@@ -5,6 +5,7 @@
         public int MaquinaId { get; set; }
         public string NombreMaquina { get; set; } = string.Empty;
         public string Seccion { get; set; } = string.Empty;
+        public string EstadoMaquinaFisica { get; set;  } = "Desconocido";
         public int? MaquinaOrdenId { get; set; }
         public string? OrdenCodigo { get; set; }
         public int? OperacionId { get; set; }
@@ -12,8 +13,13 @@
         public int? ImputacionMaquinaId { get; set; }
         public DateTime? FechaInicioMaquina { get; set; }
         public DateTime? FechaFinMaquina { get; set; }
-        public string EstadoMaquina { get; set; } = "Sin imputación";
+        public string EstadoImputacion { get; set; } = "Sin imputación";
         public int? CantidadProducida { get; set; }
+        public int? CantidadBuena { get; set; }
+        public int? CantidadScrap { get; set; }
+        public int? CantidadRetrabajo { get; set; }
+        public bool PuedeIniciarImputacion { get; set; }
+        public string? MotivoBloqueoInicio { get; set; }
         public List<OperarioActivoDto> OperariosActivos { get; set; } = new();
     }
 
@@ -38,6 +44,10 @@
         public DateTime FechaInicio { get; set; }
         public DateTime? FechaFin { get; set; }
         public int? CantidadProducida { get; set; }
+        public int? CantidadBuena { get; set; }
+        public int? CantidadScrap { get; set; }
+        public int? CantidadRetrabajo { get; set; }
+        public string? MotivoCierre { get; set; }
         public int OperariosAsociados { get; set; }
     }
 
@@ -63,8 +73,17 @@
     public class FinalizarImputacionMaquinaRequest
     {
         public int ImputacionMaquinaId { get; set; }
-        public int? CantidadProducida { get; set; }
-        public string? Observaciones { get; set; }
+        public int CantidadBuena { get; set; }
+        public int CantidadScrap { get; set; }
+        public int CantidadRetrabajo { get; set; }
+        public string MotivoCierre { get; set; } = string.Empty;
+        public string? ObservacionesCierre { get; set; }
+    }
+
+    public class CambiarEstadoImputacionMaquinaRequest
+    {
+        public int ImputacionMaquinaId { get; set; }
+        public string NuevoEstado { get; set; } = string.Empty;
     }
 
     public class IniciarImputacionOperarioRequest

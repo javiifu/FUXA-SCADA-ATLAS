@@ -12,6 +12,9 @@ namespace Proyecto_FUXA.Models
         [Column("IdMaquina")]
         public int MaquinaId { get; set; }
 
+        [Column("IdOperacion")]
+        public int? OperacionId { get; set; }
+
         [MaxLength(50)]
         public string CodigoOrden { get; set; } = string.Empty;
 
@@ -29,6 +32,9 @@ namespace Proyecto_FUXA.Models
 
         [ForeignKey(nameof(MaquinaId))]
         public virtual Maquina? Maquina { get; set; }
+
+        [ForeignKey(nameof(OperacionId))]
+        public virtual Operacion? Operacion { get; set; }
 
         [ForeignKey(nameof(EmpleadoId))]
         public virtual Empleado? Empleado { get; set; }

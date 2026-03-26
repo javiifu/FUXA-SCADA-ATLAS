@@ -21,15 +21,24 @@ namespace Proyecto_FUXA.Models
         public DateTime FechaInicio { get; set; }
         public DateTime? FechaFin { get; set; }
         public int? CantidadProducida { get; set; }
+        public int? CantidadBuena { get; set; }
+        public int? CantidadScrap { get; set; }
+        public int? CantidadRetrabajo { get; set; }
+
+        [MaxLength(200)]
+        public string? MotivoCierre { get; set; }
 
         [MaxLength(500)]
         public string? Observaciones { get; set; }
+
+        [MaxLength(500)]
+        public string? ObservacionesCierre { get; set; }
 
         [MaxLength(20)]
         public string TipoImputacion { get; set; } = "Manual";
 
         [MaxLength(20)]
-        public string Estado { get; set; } = "Abierta";
+        public string Estado { get; set; } = "Preparacion";
 
         public DateTime FechaCreacion { get; set; }
         public DateTime FechaActualizacion { get; set; }

@@ -68,6 +68,12 @@ namespace Proyecto_FUXA.Data
                 .HasForeignKey(x => x.MaquinaId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<MaquinaOrden>()
+               .HasOne(x => x.Operacion)
+               .WithMany(o => o.MaquinasOrdenes)
+               .HasForeignKey(x => x.OperacionId)
+               .OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<ImputacionMaquina>()
                 .HasOne(x => x.MaquinaOrden)
                 .WithMany(mo => mo.ImputacionesMaquina)
@@ -91,6 +97,11 @@ namespace Proyecto_FUXA.Data
                 .WithMany(e => e.JornadasOperario)
                 .HasForeignKey(x => x.EmpleadoId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ImputacionOperario>()
+                .HasIndex(i => i.EmpleadoId)
+                .HasFilter("[FechaFin] IS NULL")
+                .IsUnique();
 
             modelBuilder.Entity<FichajeEvento>()
                 .HasOne(x => x.JornadaOperario)

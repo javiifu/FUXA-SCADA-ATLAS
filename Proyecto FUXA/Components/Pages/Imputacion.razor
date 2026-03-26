@@ -42,11 +42,16 @@
             <RadzenStack Gap="0.5rem">
                 <RadzenText TextStyle="TextStyle.H5">@estadoActual.NombreMaquina</RadzenText>
                 <RadzenText><b>Sección:</b> @estadoActual.Seccion</RadzenText>
+                <RadzenText><b>Estado máquina:</b> @estadoActual.EstadoMaquinaFisica</RadzenText>
                 <RadzenText><b>Orden activa:</b> @(estadoActual.OrdenCodigo ?? "Sin orden activa")</RadzenText>
-                <RadzenText><b>Operación:</b> @(estadoActual.OperacionNombre ?? "Sin imputación abierta")</RadzenText>
-                <RadzenText><b>Estado:</b> @estadoActual.EstadoMaquina</RadzenText>
+                <RadzenText><b>Operación (de la orden):</b> @(estadoActual.OperacionNombre ?? "Sin operación asignada")</RadzenText>
+                <RadzenText><b>Estado:imputación:</b> @estadoActual.EstadoImputacion</RadzenText>
                 <RadzenText><b>Inicio:</b> @(estadoActual.FechaInicioMaquina?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "-")</RadzenText>
-                <RadzenText><b>Cantidad producida:</b> @(estadoActual.CantidadProducida?.ToString() ?? "-")</RadzenText>
+                <RadzenText><b>Cantidad total:</b> @(estadoActual.CantidadProducida?.ToString() ?? "-")</RadzenText>
+                @if (!string.IsNullOrWhiteSpace(estadoActual.MotivoBloqueoInicio) && estadoActual.ImputacionMaquinaId is null)
+                {
+                    <RadzenAlert AlertStyle="AlertStyle.Warning">@estadoActual.MotivoBloqueoInicio</RadzenAlert>
+                }
             </RadzenStack>
         </RadzenCard>
 
@@ -55,8 +60,20 @@
                 <RadzenButton Size="ButtonSize.Large"
                               Icon="play_circle"
                               Text="Iniciar trabajo"
-                              Disabled="@(estadoActual.ImputacionMaquinaId != null || !operacionSeleccionadaId.HasValue)"
+                              Disabled="@(estadoActual.ImputacionMaquinaId != null || !estadoActual.PuedeIniciarImputacion)"
                               Click="@(async _ => await IniciarImputacionMaquinaAsync())" />
+
+                <RadzenButton Size="ButtonSize.Large"
+                              Icon="pause_circle"
+                              Text="Pausar"
+                              Disabled="@(estadoActual.ImputacionMaquinaId == null || estadoActual.EstadoImputacion != "EnCurso")"
+                              Click="@(async _ => await CambiarEstadoImputacionAsync("Pausada"))" />
+
+                <RadzenButton Size="ButtonSize.Large"
+                              Icon="play_arrow"
+                              Text="Reanudar"
+                              Disabled="@(estadoActual.ImputacionMaquinaId == null || estadoActual.EstadoImputacion != "Pausada")"
+                              Click="@(async _ => await CambiarEstadoImputacionAsync("EnCurso"))" />
 
                 <RadzenButton Size="ButtonSize.Large"
                               Icon="stop_circle"
@@ -72,15 +89,35 @@
                                 Placeholder="Operario"
                                 Style="width: 280px"
                                 @bind-Value="empleadoSeleccionadoId"
-                                Disabled="@(estadoActual.ImputacionMaquinaId == null)" />
+                                Disabled="@(estadoActual.ImputacionMaquinaId == null || estadoActual.EstadoImputacion != "EnCurso")" />
 
                 <RadzenButton Size="ButtonSize.Large"
                               Icon="person_add"
                               Text="Iniciar operario"
-                              Disabled="@(estadoActual.ImputacionMaquinaId == null || !empleadoSeleccionadoId.HasValue)"
+                              Disabled="@(estadoActual.ImputacionMaquinaId == null || !empleadoSeleccionadoId.HasValue || estadoActual.EstadoImputacion != "EnCurso")"
                               Click="@(async _ => await IniciarOperarioAsync())" />
             </RadzenStack>
         </RadzenCard>
+
+        @if (estadoActual.ImputacionMaquinaId is not null)
+        {
+            <RadzenCard Variant="Variant.Outlined">
+                <RadzenText TextStyle="TextStyle.H6" class="rz-mb-2">Cierre de imputación</RadzenText>
+                <RadzenRow Gap="1rem" class="rz-mb-2">
+                    <RadzenColumn Size="12" SizeMD="3">
+                        <RadzenNumeric TValue="int" @bind-Value="cantidadBuena" Min="0" Name="cantidadBuena" Placeholder="Cantidad buena" Style="width:100%" />
+                    </RadzenColumn>
+                    <RadzenColumn Size="12" SizeMD="3">
+                        <RadzenNumeric TValue="int" @bind-Value="cantidadScrap" Min="0" Name="cantidadScrap" Placeholder="Cantidad scrap" Style="width:100%" />
+                    </RadzenColumn>
+                    <RadzenColumn Size="12" SizeMD="3">
+                        <RadzenNumeric TValue="int" @bind-Value="cantidadRetrabajo" Min="0" Name="cantidadRetrabajo" Placeholder="Cantidad retrabajo" Style="width:100%" />
+                    </RadzenColumn>
+                </RadzenRow>
+                <RadzenTextBox @bind-Value="motivoCierre" Placeholder="Motivo de cierre (obligatorio)" Style="width:100%" class="rz-mb-2" />
+                <RadzenTextArea @bind-Value="observacionesCierre" Placeholder="Observaciones de cierre (opcional)" Style="width:100%" Rows="3" />
+            </RadzenCard>
+        }
 
         <RadzenCard Variant="Variant.Outlined">
             <RadzenText TextStyle="TextStyle.H6" class="rz-mb-2">Operarios activos</RadzenText>
@@ -103,7 +140,7 @@
     }
 </RadzenStack>
 
-@code {
+    @code {
     private List<Maquina> maquinas = new();
     private List<Operacion> operaciones = new();
     private List<Empleado> empleados = new();
@@ -113,10 +150,15 @@
     private int? empleadoSeleccionadoId;
     private EstadoImputacionMaquinaDto? estadoActual;
 
+    private int cantidadBuena;
+    private int cantidadScrap;
+    private int cantidadRetrabajo;
+    private string motivoCierre = string.Empty;
+    private string? observacionesCierre;
+
     protected override async Task OnInitializedAsync()
     {
         maquinas = await ServicioMaquina.ObtenerMaquinasActivasAsync();
-        operaciones = await ServicioMaquina.ObtenerOperacionesActivasAsync();
         empleados = await ServicioMaquina.ObtenerEmpleadosActivosAsync();
 
         maquinaSeleccionadaId = maquinas.FirstOrDefault()?.Id;
@@ -132,15 +174,12 @@
         }
 
         estadoActual = await ServicioMaquina.ObtenerEstadoImputacionMaquinaAsync(maquinaSeleccionadaId.Value);
-        if (estadoActual?.OperacionId is int opId)
-        {
-            operacionSeleccionadaId = opId;
-        }
+        
     }
 
     private async Task IniciarImputacionMaquinaAsync()
     {
-        if (!maquinaSeleccionadaId.HasValue || !operacionSeleccionadaId.HasValue)
+        if (!maquinaSeleccionadaId.HasValue)
         {
             return;
         }
@@ -149,11 +188,35 @@
         {
             await ServicioMaquina.IniciarImputacionMaquinaAsync(new IniciarImputacionMaquinaRequest
             {
-                MaquinaId = maquinaSeleccionadaId.Value,
-                OperacionId = operacionSeleccionadaId.Value
+                
+                MaquinaId = maquinaSeleccionadaId.Value
             });
 
             NotificationService.Notify(NotificationSeverity.Success, "Imputación", "Imputación de máquina iniciada.");
+            await CargarEstadoAsync();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "Validación", ex.Message);
+        }
+    }
+
+    private async Task CambiarEstadoImputacionAsync(string nuevoEstado)
+    {
+        if (estadoActual?.ImputacionMaquinaId is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await ServicioMaquina.CambiarEstadoImputacionMaquinaAsync(new CambiarEstadoImputacionMaquinaRequest
+            {
+                ImputacionMaquinaId = estadoActual.ImputacionMaquinaId.Value,
+                NuevoEstado = nuevoEstado
+            });
+
+            NotificationService.Notify(NotificationSeverity.Success, "Imputación", $"Estado actualizado a {nuevoEstado}.");
             await CargarEstadoAsync();
         }
         catch (Exception ex)
@@ -174,10 +237,19 @@
             await ServicioMaquina.FinalizarImputacionMaquinaAsync(new FinalizarImputacionMaquinaRequest
             {
                 ImputacionMaquinaId = estadoActual.ImputacionMaquinaId.Value,
-                CantidadProducida = estadoActual.CantidadProducida
+                CantidadBuena = cantidadBuena,
+                CantidadScrap = cantidadScrap,
+                CantidadRetrabajo = cantidadRetrabajo,
+                MotivoCierre = motivoCierre,
+                ObservacionesCierre = observacionesCierre
             });
 
             NotificationService.Notify(NotificationSeverity.Success, "Imputación", "Imputación de máquina finalizada.");
+            cantidadBuena = 0;
+            cantidadScrap = 0;
+            cantidadRetrabajo = 0;
+            motivoCierre = string.Empty;
+            observacionesCierre = null;
             await CargarEstadoAsync();
         }
         catch (Exception ex)

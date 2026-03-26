@@ -21,6 +21,7 @@ namespace Proyecto_FUXA.Models
         public bool EsProductiva { get; set; }
         public bool Activa { get; set; }
 
+        public virtual ICollection<MaquinaOrden> MaquinasOrdenes { get; set; } = new List<MaquinaOrden>();
         public virtual ICollection<ImputacionMaquina> ImputacionesMaquina { get; set; } = new List<ImputacionMaquina>();
         public virtual ICollection<ImputacionOperario> ImputacionesOperario { get; set; } = new List<ImputacionOperario>();
     }

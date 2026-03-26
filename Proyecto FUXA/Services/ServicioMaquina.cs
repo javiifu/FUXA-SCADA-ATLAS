@@ -9,6 +9,8 @@ namespace Proyecto_FUXA.Services
     {
         private readonly AppDbContext _db;
         private static readonly string[] EstadosIncidenciaCerrada = ["Resuelta", "Cerrada"];
+        private static readonly string[] PrioridadesIncidenciaBloqueante = ["Alta", "Crítica", "Critica", "Critical"];
+        private static readonly HashSet<string> EstadosImputacionPermitidos = ["Preparacion", "EnCurso", "Pausada", "Finalizada", "Cancelada"];
 
         public ServicioMaquina(AppDbContext db)
         {
@@ -292,6 +294,7 @@ namespace Proyecto_FUXA.Services
             var maquina = await _db.Maquinas
                 .AsNoTracking()
                 .Include(m => m.Seccion)
+                .Include(m => m.EstadoActual)
                 .FirstOrDefaultAsync(m => m.Id == maquinaId);
 
             if (maquina is null)
@@ -301,6 +304,7 @@ namespace Proyecto_FUXA.Services
 
             var ordenActiva = await _db.MaquinasOrdenes
                 .AsNoTracking()
+                .Include(o => o.Operacion)
                 .Where(mo => mo.MaquinaId == maquinaId && mo.FechaFin == null)
                 .OrderByDescending(mo => mo.FechaInicio)
                 .FirstOrDefaultAsync();
@@ -309,11 +313,15 @@ namespace Proyecto_FUXA.Services
             {
                 MaquinaId = maquina.Id,
                 NombreMaquina = maquina.Nombre,
-                Seccion = maquina.Seccion?.Nombre ?? maquina.Seccion.Nombre,
+                Seccion = maquina.Seccion?.Nombre ?? "Sin sección",
+                EstadoMaquinaFisica = maquina.EstadoActual?.Nombre ?? $"Estado #{maquina.EstadoActualId}",
                 MaquinaOrdenId = ordenActiva?.Id,
-                OrdenCodigo = ordenActiva?.CodigoOrden
+                OrdenCodigo = ordenActiva?.CodigoOrden,
+                OperacionId = ordenActiva?.OperacionId,
+                OperacionNombre = ordenActiva?.Operacion?.Nombre
             };
-
+            estado.MotivoBloqueoInicio = await ObtenerMotivoBloqueoInicioImputacionAsync(maquina, ordenActiva);
+            estado.PuedeIniciarImputacion = string.IsNullOrEmpty(estado.MotivoBloqueoInicio);
             if (ordenActiva is null)
             {
                 return estado;
@@ -333,11 +341,14 @@ namespace Proyecto_FUXA.Services
 
             estado.ImputacionMaquinaId = imputacionAbierta.Id;
             estado.OperacionId = imputacionAbierta.OperacionId;
-            estado.OperacionNombre = imputacionAbierta.Operacion?.Nombre;
+            estado.OperacionNombre = imputacionAbierta.Operacion?.Nombre ?? estado.OperacionNombre;
             estado.FechaInicioMaquina = imputacionAbierta.FechaInicio;
             estado.FechaFinMaquina = imputacionAbierta.FechaFin;
-            estado.EstadoMaquina = imputacionAbierta.Estado;
+            estado.EstadoImputacion = imputacionAbierta.Estado;
             estado.CantidadProducida = imputacionAbierta.CantidadProducida;
+            estado.CantidadBuena = imputacionAbierta.CantidadBuena;
+            estado.CantidadScrap = imputacionAbierta.CantidadScrap;
+            estado.CantidadRetrabajo = imputacionAbierta.CantidadRetrabajo;
             estado.OperariosActivos = await _db.ImputacionesOperario
                 .AsNoTracking()
                 .Include(o => o.Empleado)
@@ -358,33 +369,36 @@ namespace Proyecto_FUXA.Services
 
         public async Task<int> IniciarImputacionMaquinaAsync(IniciarImputacionMaquinaRequest request)
         {
+            var maquina = await _db.Maquinas
+                .Include(m => m.EstadoActual)
+                .FirstOrDefaultAsync(m => m.Id == request.MaquinaId);
+
+            if (maquina is null)
+            {
+                throw new InvalidOperationException("La máquina indicada no existe");
+            }
+
             var ordenActiva = await _db.MaquinasOrdenes
+                .Include(o => o.Operacion)
                 .Where(mo => mo.MaquinaId == request.MaquinaId && mo.FechaFin == null)
                 .OrderByDescending(mo => mo.FechaInicio)
                 .FirstOrDefaultAsync();
 
-            if (ordenActiva is null)
+            var motivoBloqueo = await ObtenerMotivoBloqueoInicioImputacionAsync(maquina, ordenActiva);
+            if (!string.IsNullOrEmpty(motivoBloqueo))
             {
-                throw new InvalidOperationException("La máquina no tiene orden activa.");
-            }
-
-            var existeAbierta = await _db.ImputacionesMaquina
-                .AnyAsync(i => i.MaquinaOrdenId == ordenActiva.Id && i.FechaFin == null);
-
-            if (existeAbierta)
-            {
-                throw new InvalidOperationException("Ya existe una imputación de máquina abierta para la orden activa.");
+                throw new InvalidOperationException(motivoBloqueo);
             }
 
             var nueva = new ImputacionMaquina
             {
-                MaquinaOrdenId = ordenActiva.Id,
-                OperacionId = request.OperacionId,
+                MaquinaOrdenId = ordenActiva!.Id,
+                OperacionId = ordenActiva.OperacionId!.Value,
                 EmpleadoId = request.EmpleadoResponsableId,
                 FechaInicio = DateTime.UtcNow,
                 Observaciones = request.Observaciones,
                 TipoImputacion = string.IsNullOrWhiteSpace(request.TipoImputacion) ? "Manual" : request.TipoImputacion.Trim(),
-                Estado = "Abierta",
+                Estado = "En Curso",
                 FechaCreacion = DateTime.UtcNow,
                 FechaActualizacion = DateTime.UtcNow
             };
@@ -393,6 +407,38 @@ namespace Proyecto_FUXA.Services
             await _db.SaveChangesAsync();
             return nueva.Id;
         }
+
+        public async Task CambiarEstadoImputacionMaquinaAsync(CambiarEstadoImputacionMaquinaRequest request)
+        {
+            var imputacion = await _db.ImputacionesMaquina
+                .FirstOrDefaultAsync(i => i.Id == request.ImputacionMaquinaId);
+
+            if (imputacion is null)
+            {
+                throw new InvalidOperationException("No existe la imputación de máquina indicada.");
+            }
+
+            var nuevoEstado = (request.NuevoEstado ?? string.Empty).Trim();
+            if (!EstadosImputacionPermitidos.Contains(nuevoEstado))
+            {
+                throw new InvalidOperationException("El estado de imputación solicitado no es válido.");
+            }
+
+            if (!EsTransicionValida(imputacion.Estado, nuevoEstado))
+            {
+                throw new InvalidOperationException($"No se puede cambiar la imputación de '{imputacion.Estado}' a '{nuevoEstado}'.");
+            }
+
+            if ((nuevoEstado == "Finalizada" || nuevoEstado == "Cancelada") && imputacion.FechaFin == null)
+            {
+                throw new InvalidOperationException("Use el cierre de imputación para finalizar o cancelar el trabajo.");
+            }
+
+            imputacion.Estado = nuevoEstado;
+            imputacion.FechaActualizacion = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+        }
+
 
         public async Task FinalizarImputacionMaquinaAsync(FinalizarImputacionMaquinaRequest request)
         {
@@ -404,6 +450,21 @@ namespace Proyecto_FUXA.Services
                 throw new InvalidOperationException("No existe la imputación de máquina indicada.");
             }
 
+            if (imputacion.FechaFin != null)
+            {
+                throw new InvalidOperationException("La imputación de máquina ya está cerrada.");
+            }
+
+            if (request.CantidadBuena < 0 || request.CantidadScrap < 0 || request.CantidadRetrabajo < 0)
+            {
+                throw new InvalidOperationException("Las cantidades de cierre no pueden ser negativas.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.MotivoCierre))
+            {
+                throw new InvalidOperationException("Debe indicar el motivo de cierre de la imputación.");
+            }
+
             var operariosActivos = await _db.ImputacionesOperario
                 .AnyAsync(i => i.ImputacionMaquinaId == imputacion.Id && i.FechaFin == null);
 
@@ -412,15 +473,17 @@ namespace Proyecto_FUXA.Services
                 throw new InvalidOperationException("No se puede finalizar la máquina mientras haya operarios activos.");
             }
 
-            imputacion.FechaFin = DateTime.UtcNow;
-            imputacion.Estado = "Cerrada";
-            imputacion.CantidadProducida = request.CantidadProducida;
-            imputacion.Observaciones = string.IsNullOrWhiteSpace(request.Observaciones) ? imputacion.Observaciones : request.Observaciones;
+            imputacion.CantidadBuena = request.CantidadBuena;
+            imputacion.CantidadScrap = request.CantidadScrap;
+            imputacion.CantidadRetrabajo = request.CantidadRetrabajo;
+            imputacion.CantidadProducida = request.CantidadBuena + request.CantidadScrap + request.CantidadRetrabajo;
+            imputacion.MotivoCierre = request.MotivoCierre.Trim();
+            imputacion.ObservacionesCierre = string.IsNullOrWhiteSpace(request.ObservacionesCierre) ? null : request.ObservacionesCierre.Trim();
+            imputacion.Estado = "Finalizada";
             imputacion.FechaActualizacion = DateTime.UtcNow;
 
             await _db.SaveChangesAsync();
         }
-
         public async Task<int> IniciarImputacionOperarioAsync(IniciarImputacionOperarioRequest request)
         {
             var imputacion = await _db.ImputacionesMaquina
@@ -432,12 +495,16 @@ namespace Proyecto_FUXA.Services
                 throw new InvalidOperationException("No existe una imputación de máquina abierta.");
             }
 
-            var existeAbierta = await _db.ImputacionesOperario
-                .AnyAsync(i => i.ImputacionMaquinaId == request.ImputacionMaquinaId && i.EmpleadoId == request.EmpleadoId && i.FechaFin == null);
-
-            if (existeAbierta)
+            if (imputacion.Estado == "Pausada" || imputacion.Estado == "Cancelada" || imputacion.Estado == "Finalizada")
             {
-                throw new InvalidOperationException("El operario ya tiene una imputación activa en esta máquina.");
+                throw new InvalidOperationException("No se puede iniciar imputación de operario con la imputación de máquina en estado no operativo.");
+            }
+            var existeAbiertaGlobal = await _db.ImputacionesOperario
+                .AnyAsync(i => i.EmpleadoId == request.EmpleadoId && i.FechaFin == null);
+
+            if (existeAbiertaGlobal)
+            {
+                throw new InvalidOperationException("El operario ya tiene una imputación activa en esta máquina u orden");
             }
 
             var item = new ImputacionOperario
@@ -453,7 +520,15 @@ namespace Proyecto_FUXA.Services
             };
 
             _db.ImputacionesOperario.Add(item);
-            await _db.SaveChangesAsync();
+
+            try
+            {
+                await _db.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("FechaFin") == true || ex.InnerException?.Message.Contains("Empleado") == true)
+            {
+                throw new InvalidOperationException("El operario ya tiene una imputación activa en otra máquina u orden.");
+            }
             return item.Id;
         }
 
@@ -508,6 +583,10 @@ namespace Proyecto_FUXA.Services
                     FechaInicio = i.FechaInicio,
                     FechaFin = i.FechaFin,
                     CantidadProducida = i.CantidadProducida,
+                    CantidadBuena = i.CantidadBuena,
+                    CantidadScrap = i.CantidadScrap,
+                    CantidadRetrabajo = i.CantidadRetrabajo,
+                    MotivoCierre = i.MotivoCierre,
                     OperariosAsociados = i.ImputacionesOperario.Count()
                 })
                 .ToListAsync();
@@ -531,6 +610,10 @@ namespace Proyecto_FUXA.Services
                     FechaInicio = i.FechaInicio,
                     FechaFin = i.FechaFin,
                     CantidadProducida = i.CantidadProducida,
+                    CantidadBuena = i.CantidadBuena,
+                    CantidadScrap = i.CantidadScrap,
+                    CantidadRetrabajo = i.CantidadRetrabajo,
+                    MotivoCierre = i.MotivoCierre,
                     OperariosAsociados = i.ImputacionesOperario.Count()
                 })
                 .FirstOrDefaultAsync();
@@ -598,6 +681,91 @@ namespace Proyecto_FUXA.Services
             await _db.SaveChangesAsync();
 
             return incidencia.Id;
+        }
+
+        private async Task<string?> ObtenerMotivoBloqueoInicioImputacionAsync(Maquina maquina, MaquinaOrden? ordenActiva)
+        {
+            if (!maquina.EstaActivo)
+            {
+                return "La máquina está inactiva y no puede iniciar imputación.";
+            }
+
+            if (EsEstadoFisicoBloqueante(maquina.EstadoActualId, maquina.EstadoActual?.Nombre))
+            {
+                return "El estado físico actual de la máquina no permite iniciar producción.";
+            }
+
+            if (ordenActiva is null)
+            {
+                return "La máquina no tiene una orden activa.";
+            }
+
+            if (!ordenActiva.OperacionId.HasValue)
+            {
+                return "La orden activa no tiene operación asignada.";
+            }
+
+            var operacionValida = await _db.Operaciones
+                .AnyAsync(o => o.Id == ordenActiva.OperacionId.Value && o.Activa);
+
+            if (!operacionValida)
+            {
+                return "La operación de la orden activa no existe o no está activa.";
+            }
+
+            var existeAbierta = await _db.ImputacionesMaquina
+                .AnyAsync(i => i.MaquinaOrdenId == ordenActiva.Id && i.FechaFin == null);
+
+            if (existeAbierta)
+            {
+                return "Ya existe una imputación de máquina abierta para la orden activa.";
+            }
+
+            var incidenciaGraveAbierta = await _db.Incidencias
+                .AnyAsync(i => i.MaquinaId == maquina.Id
+                    && !EstadosIncidenciaCerrada.Contains(i.Estado)
+                    && PrioridadesIncidenciaBloqueante.Contains(i.Prioridad));
+
+            if (incidenciaGraveAbierta)
+            {
+                return "Existe una incidencia grave abierta que bloquea el inicio de imputación.";
+            }
+
+            return null;
+        }
+
+        private static bool EsEstadoFisicoBloqueante(int estadoActualId, string? nombreEstado)
+        {
+            if (estadoActualId == 3 || estadoActualId == 4)
+            {
+                return true;
+            }
+
+            if (string.IsNullOrWhiteSpace(nombreEstado))
+            {
+                return false;
+            }
+
+            var normalizado = nombreEstado.Trim().ToLowerInvariant();
+            return normalizado.Contains("parada") || normalizado.Contains("no disponible") || normalizado.Contains("mantenimiento");
+        }
+
+        private static bool EsTransicionValida(string estadoActual, string nuevoEstado)
+        {
+            if (estadoActual == nuevoEstado)
+            {
+                return true;
+            }
+
+            return estadoActual switch
+            {
+                "Preparacion" => nuevoEstado is "EnCurso" or "Cancelada",
+                "EnCurso" => nuevoEstado is "Pausada",
+                "Pausada" => nuevoEstado is "EnCurso",
+                "Finalizada" => false,
+                "Cancelada" => false,
+                _ => false
+            };
         }
     }
 }
