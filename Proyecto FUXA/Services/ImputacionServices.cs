@@ -69,5 +69,16 @@ namespace Proyecto_FUXA.Services
                 return false;
             }
         }
+        public async Task<string> GenerarProximoCodigoOrdenAsync()
+        {
+            var fecha = DateTime.Now;
+            string prefijo = $"ORD-{fecha:yyMM}-";
+
+            // buscamos cuantas ordenes hay ya este mes para seguir el contador
+            var conteoMes = await _context.MaquinasOrdenes
+                .CountAsync(o => o.CodigoOrden.StartsWith(prefijo));
+
+            return $"{prefijo}{(conteoMes + 1).ToString("D3")}";
+        }
     }
 }

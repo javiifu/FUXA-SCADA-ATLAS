@@ -24,7 +24,7 @@
 
         <div class="row p-2">
             <div class="col-md-6">
-                <RadzenText TextStyle="TextStyle.Subtitle2">Código de Orden (OT)</RadzenText>
+                <RadzenText TextStyle="TextStyle.Subtitle2">Código de Orden</RadzenText>
                 <RadzenTextBox @bind-Value="nuevaOrden.CodigoOrden" Style="width: 100%;" Name="CodigoOrden" />
                 <RadzenRequiredValidator Component="CodigoOrden" Text="El código es obligatorio" Popup="true" />
             </div>
@@ -41,7 +41,9 @@
             </div>
             <div class="col-md-4">
                 <RadzenText TextStyle="TextStyle.Subtitle2">Estado</RadzenText>
-                <RadzenTextBox @bind-Value="nuevaOrden.Estado" Style="width: 100%;" Placeholder="Ej: Planificada" />
+                <RadzenDropDown @bind-Value="nuevaOrden.Estado"
+                                Data="@(new[] { "Pendiente", "Activa", "Incidencia", "Cerrada" })"
+                                Style="width: 100%;" />
             </div>
              <div class="col-md-4">
                 <RadzenText TextStyle="TextStyle.Subtitle2">Creado Por (Empleado ID)</RadzenText>
@@ -76,11 +78,13 @@
 
     private MaquinasOrdenes nuevaOrden = new MaquinasOrdenes();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         nuevaOrden.IdMaquina = MaquinaCreacion.Id;
         nuevaOrden.FechaInicio = DateTime.Now;
-        nuevaOrden.Estado = "Planificada";
+        nuevaOrden.Estado = "Activa";
+
+        nuevaOrden.CodigoOrden = await ImputacionService.GenerarProximoCodigoOrdenAsync();
     }
 
     private async Task GuardarOrden()

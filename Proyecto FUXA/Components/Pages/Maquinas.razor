@@ -197,7 +197,14 @@ else
 
                 if (m.CiclosObjetivo > 0)
                 {
-                    m.PorcentajeCiclos = (float)((double)m.CiclosReales / m.CiclosObjetivo * 100);
+                    if(m.EstadoActualId == 1 || m.EstadoActualId == 2)
+                    {
+                        m.PorcentajeCiclos = (float)((double)m.CiclosReales / m.CiclosObjetivo * 100);
+                    }
+                    else
+                    {
+                        m.PorcentajeCiclos = 0;
+                    }
                 }
 
                 var emp = todosLosEmpleados.FirstOrDefault(e => e.Id == m.EmpleadoId);
@@ -219,23 +226,26 @@ else
 
     private ProgressBarStyle CambiarColorBarraProgreso(double progreso)
     {
-        if(progreso >= 90)
-        {
-            return ProgressBarStyle.Success;
+            if (progreso >= 90)
+            {
+                return ProgressBarStyle.Success;
 
-        }else if(progreso >= 60)
-        {
-            return ProgressBarStyle.Info;
-        }
-        else if (progreso >= 40)
-        {
-            return ProgressBarStyle.Warning;
-        }
-        else
-        {
-            return ProgressBarStyle.Danger;
-        }
+            }
+            else if (progreso >= 60)
+            {
+                return ProgressBarStyle.Info;
+            }
+            else if (progreso >= 40)
+            {
+                return ProgressBarStyle.Warning;
+            }
+            else
+            {
+                return ProgressBarStyle.Danger;
+            }
+
     }
+
 
     public void AlEscribirNombre(string escrito)
     {
