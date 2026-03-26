@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Proyecto_FUXA.Models
 {
-    [Table("JornadaOperario")]
+    [Table("JornadasOperario")]
     public class JornadaOperario
     {
         [Key]

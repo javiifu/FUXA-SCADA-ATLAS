@@ -5,7 +5,7 @@
         public int MaquinaId { get; set; }
         public string NombreMaquina { get; set; } = string.Empty;
         public string Seccion { get; set; } = string.Empty;
-        public string EstadoMaquinaFisica { get; set;  } = "Desconocido";
+        public string EstadoMaquinaFisica { get; set; } = "Desconocido";
         public int? MaquinaOrdenId { get; set; }
         public string? OrdenCodigo { get; set; }
         public int? OperacionId { get; set; }
@@ -64,7 +64,7 @@
     public class IniciarImputacionMaquinaRequest
     {
         public int MaquinaId { get; set; }
-        public int OperacionId { get; set; }
+        
         public int? EmpleadoResponsableId { get; set; }
         public string TipoImputacion { get; set; } = "Manual";
         public string? Observaciones { get; set; }

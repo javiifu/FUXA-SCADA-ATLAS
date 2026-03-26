@@ -34,8 +34,8 @@ namespace Proyecto_FUXA.Data
             modelBuilder.Entity<MaquinaOrden>().ToTable("MaquinasOrdenes");
             modelBuilder.Entity<ImputacionMaquina>().ToTable("ImputacionMaquina");
             modelBuilder.Entity<ImputacionOperario>().ToTable("ImputacionOperarios");
-            modelBuilder.Entity<JornadaOperario>().ToTable("JornadaOperario");
-            modelBuilder.Entity<FichajeEvento>().ToTable("FichajeEvento");
+            modelBuilder.Entity<JornadaOperario>().ToTable("JornadasOperario");
+            modelBuilder.Entity<FichajeEvento>().ToTable("FichajeEventos");
 
 
             modelBuilder.Entity<PlantaObjetoVisual>()
@@ -100,6 +100,7 @@ namespace Proyecto_FUXA.Data
 
             modelBuilder.Entity<ImputacionOperario>()
                 .HasIndex(i => i.EmpleadoId)
+                .HasDatabaseName("UX_ImputacionOperarios_EmpleadoAbierto")
                 .HasFilter("[FechaFin] IS NULL")
                 .IsUnique();
 

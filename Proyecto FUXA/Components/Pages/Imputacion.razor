@@ -23,14 +23,7 @@
                             @bind-Value="maquinaSeleccionadaId"
                             Change="@(async _ => await CargarEstadoAsync())" />
 
-            <RadzenDropDown Data="@operaciones"
-                            TValue="int?"
-                            TextProperty="Nombre"
-                            ValueProperty="Id"
-                            Placeholder="Operación"
-                            Style="width: 260px"
-                            @bind-Value="operacionSeleccionadaId"
-                            Disabled="@(estadoActual?.ImputacionMaquinaId != null)" />
+            
 
             <RadzenButton Icon="refresh" Text="Actualizar" Click="@(async _ => await CargarEstadoAsync())" />
         </RadzenStack>
@@ -81,6 +74,14 @@
                               Text="Finalizar trabajo"
                               Disabled="@(estadoActual.ImputacionMaquinaId == null)"
                               Click="@(async _ => await FinalizarImputacionMaquinaAsync())" />
+
+                              <RadzenButton Size="ButtonSize.Large"
+                              Icon="cancel"
+                              ButtonStyle="ButtonStyle.Secondary"
+                              Text="Cancelar imputación"
+                              Disabled="@(estadoActual.ImputacionMaquinaId == null
+                                                  || estadoActual.EstadoImputacion == "Finalizada"
+                                                  || estadoActual.EstadoImputacion == "Cancelada")" />
 
                 <RadzenDropDown Data="@empleados"
                                 TValue="int?"
@@ -142,11 +143,9 @@
 
     @code {
     private List<Maquina> maquinas = new();
-    private List<Operacion> operaciones = new();
     private List<Empleado> empleados = new();
 
     private int? maquinaSeleccionadaId;
-    private int? operacionSeleccionadaId;
     private int? empleadoSeleccionadoId;
     private EstadoImputacionMaquinaDto? estadoActual;
 

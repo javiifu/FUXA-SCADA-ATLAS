@@ -10,6 +10,7 @@ namespace Proyecto_FUXA.Services
         private readonly AppDbContext _db;
         private static readonly string[] EstadosIncidenciaCerrada = ["Resuelta", "Cerrada"];
         private static readonly string[] PrioridadesIncidenciaBloqueante = ["Alta", "Crítica", "Critica", "Critical"];
+        private static readonly HashSet<string> TiposImputacionPermitidos = ["Manual", "Cronometro", "Automatica"];
         private static readonly HashSet<string> EstadosImputacionPermitidos = ["Preparacion", "EnCurso", "Pausada", "Finalizada", "Cancelada"];
 
         public ServicioMaquina(AppDbContext db)
@@ -390,6 +391,14 @@ namespace Proyecto_FUXA.Services
                 throw new InvalidOperationException(motivoBloqueo);
             }
 
+            var tipoImputacion = string.IsNullOrWhiteSpace(request.TipoImputacion)
+                ? "Manual"
+                : request.TipoImputacion.Trim();
+            if (!TiposImputacionPermitidos.Contains(tipoImputacion))
+            {
+                throw new InvalidOperationException("El tipo de imputación indicado no es válido.");
+            }
+
             var nueva = new ImputacionMaquina
             {
                 MaquinaOrdenId = ordenActiva!.Id,
@@ -397,8 +406,8 @@ namespace Proyecto_FUXA.Services
                 EmpleadoId = request.EmpleadoResponsableId,
                 FechaInicio = DateTime.UtcNow,
                 Observaciones = request.Observaciones,
-                TipoImputacion = string.IsNullOrWhiteSpace(request.TipoImputacion) ? "Manual" : request.TipoImputacion.Trim(),
-                Estado = "En Curso",
+                TipoImputacion = tipoImputacion,
+                Estado = "Preparación",
                 FechaCreacion = DateTime.UtcNow,
                 FechaActualizacion = DateTime.UtcNow
             };
@@ -429,12 +438,18 @@ namespace Proyecto_FUXA.Services
                 throw new InvalidOperationException($"No se puede cambiar la imputación de '{imputacion.Estado}' a '{nuevoEstado}'.");
             }
 
-            if ((nuevoEstado == "Finalizada" || nuevoEstado == "Cancelada") && imputacion.FechaFin == null)
+            if (nuevoEstado == "Finalizada"  && imputacion.FechaFin == null)
             {
-                throw new InvalidOperationException("Use el cierre de imputación para finalizar o cancelar el trabajo.");
+                throw new InvalidOperationException("Use el cierre de imputación para finalizar el trabajo.");
+            }
+
+            if (nuevoEstado == "Cancelada" && imputacion.FechaFin == null)
+            {
+                imputacion.FechaFin = DateTime.UtcNow;
             }
 
             imputacion.Estado = nuevoEstado;
+            imputacion.Estado = imputacion.Estado?.Trim();
             imputacion.FechaActualizacion = DateTime.UtcNow;
             await _db.SaveChangesAsync();
         }
@@ -455,10 +470,21 @@ namespace Proyecto_FUXA.Services
                 throw new InvalidOperationException("La imputación de máquina ya está cerrada.");
             }
 
+            if (imputacion.Estado == "Cancelada")
+            {
+                throw new InvalidOperationException("No se puede cerrar una imputación cancelada.");
+            }
+
             if (request.CantidadBuena < 0 || request.CantidadScrap < 0 || request.CantidadRetrabajo < 0)
             {
                 throw new InvalidOperationException("Las cantidades de cierre no pueden ser negativas.");
             }
+
+            if (request.CantidadBuena + request.CantidadScrap + request.CantidadRetrabajo <= 0)
+            {
+                throw new InvalidOperationException("Debe informar cantidades de cierre mayores a cero.");
+            }
+
 
             if (string.IsNullOrWhiteSpace(request.MotivoCierre))
             {
@@ -479,6 +505,7 @@ namespace Proyecto_FUXA.Services
             imputacion.CantidadProducida = request.CantidadBuena + request.CantidadScrap + request.CantidadRetrabajo;
             imputacion.MotivoCierre = request.MotivoCierre.Trim();
             imputacion.ObservacionesCierre = string.IsNullOrWhiteSpace(request.ObservacionesCierre) ? null : request.ObservacionesCierre.Trim();
+            imputacion.FechaFin = DateTime.UtcNow;
             imputacion.Estado = "Finalizada";
             imputacion.FechaActualizacion = DateTime.UtcNow;
 
@@ -525,9 +552,18 @@ namespace Proyecto_FUXA.Services
             {
                 await _db.SaveChangesAsync();
             }
-            catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("FechaFin") == true || ex.InnerException?.Message.Contains("Empleado") == true)
+            catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("UX_ImputacionOperarios_EmpleadoAbierto") == true
+                || ex.InnerException?.Message.Contains("FechaFin") == true
+                || ex.InnerException?.Message.Contains("IdEmpleado") == true)
             {
-                throw new InvalidOperationException("El operario ya tiene una imputación activa en otra máquina u orden.");
+                throw new InvalidOperationException("No se puede abrir la imputación del operario porque ya tiene otra imputación activa.");
+            }
+
+            if (imputacion.Estado is "Preparacion" or "Pausada")
+            {
+                imputacion.Estado = "EnCurso";
+                imputacion.FechaActualizacion = DateTime.UtcNow;
+                await _db.SaveChangesAsync();
             }
             return item.Id;
         }
@@ -550,6 +586,24 @@ namespace Proyecto_FUXA.Services
             imputacion.FechaFin = DateTime.UtcNow;
             imputacion.Observaciones = string.IsNullOrWhiteSpace(request.Observaciones) ? imputacion.Observaciones : request.Observaciones;
             await _db.SaveChangesAsync();
+
+            var imputacionMaquina = await _db.ImputacionesMaquina
+                .FirstOrDefaultAsync(i => i.Id == imputacion.ImputacionMaquinaId);
+
+            if (imputacionMaquina is null || imputacionMaquina.FechaFin != null)
+            {
+                return;
+            }
+
+            var quedanActivos = await _db.ImputacionesOperario
+                .AnyAsync(i => i.ImputacionMaquinaId == imputacion.ImputacionMaquinaId && i.FechaFin == null);
+
+            if (!quedanActivos && imputacionMaquina.Estado == "EnCurso")
+            {
+                imputacionMaquina.Estado = "Pausada";
+                imputacionMaquina.FechaActualizacion = DateTime.UtcNow;
+                await _db.SaveChangesAsync();
+            }
         }
 
         public async Task<List<ImputacionMaquinaListadoDto>> ObtenerImputacionesAsync(int? maquinaId = null, bool soloAbiertas = false)
@@ -760,8 +814,8 @@ namespace Proyecto_FUXA.Services
             return estadoActual switch
             {
                 "Preparacion" => nuevoEstado is "EnCurso" or "Cancelada",
-                "EnCurso" => nuevoEstado is "Pausada",
-                "Pausada" => nuevoEstado is "EnCurso",
+                "EnCurso" => nuevoEstado is "Pausada" or "Cancelada",
+                "Pausada" => nuevoEstado is "EnCurso" or "Cancelada",
                 "Finalizada" => false,
                 "Cancelada" => false,
                 _ => false

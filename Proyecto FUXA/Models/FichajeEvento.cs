@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Proyecto_FUXA.Models
 {
 
-    [Table("FichajeEvento")]
+    [Table("FichajeEventos")]
     public class FichajeEvento
     {
         [Key]
