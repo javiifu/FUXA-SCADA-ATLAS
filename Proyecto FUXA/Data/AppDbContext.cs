@@ -34,6 +34,9 @@ namespace Proyecto_FUXA.Data
             modelBuilder.Entity<MaquinaOrden>().ToTable("MaquinasOrdenes");
             modelBuilder.Entity<ImputacionMaquina>().ToTable("ImputacionMaquina");
             modelBuilder.Entity<ImputacionOperario>().ToTable("ImputacionOperarios");
+            modelBuilder.Entity<JornadaOperario>().ToTable("JornadaOperario");
+            modelBuilder.Entity<FichajeEvento>().ToTable("FichajeEvento");
+
 
             modelBuilder.Entity<PlantaObjetoVisual>()
                 .HasOne(x => x.Maquina)
@@ -81,6 +84,18 @@ namespace Proyecto_FUXA.Data
                 .HasOne(x => x.ImputacionMaquina)
                 .WithMany(i => i.ImputacionesOperario)
                 .HasForeignKey(x => x.ImputacionMaquinaId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<JornadaOperario>()
+                .HasOne(x => x.Empleado)
+                .WithMany(e => e.JornadasOperario)
+                .HasForeignKey(x => x.EmpleadoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<FichajeEvento>()
+                .HasOne(x => x.JornadaOperario)
+                .WithMany(j => j.FichajeEventos)
+                .HasForeignKey(x => x.JornadaOperarioId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }
