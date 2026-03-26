@@ -1,15 +1,17 @@
 @page "/maquinas"
-@inject HttpClient Http
-@inject NavigationManager NavManager
 @rendermode InteractiveServer
 @using System.Text.Json
 @using Proyecto_FUXA.Services
-@inject ServicioMaquina ServicioMaquina
-@inject ServicioProductividad ServicioProductividad
-@inject Radzen.DialogService DialogService
 @using Radzen
 @using Radzen.Blazor
 @using Proyecto_FUXA.Models
+
+@inject ServicioMaquina ServicioMaquina
+@inject ServicioProductividad ServicioProductividad
+@inject Radzen.DialogService DialogService
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject DialogService DialogService
 
 
 @if (maquinasFiltradas == null)
@@ -111,11 +113,10 @@ else
                             <RadzenDataGridColumn TItem="Maquina" Title="Orden" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
                                 <Template Context="maquina">
                                     <RadzenButton Icon="add"
-                                                  ButtonStyle="ButtonStyle.Info"
-                                                  Variant="Variant.Flat"
+                                                  ButtonStyle="ButtonStyle.Success"
                                                   Size="ButtonSize.Medium"
-                                                  Click="@(args =>AbrirDialogoNuevaOrden(maquina.Id))"
-                                                  ToolTip="Nueva Orden de Trabajo" />
+                                                  Class="rz-border-radius-10 rz-shadow-2"
+                                                  Click="@(args => AbrirDialogoNuevaOrden(maquina))" />
                                 </Template>
                             </RadzenDataGridColumn>
                         </Columns>
@@ -334,8 +335,10 @@ else
         }
     }
 
-    private void AbrirDialogoNuevaOrden(int maquinaId)
+    private async Task AbrirDialogoNuevaOrden(Maquina maquina)
     {
-        Console.WriteLine($"Abriendo orden para la maquina ID: {maquinaId}");
+        await DialogService.OpenAsync<DialogoNuevaOrden>($"Nueva Orden para {maquina.Nombre}",
+            new Dictionary<string, object>() { { "MaquinaCreacion", maquina } },
+            new DialogOptions() { Width = "700px", Height = "550px", Resizable = true, Draggable = true });
     }
 }

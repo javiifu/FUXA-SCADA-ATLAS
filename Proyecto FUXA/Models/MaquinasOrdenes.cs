@@ -14,8 +14,8 @@ namespace Proyecto_FUXA.Models
         public string CodigoOrden { get; set; } = string.Empty;
         public string Producto {  get; set; } = string.Empty;
         public int CiclosObjetivo { get; set;  }
-        public DateTime FechaInicio {  get; set; }
-        public DateTime FechaFin { get; set; }
+        public DateTime FechaInicio { get; set; } = DateTime.Now;
+        public DateTime? FechaFin { get; set; }
         public string Estado { get; set; } = "Abierta";
         public int EmpleadoId { get; set; }
 

@@ -1,0 +1,175 @@
+﻿@page "/imputacion-operarios"
+@using Proyecto_FUXA.Models
+@using Proyecto_FUXA.Services
+@using Radzen
+@using Radzen.Blazor
+
+@inject NotificationService NotificationService
+
+
+@inject ImputacionService ImputacionServicios
+
+<h3>Imputacion Operarios</h3>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-6 p-3">
+            <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">1. Seleccione Sección</RadzenText>
+            <RadzenDropDown TValue="int" 
+                            Data="@secciones" 
+                            TextProperty="Nombre" 
+                            ValueProperty="Id" 
+                            Change="@OnSeccionChange" 
+                            Style="width: 100%;" 
+                            Placeholder="Seleccione una sección..." />
+        </div>
+
+        <div class="col-md-6 p-3">
+            <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">2. Seleccione Máquina</RadzenText>
+            <RadzenDropDown TValue="int" 
+                            Data="@maquinas" 
+                            TextProperty="Nombre" 
+                            ValueProperty="Id" 
+                            @bind-Value="nuevaImputacion.IdMaquina"
+                            Disabled="@(maquinas == null || !maquinas.Any())"
+                            Style="width: 100%;" 
+                            Placeholder="Seleccione una máquina..." />
+        </div>
+        <div class="col-md-6 p-3">
+            <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">3. Seleccione Operario</RadzenText>
+            <RadzenDropDown TValue="int"
+                            Data="@empleados"
+                            @bind-Value="nuevaImputacion.IdEmpleado"
+                            ValueProperty="Id"
+                            AllowFiltering="true"
+                            FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                            Placeholder="Busque por nombre o código..."
+                            Style="width: 100%;">
+
+                <Template>
+                    @((context as Empleado).Nombre)  (@((context as Empleado).CodigoEmpleado))
+                </Template>
+            </RadzenDropDown>
+
+            <div class="row">
+                <div class="col-md-6 p-3">
+                    <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">4. Orden de Trabajo (Opcional)</RadzenText>
+                    <RadzenDropDown TValue="int?"
+                                    Data="@ordenesFiltradas"
+                                    TextProperty="CodigoOrden"
+                                    ValueProperty="Id"
+                                    @bind-Value="nuevaImputacion.IdOrden"
+                                    Placeholder="Seleccione OT..."
+                                    AllowClear="true"
+                                    Style="width: 100%;"
+                                    Disabled="@(!ordenesFiltradas.Any())" />
+                    <RadzenText TextStyle="TextStyle.Caption">Si es limpieza o avería, dejar vacío.</RadzenText>
+                </div>
+
+                <div class="col-md-6 p-3">
+                    <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">5. Operación</RadzenText>
+                    <RadzenDropDown TValue="int"
+                                    Data="@operaciones"
+                                    TextProperty="Nombre"
+                                    ValueProperty="Id"
+                                    @bind-Value="nuevaImputacion.IdOperacion"
+                                    Placeholder="¿Qué está haciendo?"
+                                    Style="width: 100%;" />
+                </div>
+
+                <div class="row p-3">
+                    <RadzenButton Click="@IniciarActividad"
+                                  Text="INICIAR ACTIVIDAD"
+                                  Icon="play_arrow"
+                                  ButtonStyle="ButtonStyle.Success"
+                                  Size="ButtonSize.Large"
+                                  Style="width: 100%; height: 60px; font-weight: bold;" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Seccion> secciones = new();
+    private List<Maquina> maquinas = new();
+    private List<Empleado> empleados = new();
+    private List<Operacion> operaciones = new();
+    private List<MaquinasOrdenes> maquinasOrdenes = new();
+    private List<MaquinasOrdenes> ordenesFiltradas = new();
+
+    ImputacionOperario nuevaImputacion = new ImputacionOperario();
+
+    int seccionSeleccionada;
+    int maquinaSeleccionada;
+    int empleadoSeleccionado;
+    int operacionSeleccionada;
+
+    protected override async Task OnInitializedAsync()
+    {
+        secciones = await ImputacionServicios.GetSeccionesAsync();
+        operaciones = await ImputacionServicios.GetOperacionesAsync();
+        empleados = await ImputacionServicios.GetEmpleadosAsync();
+    }
+
+    private async Task OnSeccionChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int id))
+        {
+            seccionSeleccionada = id;
+            maquinas = await ImputacionServicios.GetMaquinasBySeccionAsync(id);
+
+            nuevaImputacion.IdMaquina = 0;
+        }
+    }
+    private async Task OnSeccionChange(object value)
+    {
+        if (value is int idSeccion)
+        {
+            seccionSeleccionada = idSeccion;
+            maquinas = await ImputacionServicios.GetMaquinasBySeccionAsync(idSeccion);
+
+            maquinaSeleccionada = 0;
+            nuevaImputacion.IdMaquina = 0;
+        }
+    }
+
+    private void OnMaquinaChange(object value)
+    {
+        if (value is int idMaquina)
+        {
+            nuevaImputacion.IdMaquina = idMaquina;
+
+            // filtramos las órdenes que pertenecen a esta máquina
+            ordenesFiltradas = maquinasOrdenes
+                .Where(o => o.IdMaquina == idMaquina)
+                .ToList();
+
+
+            nuevaImputacion.IdOrden = null;
+        }
+    }
+
+    private async Task IniciarActividad()
+    {
+        if (nuevaImputacion.IdEmpleado == 0 || nuevaImputacion.IdMaquina == 0 || nuevaImputacion.IdOperacion == 0)
+        {
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Warning, Summary = "Atención", Detail = "Faltan datos obligatorios", Duration = 4000 });
+            return;
+        }
+
+        nuevaImputacion.FechaInicio = DateTime.Now;
+        var resultado = await ImputacionServicios.GuardarImputacionAsync(nuevaImputacion);
+
+        if (resultado)
+        {
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "Éxito", Detail = "Actividad iniciada correctamente", Duration = 4000 });
+            nuevaImputacion = new ImputacionOperario();
+            StateHasChanged();
+        }
+        else
+        {
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "Error", Detail = "No se pudo guardar en la base de datos", Duration = 4000 });
+        }
+    }
+}

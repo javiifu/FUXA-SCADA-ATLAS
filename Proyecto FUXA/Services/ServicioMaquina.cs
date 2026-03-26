@@ -108,5 +108,10 @@ namespace Proyecto_FUXA.Services
                 return new List<MaquinasOrdenes>();
             }
         }
+
+        public async Task CrearOrdenAsync(MaquinasOrdenes nuevaOrden)
+        {
+
+        }
     }
 }

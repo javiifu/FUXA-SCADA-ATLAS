@@ -12,6 +12,7 @@ namespace Proyecto_FUXA.Models
         [Key]
         public int Id { get; set; }
         public string Nombre { get; set; } = string.Empty;
+        public int? IdSeccion { get; set; }
         public int NumeroOrden { get; set; }
         public string NombreSeccion { get; set; } = string.Empty;
         public int? EmpleadoId { get; set; }
@@ -30,6 +31,9 @@ namespace Proyecto_FUXA.Models
         public int CiclosReales { get; set; }
         [JsonIgnore]
         public Empleado? Empleado { get; set; }
+
+        [ForeignKey("IdSeccion")]
+        public virtual Seccion? Seccion { get; set; }
 
         public virtual ICollection<MaquinaProduccion> Producciones { get; set; } = new List<MaquinaProduccion>();
 

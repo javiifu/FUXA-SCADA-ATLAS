@@ -10,6 +10,8 @@ namespace Proyecto_FUXA.Models
         public string  Apellidos{ get; set; } = string.Empty;
         public string? CodigoEmpleado { get; set; }
         public bool EstaActivo { get; set; }
-        public string Cargo { get; set; }
+        public string Cargo { get; set; } = "Operario"; 
+
+        public string BusquedaCombinada => $"{Nombre} - {CodigoEmpleado}";
     }
 }
