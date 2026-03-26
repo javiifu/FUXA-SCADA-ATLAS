@@ -52,7 +52,6 @@ namespace Proyecto_FUXA.Services
                     {
                         Nombre = ObtenerNombreVisible(item),
                         NumeroOrden = numeroOrden++,
-                        NombreSeccion = item.Type,
                         CiclosObjetivo = 100,
                         EstadoActualId = 1,
                         FechaCreacion = DateTime.Now,
@@ -64,6 +63,8 @@ namespace Proyecto_FUXA.Services
 
             return maquinas;
         }
+
+
         //Obtiene los items válidos de todas las vistas que hay en fuxa
         //También ignora los que se quedan "huerfanos" en el apartado items.
         public async Task<List<FuxaItemDto>> GetItemsValidosDesdeFuxa()

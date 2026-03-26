@@ -33,7 +33,7 @@ namespace Proyecto_FUXA.Services
                 {
                     Id = m.Id,
                     Nombre = m.Nombre,
-                    Seccion = m.NombreSeccion,
+                    Seccion = m.Seccion.Nombre,
                     EstadoActualId = m.EstadoActualId,
                     CiclosObjetivo = m.CiclosObjetivo,
                     CiclosReales = m.Producciones
@@ -309,7 +309,7 @@ namespace Proyecto_FUXA.Services
             {
                 MaquinaId = maquina.Id,
                 NombreMaquina = maquina.Nombre,
-                Seccion = maquina.Seccion?.Nombre ?? maquina.NombreSeccion,
+                Seccion = maquina.Seccion?.Nombre ?? maquina.Seccion.Nombre,
                 MaquinaOrdenId = ordenActiva?.Id,
                 OrdenCodigo = ordenActiva?.CodigoOrden
             };
@@ -501,7 +501,7 @@ namespace Proyecto_FUXA.Services
                 {
                     ImputacionMaquinaId = i.Id,
                     Maquina = i.MaquinaOrden!.Maquina!.Nombre,
-                    Seccion = i.MaquinaOrden.Maquina.NombreSeccion,
+                    Seccion = i.MaquinaOrden.Maquina.Seccion.Nombre,
                     Orden = i.MaquinaOrden.CodigoOrden,
                     Operacion = i.Operacion!.Nombre,
                     Estado = i.Estado,
@@ -524,7 +524,7 @@ namespace Proyecto_FUXA.Services
                 {
                     ImputacionMaquinaId = i.Id,
                     Maquina = i.MaquinaOrden!.Maquina!.Nombre,
-                    Seccion = i.MaquinaOrden.Maquina.NombreSeccion,
+                    Seccion = i.MaquinaOrden.Maquina.Seccion.Nombre,
                     Orden = i.MaquinaOrden.CodigoOrden,
                     Operacion = i.Operacion!.Nombre,
                     Estado = i.Estado,

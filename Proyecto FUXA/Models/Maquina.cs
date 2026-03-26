@@ -12,7 +12,7 @@ namespace Proyecto_FUXA.Models
         public string? FuxaDeviceId { get; set; }
         public string Nombre { get; set; } = string.Empty;
         public int NumeroOrden { get; set; }
-        public string NombreSeccion { get; set; } = string.Empty;
+        
         public int CiclosObjetivo { get; set; }
         public int EstadoActualId { get; set; }
         public bool EstaActivo { get; set; }

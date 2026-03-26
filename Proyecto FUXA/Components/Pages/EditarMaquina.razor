@@ -28,7 +28,7 @@ else
 
         <div class="mb-3">
             <label class="form-label">Sección</label>
-            <input class="form-control" @bind="machine.NombreSeccion" placeholder="Ej: Corte, Embolsado..." />
+            <input class="form-control" @bind="machine.Seccion" placeholder="Ej: Corte, Embolsado..." />
         </div>
 
         <div class="mb-3">
@@ -69,7 +69,7 @@ else
         machine = maquinaExistente ?? new Maquina
             {
                 Nombre = string.Empty,
-                NombreSeccion = string.Empty,
+                
                 CiclosObjetivo = 0,
                 EstadoActualId = 1,
                 FechaCreacion = DateTime.UtcNow
