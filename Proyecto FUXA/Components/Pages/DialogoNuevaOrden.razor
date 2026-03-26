@@ -8,7 +8,7 @@
 @inject NotificationService NotificationService
 
 
-<RadzenTemplateForm TItem="MaquinasOrdenes" Data="@nuevaOrden" Submit="@GuardarOrden">
+<RadzenTemplateForm TItem="Orden" Data="@nuevaOrden" Submit="@GuardarOrden">
     <div class="container-fluid">
         
         <div class="row p-2 bg-light border-bottom rz-mb-4">
@@ -25,7 +25,7 @@
         <div class="row p-2">
             <div class="col-md-6">
                 <RadzenText TextStyle="TextStyle.Subtitle2">Código de Orden</RadzenText>
-                <RadzenTextBox @bind-Value="nuevaOrden.CodigoOrden" Style="width: 100%;" Name="CodigoOrden" />
+                <RadzenTextBox @bind-Value="nuevaOrden.CodigoOrden" Style="width: 100%;" Name="CodigoOrden" Disabled/>
                 <RadzenRequiredValidator Component="CodigoOrden" Text="El código es obligatorio" Popup="true" />
             </div>
             <div class="col-md-6">
@@ -76,15 +76,19 @@
     // Parámetro que recibimos de la pantalla principal
     [Parameter] public Maquina MaquinaCreacion { get; set; }
 
-    private MaquinasOrdenes nuevaOrden = new MaquinasOrdenes();
+    private Orden nuevaOrden = new Orden();
 
     protected override async Task OnInitializedAsync()
     {
-        nuevaOrden.IdMaquina = MaquinaCreacion.Id;
-        nuevaOrden.FechaInicio = DateTime.Now;
-        nuevaOrden.Estado = "Activa";
+        if (MaquinaCreacion != null)
+        {
+            nuevaOrden.IdMaquina = MaquinaCreacion.Id;
+            nuevaOrden.FechaInicio = DateTime.Now;
+            nuevaOrden.Estado = "Activa";
 
-        nuevaOrden.CodigoOrden = await ImputacionService.GenerarProximoCodigoOrdenAsync();
+            // Generamos el código automático llamando al servicio
+            nuevaOrden.CodigoOrden = await ImputacionService.GenerarProximoCodigoOrdenAsync();
+        }
     }
 
     private async Task GuardarOrden()

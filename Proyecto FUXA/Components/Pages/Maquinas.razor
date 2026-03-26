@@ -29,6 +29,16 @@ else
                     <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" class="rz-mb-4">
                         <RadzenText TextStyle="TextStyle.H5" class="rz-m-0">Lista de máquinas en planta</RadzenText>
 
+                        <div class="row mb-4">
+                            <div class="col-md-auto">
+                                <RadzenButton Click=@(args => AbrirDialogoPlanificar())
+                                              Text="NUEVA ORDEN DE FABRICACIÓN"
+                                              Icon="add_circle"
+                                              ButtonStyle="ButtonStyle.Primary"
+                                              Style="height: 55px; min-width: 300px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
+                            </div>
+                        </div>
+
                         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
                             <RadzenIcon Icon="search" />
                             <RadzenTextBox Placeholder="Buscar máquina..."
@@ -110,7 +120,7 @@ else
                             </RadzenDataGridColumn>
 
                             @* Boton orden *@
-                            <RadzenDataGridColumn TItem="Maquina" Title="Orden" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
+                            <RadzenDataGridColumn TItem="Maquina" Title="Operacion" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
                                 <Template Context="maquina">
                                     <RadzenButton Icon="add"
                                                   ButtonStyle="ButtonStyle.Success"
@@ -350,5 +360,13 @@ else
         await DialogService.OpenAsync<DialogoNuevaOrden>($"Nueva Orden para {maquina.Nombre}",
             new Dictionary<string, object>() { { "MaquinaCreacion", maquina } },
             new DialogOptions() { Width = "700px", Height = "550px", Resizable = true, Draggable = true });
+    }
+
+    async Task AbrirDialogoPlanificar()
+    {
+        await DialogService.OpenAsync<DialogoPlanificarOrden>("Planificar Nueva Orden",
+            new Dictionary<string, object>(),
+            new DialogOptions() { Width = "600px" });
+
     }
 }

@@ -2,7 +2,7 @@
 
 namespace Proyecto_FUXA.Models
 {
-    public class OperacionOrden
+    public class OperacionesOrden
     {
         public int Id { get; set; }
         public int IdOrden { get; set; }
@@ -10,10 +10,14 @@ namespace Proyecto_FUXA.Models
         public int IdSeccion { get; set; }
         public int IdMaquina { get; set; }
         public int IdOperacionMaestra { get; set; }
+        public int CiclosObjetivo { get; set; }
+        public int PiezasFabricadas { get; set; }
+        public int PiezasRotas { get; set; }
+        public DateTime FechaCreacion { get; set; }
         public string Estado { get; set; } = "Pendiente";
 
         [ForeignKey("IdOrden")]
-        public virtual MaquinasOrdenes? OrdenPadre { get; set; }
+        public virtual Orden Orden { get; set; }
 
         [ForeignKey("IdSeccion")]
         public virtual Seccion? Seccion { get; set; }

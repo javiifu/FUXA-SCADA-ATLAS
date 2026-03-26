@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Proyecto_FUXA.Models
 {
     [Table("MaquinasOrdenes")]
-    public class MaquinasOrdenes
+    public class Orden
     {
         [Key]
         public int Id { get; set; }

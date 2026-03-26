@@ -20,7 +20,7 @@ namespace Proyecto_FUXA.Models
         public virtual Maquina Maquina { get; set; } = null!;
 
         [ForeignKey("IdOrden")]
-        public virtual MaquinasOrdenes? Orden { get; set; }
+        public virtual Orden? Orden { get; set; }
 
         [ForeignKey("IdOperacion")]
         public virtual Operacion Operacion { get; set; } = null!;

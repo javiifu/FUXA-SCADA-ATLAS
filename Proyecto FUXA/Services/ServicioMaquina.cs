@@ -96,7 +96,7 @@ namespace Proyecto_FUXA.Services
             await _db.SaveChangesAsync();
         }
 
-        public async Task<List<MaquinasOrdenes>> GetAllOrdenes()
+        public async Task<List<Orden>> GetAllOrdenes()
         {
             try
             {
@@ -105,11 +105,11 @@ namespace Proyecto_FUXA.Services
             catch (Exception ex)
             {
                 Console.Write($"Error al carar las ordenes {ex.Message}");
-                return new List<MaquinasOrdenes>();
+                return new List<Orden>();
             }
         }
 
-        public async Task CrearOrdenAsync(MaquinasOrdenes nuevaOrden)
+        public async Task CrearOrdenAsync(Orden nuevaOrden)
         {
 
         }

@@ -1,0 +1,34 @@
+﻿@page "/operaciones-activas"
+@using Proyecto_FUXA.Services
+@using Radzen
+@using Radzen.Blazor
+@inject ImputacionService ImputacionService
+
+<RadzenText TextStyle="TextStyle.H4" class="rz-mb-4">Monitor de Operaciones Activas</RadzenText>
+
+<RadzenDataGrid Data="@listaOperaciones" TItem="OperacionResumenDTO" AllowPaging="true" PageSize="10">
+    <Columns>
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="CodigoOperacion" Title="Cód. Operación" Width="150px" />
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="CodigoOrden" Title="Orden" Width="120px" />
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="Producto" Title="Producto / Descripción" />
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="NombreMaquina" Title="Máquina" Width="150px" />
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="CiclosObjetivo" Title="Objetivo" Width="100px" />
+        
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" Title="Progreso" Width="200px">
+            <Template Context="data">
+                <RadzenBadge BadgeStyle="BadgeStyle.Info" Text="@data.Estado" />
+            </Template>
+        </RadzenDataGridColumn>
+        
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="FechaCreacion" Title="Iniciada" FormatString="{0:dd/MM HH:mm}" Width="120px" />
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+    List<OperacionResumenDTO> listaOperaciones;
+
+    protected override async Task OnInitializedAsync()
+    {
+        listaOperaciones = await ImputacionService.ObtenerOperacionesActivasAsync();
+    }
+}
