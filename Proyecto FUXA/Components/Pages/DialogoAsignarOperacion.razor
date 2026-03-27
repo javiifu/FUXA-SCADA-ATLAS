@@ -4,6 +4,7 @@
 @using Radzen.Blazor
 @inject ServicioMaquina ServicioMaquina
 @inject Radzen.DialogService DialogService
+@inject NotificationService NotificationService
 
 <RadzenStack Gap="1.5rem" class="rz-p-4">
     <RadzenText TextStyle="TextStyle.H6">Nueva Operación para: <b>@MaquinaCreacion.Nombre</b></RadzenText>
@@ -31,9 +32,10 @@
     </RadzenCard>
 
     <RadzenText TextStyle="TextStyle.Subtitle1"><b>Seleccionar Orden de Fabricación:</b></RadzenText>
-    <RadzenDataGrid AllowFiltering="true" AllowPaging="true" PageSize="5" AllowSorting="true" 
-                    Data="@ordenesActivas" TItem="Orden" SelectionMode="DataGridSelectionMode.Single" 
-                    @bind-Value="@selectedOrdenes" class="rz-shadow-2">
+    <RadzenDataGrid AllowFiltering="true" AllowPaging="true" PageSize="5" AllowSorting="true"
+                    Data="@ordenesActivas" TItem="Orden" SelectionMode="DataGridSelectionMode.Single"
+                    @bind-Value="@selectedOrdenes" class="rz-shadow-2"
+                    Change="@AlClicarEnFila">
         <Columns>
             <RadzenDataGridColumn TItem="Orden" Property="CodigoOrden" Title="Código" />
             <RadzenDataGridColumn TItem="Orden" Property="Producto" Title="Producto" />
@@ -50,7 +52,7 @@
 
 @code {
     [Parameter] public Maquina MaquinaCreacion { get; set; }
-    
+
     private List<Orden> ordenesActivas;
     private IList<Orden> selectedOrdenes;
     private NuevaOperacion modelo = new();
@@ -86,10 +88,40 @@
 
             if (exito)
             {
+                NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Operación Confirmada",
+                    Detail = "La orden se ha asignado correctamente",
+                    Duration = 4000
+                });
                 DialogService.Close(true);
+            }
+            else
+            {
+                NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error de Asignación",
+                    Detail = "No se pudo conectar con la base de datos",
+                    Duration = 4000
+                });
             }
         }
     }
+    private void AlClicarEnFila(object args)
+    {
+        // Forzamos la captura de la selección
+        if (selectedOrdenes != null && selectedOrdenes.Any())
+        {
+            var seleccion = selectedOrdenes.First();
 
+            // Asignamos el código
+            modelo.CodigoOperacion = seleccion.CodigoOrden;
+
+            // IMPORTANTE: Esta línea es la que hace que el texto aparezca arriba al instante
+            StateHasChanged();
+        }
+    }
 
 }

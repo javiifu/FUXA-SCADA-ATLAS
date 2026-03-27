@@ -9,19 +9,26 @@
 
 <RadzenDataGrid Data="@listaOperaciones" TItem="OperacionResumenDTO" AllowPaging="true" PageSize="10">
     <Columns>
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="CodigoOperacion" Title="Cód. Operación" Width="150px" />
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="CodigoOrden" Title="Orden" Width="120px" />
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="CodigoOperacion" Title="Cód. Operación" Width="180px" />
+
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="NombreOrden" Title="Orden" Width="150px" />
+
         <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="Producto" Title="Producto / Descripción" />
+
         <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="NombreMaquina" Title="Máquina" Width="150px" />
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="CiclosObjetivo" Title="Objetivo" Width="100px" />
-        
+
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="CiclosObjetivo" Title="Objetivo" Width="100px" TextAlign="TextAlign.Center" />
+
         <RadzenDataGridColumn TItem="OperacionResumenDTO" Title="Progreso" Width="200px">
             <Template Context="data">
-                <RadzenBadge BadgeStyle="BadgeStyle.Info" Text="@data.Estado" />
+                <div style="display:flex; flex-direction:column; gap:4px">
+                    <RadzenBadge BadgeStyle="BadgeStyle.Info" Text="@($"{data.PiezasFabricadas} / {data.CiclosObjetivo}")" />
+                    <RadzenProgressBar Value="@((double)data.PiezasFabricadas)" Max="@((double)data.CiclosObjetivo)" ShowValue="false" />
+                </div>
             </Template>
         </RadzenDataGridColumn>
-        
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="FechaCreacion" Title="Iniciada" FormatString="{0:dd/MM HH:mm}" Width="120px" />
+
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="FechaInicio" Title="Iniciada" FormatString="{0:dd/MM HH:mm}" Width="120px" />
     </Columns>
 </RadzenDataGrid>
 
