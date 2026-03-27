@@ -113,5 +113,24 @@ namespace Proyecto_FUXA.Services
         {
 
         }
+        public async Task<bool> InsertarOperacion(OperacionesOrden nuevaOp)
+        {
+            try
+            {
+                // añadimos el objeto a la tabla de operaciones
+                _db.OperacionesOrden.Add(nuevaOp);
+
+                // guardamos los cambios en SQL
+                var resultado = await _db.SaveChangesAsync();
+
+                // Si devuelve más de 0, es que se ha guardado bien
+                return resultado > 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al insertar operación: {ex.Message}");
+                return false;
+            }
+        }
     }
 }

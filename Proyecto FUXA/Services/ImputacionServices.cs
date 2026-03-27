@@ -131,39 +131,87 @@ namespace Proyecto_FUXA.Services
             catch { return false; }
         }
 
+        public class OperacionResumenDTO
+        {
+            public int Id { get; set; }
+            public int IdMaquina { get; set; }
+            public string CodigoOperacion { get; set; } = "";
+            public string NombreOrden { get; set; } = "";   
+            public string NombreMaquina { get; set; } = "";
+            public string Producto { get; set; } = "";       
+            public int CiclosObjetivo { get; set; }
+            public int PiezasFabricadas { get; set; }
+            public string Estado { get; set; } = "";
+            public DateTime FechaInicio { get; set; }
+        }
+
+        public async Task<bool> AsignarOrdenAMaquinaAsync(int idOrden, int idMaquina, int ciclos)
+        {
+            var ordenPadre = await _context.Ordenes.FindAsync(idOrden);
+            if (ordenPadre == null) return false;
+
+            // Contamos cuántas operaciones tiene ya esa orden para el sufijo
+            var conteo = await _context.OperacionesOrden.CountAsync(op => op.IdOrden == idOrden);
+
+            var nuevaOp = new OperacionesOrden
+            {
+                IdOrden = idOrden,
+                IdMaquina = idMaquina,
+                CodigoOperacion = $"{ordenPadre.CodigoOrden}-{conteo + 1}",
+                CiclosObjetivo = ciclos,
+                PiezasFabricadas = 0,
+                PiezasRotas = 0,
+                Estado = "Activa",
+                FechaCreacion = DateTime.Now,
+                IdSeccion = 1,
+                IdOperacionMaestra = 1
+            };
+
+            _context.OperacionesOrden.Add(nuevaOp);
+            return await _context.SaveChangesAsync() > 0;
+        }
+        public async Task<List<Orden>> ObtenerOrdenesActivasAsync()
+        {
+            try
+            {
+                return await _context.Ordenes
+                    .Where(o => o.Estado != "cerrada")
+                    .OrderByDescending(o => o.FechaInicio)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                return new List<Orden>();
+            }
+        }
         public async Task<List<OperacionResumenDTO>> ObtenerOperacionesActivasAsync()
         {
-            return await _context.OperacionesOrden
-                .Where(op => op.Estado == "Activa" || op.Estado == "Pendiente")
-                .Select(op => new OperacionResumenDTO
-                {
-                    Id = op.Id,
-                    CodigoOperacion = op.CodigoOperacion,
-                    NombreMaquina = op.Maquina.Nombre,
-                    CodigoOrden = op.Orden.CodigoOrden,
-                    Producto = op.Orden.Producto,
-                    CiclosObjetivo = op.CiclosObjetivo,
-                    PiezasFabricadas = 0,
-                    PiezasRotas = 0,
-                    FechaCreacion = op.FechaCreacion,
-                    Estado = op.Estado
-                })
-                .OrderByDescending(op => op.FechaCreacion)
-                .ToListAsync();
+            try
+            {
+                return await _context.OperacionesOrden
+                    .Include(o => o.Orden)   
+                    .Include(o => o.Maquina) 
+                    .Where(o => o.Estado == "Activa")
+                    .Select(o => new OperacionResumenDTO
+                    {
+                        Id = o.Id,
+                        IdMaquina = o.IdMaquina,
+                        CodigoOperacion = o.CodigoOperacion,
+                        NombreOrden = o.Orden != null ? o.Orden.CodigoOrden : "Sin Código",
+                        Producto = o.Orden != null ? o.Orden.Producto : "Sin Producto",
+                        NombreMaquina = o.Maquina != null ? o.Maquina.Nombre : "Sin Máquina",
+                        CiclosObjetivo = o.CiclosObjetivo,
+                        PiezasFabricadas = o.PiezasFabricadas,
+                        Estado = o.Estado,
+                        FechaInicio = o.FechaCreacion 
+                    }).ToListAsync();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error: {e.Message}");
+                return new List<OperacionResumenDTO>();
+            }
         }
-    }
 
-    public class OperacionResumenDTO
-    {
-        public int Id { get; internal set; }
-        public string CodigoOperacion { get; internal set; }
-        public string NombreMaquina { get; internal set; }
-        public object CodigoOrden { get; internal set; }
-        public object Producto { get; internal set; }
-        public int CiclosObjetivo { get; internal set; }
-        public int PiezasFabricadas { get; internal set; }
-        public int PiezasRotas { get; internal set; }
-        public DateTime FechaCreacion { get; internal set; }
-        public string Estado { get; internal set; }
     }
 }

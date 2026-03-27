@@ -12,6 +12,7 @@
 @inject HttpClient Http
 @inject NavigationManager NavManager
 @inject DialogService DialogService
+@inject ImputacionService ImputacionService
 
 
 @if (maquinasFiltradas == null)
@@ -119,14 +120,14 @@ else
                                 </Template>
                             </RadzenDataGridColumn>
 
-                            @* Boton orden *@
+                            @* Boton operacion *@
                             <RadzenDataGridColumn TItem="Maquina" Title="Operacion" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
                                 <Template Context="maquina">
                                     <RadzenButton Icon="add"
                                                   ButtonStyle="ButtonStyle.Success"
                                                   Size="ButtonSize.Medium"
                                                   Class="rz-border-radius-10 rz-shadow-2"
-                                                  Click="@(args => AbrirDialogoNuevaOrden(maquina))" />
+                                                  Click="@(args => AbrirAsignarOrden(maquina))" />
                                 </Template>
                             </RadzenDataGridColumn>
                         </Columns>
@@ -193,21 +194,21 @@ else
     {
         try
         {
+            // traemos las máquinas y los empleados
             var resultado = await ServicioMaquina.GetAllAsync();
-            var todasLasOrdenes = await ServicioMaquina.GetAllOrdenes();
             var todosLosEmpleados = await ServicioMaquina.GetAllEmpleadosAsync();
+
+            var listaDeTodasLasOperaciones = await ImputacionService.ObtenerOperacionesActivasAsync();
 
             foreach (var m in resultado)
             {
-                var orden = todasLasOrdenes.FirstOrDefault(o => o.IdMaquina == m.Id &&
-                            (o.Estado == "Abierta" || o.Estado == "Abierto"));
-
-                m.CiclosObjetivo = orden?.CiclosObjetivo ?? 0;
-                m.CiclosReales = 500;
-
-                if (m.CiclosObjetivo > 0)
+                var operacionActiva = listaDeTodasLasOperaciones.FirstOrDefault(o => o.IdMaquina == m.Id);
+                if (operacionActiva != null)
                 {
-                    if(m.EstadoActualId == 1 || m.EstadoActualId == 2)
+                    m.CiclosObjetivo = operacionActiva.CiclosObjetivo;
+                    m.CiclosReales = operacionActiva.PiezasFabricadas;
+
+                    if (m.CiclosObjetivo > 0 && (m.EstadoActualId == 1 || m.EstadoActualId == 2))
                     {
                         m.PorcentajeCiclos = (float)((double)m.CiclosReales / m.CiclosObjetivo * 100);
                     }
@@ -215,6 +216,13 @@ else
                     {
                         m.PorcentajeCiclos = 0;
                     }
+                }
+                else
+                {
+                    // Si la máquina no tiene trabajo asignado, todo a cero
+                    m.CiclosObjetivo = 0;
+                    m.CiclosReales = 0;
+                    m.PorcentajeCiclos = 0;
                 }
 
                 var emp = todosLosEmpleados.FirstOrDefault(e => e.Id == m.EmpleadoId);
@@ -224,13 +232,15 @@ else
                     m.CargoOperario = emp.Cargo;
                 }
             }
+
             maquinasDB = resultado.OrderByDescending(m => m.Id).ToList();
             maquinasFiltradas = maquinasDB;
+
             StateHasChanged();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error al cargar: {ex.Message}");
+            Console.WriteLine($"error al cargar maquinas: {ex.Message}");
         }
     }
 
@@ -355,18 +365,24 @@ else
         }
     }
 
-    private async Task AbrirDialogoNuevaOrden(Maquina maquina)
-    {
-        await DialogService.OpenAsync<DialogoNuevaOrden>($"Nueva Orden para {maquina.Nombre}",
-            new Dictionary<string, object>() { { "MaquinaCreacion", maquina } },
-            new DialogOptions() { Width = "700px", Height = "550px", Resizable = true, Draggable = true });
-    }
-
     async Task AbrirDialogoPlanificar()
     {
         await DialogService.OpenAsync<DialogoPlanificarOrden>("Planificar Nueva Orden",
             new Dictionary<string, object>(),
             new DialogOptions() { Width = "600px" });
 
+    }
+
+    private async Task AbrirAsignarOrden(Maquina maquina)
+    {
+        var res = await DialogService.OpenAsync<DialogoAsignarOperacion>(
+            $"Asignar orden a {maquina.Nombre}",
+            new Dictionary<string, object>() { { "MaquinaCreacion", maquina } },
+            new DialogOptions() { Width = "550px" });
+
+        if (res == true)
+        {
+            await CargarMaquinasDesdeSQL();
+        }
     }
 }

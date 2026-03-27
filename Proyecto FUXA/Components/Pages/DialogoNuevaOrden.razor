@@ -28,37 +28,24 @@
                 <RadzenTextBox @bind-Value="nuevaOrden.CodigoOrden" Style="width: 100%;" Name="CodigoOrden" Disabled/>
                 <RadzenRequiredValidator Component="CodigoOrden" Text="El código es obligatorio" Popup="true" />
             </div>
-            <div class="col-md-6">
-                <RadzenText TextStyle="TextStyle.Subtitle2">Producto</RadzenText>
-                <RadzenTextBox @bind-Value="nuevaOrden.Producto" Style="width: 100%;" />
-            </div>
         </div>
 
         <div class="row p-2">
-            <div class="col-md-4">
-                <RadzenText TextStyle="TextStyle.Subtitle2">Ciclos Objetivo</RadzenText>
-                <RadzenNumeric @bind-Value="nuevaOrden.CiclosObjetivo" Style="width: 100%;" />
-            </div>
             <div class="col-md-4">
                 <RadzenText TextStyle="TextStyle.Subtitle2">Estado</RadzenText>
                 <RadzenDropDown @bind-Value="nuevaOrden.Estado"
                                 Data="@(new[] { "Pendiente", "Activa", "Incidencia", "Cerrada" })"
                                 Style="width: 100%;" />
             </div>
-             <div class="col-md-4">
-                <RadzenText TextStyle="TextStyle.Subtitle2">Creado Por (Empleado ID)</RadzenText>
-                <RadzenNumeric @bind-Value="nuevaOrden.EmpleadoId" Style="width: 100%;" Placeholder="Opcional" />
-                <RadzenText TextStyle="TextStyle.Caption">ID del administrativo/jefe que la crea.</RadzenText>
-            </div>
         </div>
 
         <div class="row p-2">
             <div class="col-md-6">
-                <RadzenText TextStyle="TextStyle.Subtitle2">Fecha Inicio Prevista</RadzenText>
+                <RadzenText TextStyle="TextStyle.Subtitle2">Fecha Inicio</RadzenText>
                 <RadzenDatePicker @bind-Value="nuevaOrden.FechaInicio" Style="width: 100%;" ShowTime="true" DateFormat="dd/MM/yyyy HH:mm" />
             </div>
             <div class="col-md-6">
-                <RadzenText TextStyle="TextStyle.Subtitle2">Fecha Fin Prevista</RadzenText>
+                <RadzenText TextStyle="TextStyle.Subtitle2">Fecha Fin</RadzenText>
                 <RadzenDatePicker @bind-Value="nuevaOrden.FechaFin" Style="width: 100%;" ShowTime="true" DateFormat="dd/MM/yyyy HH:mm" AllowClear="true" />
             </div>
         </div>
@@ -82,7 +69,6 @@
     {
         if (MaquinaCreacion != null)
         {
-            nuevaOrden.IdMaquina = MaquinaCreacion.Id;
             nuevaOrden.FechaInicio = DateTime.Now;
             nuevaOrden.Estado = "Activa";
 

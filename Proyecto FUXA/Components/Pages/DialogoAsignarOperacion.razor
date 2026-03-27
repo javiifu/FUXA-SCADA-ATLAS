@@ -2,68 +2,94 @@
 @using Proyecto_FUXA.Services
 @using Radzen
 @using Radzen.Blazor
+@inject ServicioMaquina ServicioMaquina
 @inject Radzen.DialogService DialogService
-@inject ImputacionService ImputacionService
-@inject NotificationService NotificationService
 
-<div class="container">
-    <RadzenText TextStyle="TextStyle.H6">Asignar trabajo a: @MaquinaCreacion.Nombre</RadzenText>
-    <hr />
+<RadzenStack Gap="1.5rem" class="rz-p-4">
+    <RadzenText TextStyle="TextStyle.H6">Nueva Operación para: <b>@MaquinaCreacion.Nombre</b></RadzenText>
 
-    <RadzenText TextStyle="TextStyle.Subtitle2" class="mt-3">Selecciona la Orden de Fabricación</RadzenText>
-    <RadzenDropDown TValue="int" 
-                    Data="@listaOrdenes" 
-                    TextProperty="CodigoOrden" 
-                    ValueProperty="Id" 
-                    @bind-Value="idOrdenSeleccionada" 
-                    Placeholder="Busca por código o producto..."
-                    AllowFiltering="true"
-                    FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
-                    Style="width: 100%;" />
+    <RadzenCard Variant="Variant.Flat">
+        <RadzenStack Gap="1rem">
+            <RadzenRow AlignItems="AlignItems.Center">
+                <RadzenColumn Size="4">
+                    <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0">Código Operación</RadzenText>
+                </RadzenColumn>
+                <RadzenColumn Size="8">
+                    <RadzenTextBox @bind-Value="modelo.CodigoOperacion" Style="width: 100%;" />
+                </RadzenColumn>
+            </RadzenRow>
 
-    @if (idOrdenSeleccionada > 0)
-    {
-        <RadzenText TextStyle="TextStyle.Subtitle2" class="mt-4">Ciclos Objetivo para esta Máquina</RadzenText>
-        <RadzenNumeric @bind-Value="ciclosParaEstaMaquina" Style="width: 100%;" Placeholder="Ej: 1000" />
-        
-        <p class="mt-2" style="font-size: 0.9rem; color: gray;">
-            Se generará automáticamente el código: <b>@GenerarSufijoPrevisto()</b>
-        </p>
-    }
+            <RadzenRow AlignItems="AlignItems.Center">
+                <RadzenColumn Size="4">
+                    <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0">Ciclos Objetivo</RadzenText>
+                </RadzenColumn>
+                <RadzenColumn Size="8">
+                    <RadzenNumeric @bind-Value="modelo.CiclosObjetivo" Style="width: 100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+        </RadzenStack>
+    </RadzenCard>
 
-    <div class="mt-5" style="text-align: right;">
-        <RadzenButton Text="Cancelar" Click="() => DialogService.Close(false)" ButtonStyle="ButtonStyle.Light" class="me-2" />
-        <RadzenButton Text="ASIGNAR A MÁQUINA" Click="CrearOperacion" 
-                      ButtonStyle="ButtonStyle.Success" 
-                      Disabled="@(idOrdenSeleccionada == 0 || ciclosParaEstaMaquina <= 0)" />
-    </div>
-</div>
+    <RadzenText TextStyle="TextStyle.Subtitle1"><b>Seleccionar Orden de Fabricación:</b></RadzenText>
+    <RadzenDataGrid AllowFiltering="true" AllowPaging="true" PageSize="5" AllowSorting="true" 
+                    Data="@ordenesActivas" TItem="Orden" SelectionMode="DataGridSelectionMode.Single" 
+                    @bind-Value="@selectedOrdenes" class="rz-shadow-2">
+        <Columns>
+            <RadzenDataGridColumn TItem="Orden" Property="CodigoOrden" Title="Código" />
+            <RadzenDataGridColumn TItem="Orden" Property="Producto" Title="Producto" />
+            <RadzenDataGridColumn TItem="Orden" Property="Estado" Title="Estado" />
+        </Columns>
+    </RadzenDataGrid>
+
+    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="1rem">
+        <RadzenButton Text="Cancelar" Click="() => DialogService.Close(false)" ButtonStyle="ButtonStyle.Light" />
+        <RadzenButton Text="Iniciar Operación" Click="Guardar" Icon="play_arrow" 
+                      ButtonStyle="ButtonStyle.Success" Disabled="@(selectedOrdenes?.Any() == false)" />
+    </RadzenStack>
+</RadzenStack>
 
 @code {
     [Parameter] public Maquina MaquinaCreacion { get; set; }
     
-    List<Orden> listaOrdenes;
-    int idOrdenSeleccionada;
-    int ciclosParaEstaMaquina;
+    private List<Orden> ordenesActivas;
+    private IList<Orden> selectedOrdenes;
+    private NuevaOperacion modelo = new();
 
     protected override async Task OnInitializedAsync()
     {
-        listaOrdenes = await ImputacionService.ObtenerOrdenesActivasParaAsignarAsync();
+        // Traemos solo las órdenes madre que estén "Abierta" o "Activa"
+        var todas = await ServicioMaquina.GetAllOrdenes();
+        ordenesActivas = todas.Where(o => o.Estado == "Abierta" || o.Estado == "Activa").ToList();
     }
 
-    string GenerarSufijoPrevisto() {
-        var orden = listaOrdenes.FirstOrDefault(o => o.Id == idOrdenSeleccionada);
-        return orden != null ? $"{orden.CodigoOrden}-X" : "";
-    }
-
-    async Task CrearOperacion()
+    private async Task Guardar()
     {
-        // Aquí llamaremos al método que crea la operación con el sufijo automático
-        var exito = await ImputacionService.CrearNuevaOperacionAsync(idOrdenSeleccionada, MaquinaCreacion.Id, ciclosParaEstaMaquina);
-        
-        if (exito) {
-            NotificationService.Notify(NotificationSeverity.Success, "Éxito", "Operación asignada correctamente.");
-            DialogService.Close(true);
+        if (selectedOrdenes != null && selectedOrdenes.Any())
+        {
+            var ordenSeleccionada = selectedOrdenes.First();
+
+            var operacion = new OperacionesOrden
+            {
+                IdOrden = ordenSeleccionada.Id,
+                IdMaquina = MaquinaCreacion.Id,
+                CodigoOperacion = modelo.CodigoOperacion, 
+                CiclosObjetivo = modelo.CiclosObjetivo,   
+                PiezasFabricadas = 0,                     
+                PiezasRotas = 0,
+                Estado = "Activa",                      
+                FechaCreacion = DateTime.Now,
+                IdSeccion = 1,                            
+                IdOperacionMaestra = 1                    
+            };
+
+            var exito = await ServicioMaquina.InsertarOperacion(operacion);
+
+            if (exito)
+            {
+                DialogService.Close(true);
+            }
         }
     }
+
+
 }

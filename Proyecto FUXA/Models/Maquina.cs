@@ -13,10 +13,10 @@ namespace Proyecto_FUXA.Models
         public int Id { get; set; }
         public string Nombre { get; set; } = string.Empty;
         public int? IdSeccion { get; set; }
-        public int NumeroOrden { get; set; }
-        public string NombreSeccion { get; set; } = string.Empty;
+        public int? NumeroOrden { get; set; }
+        public string? NombreSeccion { get; set; } = string.Empty;
         public int? EmpleadoId { get; set; }
-        public int EstadoActualId { get; set; }
+        public int? EstadoActualId { get; set; }
         public DateTime FechaCreacion { get; set; }
         public DateTime FechaActualizacion { get; set; }
         [NotMapped]

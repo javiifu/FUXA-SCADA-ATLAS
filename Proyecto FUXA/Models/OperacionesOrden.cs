@@ -14,10 +14,11 @@ namespace Proyecto_FUXA.Models
         public int PiezasFabricadas { get; set; }
         public int PiezasRotas { get; set; }
         public DateTime FechaCreacion { get; set; }
+        public DateTime? FechaFin { get; set; }
         public string Estado { get; set; } = "Pendiente";
 
         [ForeignKey("IdOrden")]
-        public virtual Orden Orden { get; set; }
+        public virtual Orden? Orden { get; set; }
 
         [ForeignKey("IdSeccion")]
         public virtual Seccion? Seccion { get; set; }

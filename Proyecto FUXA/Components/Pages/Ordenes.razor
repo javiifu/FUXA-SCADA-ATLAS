@@ -1,0 +1,77 @@
+﻿@page "/ordenes"
+@using Proyecto_FUXA.Models
+@using Proyecto_FUXA.Services
+@using Radzen
+@using Radzen.Blazor
+@inject ImputacionService ImputacionService
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+
+<RadzenStack Gap="1rem" class="rz-p-4">
+    <RadzenRow AlignItems="AlignItems.Center">
+        <RadzenColumn Size="12" SizeMD="6">
+            <RadzenText TextStyle="TextStyle.H4" TagName="TagName.H1">Gestión ordenes</RadzenText>
+        </RadzenColumn>
+        <RadzenColumn Size="12" SizeMD="6" class="rz-text-align-right">
+            <RadzenButton Click="@AbrirDialogoNuevaOrden" 
+                          Text="CREAR NUEVA ORDEN" 
+                          Icon="add_circle" 
+                          ButtonStyle="ButtonStyle.Primary" />
+        </RadzenColumn>
+    </RadzenRow>
+
+    <RadzenCard Variant="Variant.Outlined">
+        <RadzenDataGrid AllowFiltering="true" AllowPaging="true" PageSize="10" AllowSorting="true" 
+                        Data="@listaOrdenes" TItem="Orden" EmptyText="No hay ordenes creadas.">
+            <Columns>
+                <RadzenDataGridColumn TItem="Orden" Property="CodigoOrden" Title="Codigo" Width="150px" />
+                <RadzenDataGridColumn TItem="Orden" Property="Producto" Title="Producto / Descripcion" />
+                <RadzenDataGridColumn TItem="Orden" Property="FechaInicio" Title="Fecha inicio" FormatString="{0:dd/MM/yyyy HH:mm}" Width="200px" />
+                
+                <RadzenDataGridColumn TItem="Orden" Title="Estado" Width="120px" TextAlign="TextAlign.Center">
+                    <Template Context="o">
+                        <RadzenBadge BadgeStyle="@(o.Estado == "Activa" ? BadgeStyle.Success : BadgeStyle.Info)" 
+                                     Text="@o.Estado.ToLower()" />
+                    </Template>
+                </RadzenDataGridColumn>
+
+                <RadzenDataGridColumn TItem="Orden" Title="Acciones" Width="100px" TextAlign="TextAlign.Center" Filterable="false" Sortable="false">
+                    <Template Context="o">
+                        <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Medium" 
+                                      Click="@(args => EditarOrden(o))" />
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    </RadzenCard>
+</RadzenStack>
+
+@code {
+    List<Orden> listaOrdenes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarOrdenes();
+    }
+
+    async Task CargarOrdenes()
+    {
+        listaOrdenes = await ImputacionService.ObtenerOrdenesActivasAsync();
+    }
+
+    async Task AbrirDialogoNuevaOrden()
+    {
+        var res = await DialogService.OpenAsync<DialogoPlanificarOrden>("Planificar nueva orden",
+            new Dictionary<string, object>(), 
+            new DialogOptions() { Width = "500px", Left = "0", Style = "position: absolute; left: 0;" });
+
+        if (res == true)
+        {
+            await CargarOrdenes();
+        }
+    }
+
+    void EditarOrden(Orden orden)
+    {
+    }
+}
