@@ -219,6 +219,32 @@ namespace Proyecto_FUXA.Services
 
             return $"{codigoOrdenBase}-{cantidad + 1}";
         }
-
+        public async Task<List<OperacionResumenDTO>> ObtenerTodasLasOperacionesResumenAsync()
+        {
+            try
+            {
+                return await _context.OperacionesOrden
+                    .Include(o => o.Orden)
+                    .Include(o => o.Maquina)
+                    .Select(o => new OperacionResumenDTO
+                    {
+                        Id = o.Id,
+                        IdMaquina = o.IdMaquina,
+                        CodigoOperacion = o.CodigoOperacion,
+                        NombreOrden = o.Orden != null ? o.Orden.CodigoOrden : "Sin Orden",
+                        Producto = o.Orden != null ? o.Orden.Producto : "Sin Producto",
+                        NombreMaquina = o.Maquina != null ? o.Maquina.Nombre : "Sin Máquina",
+                        CiclosObjetivo = o.CiclosObjetivo,
+                        PiezasFabricadas = o.PiezasFabricadas,
+                        Estado = o.Estado,
+                        FechaInicio = o.FechaCreacion
+                    }).ToListAsync();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error: {e.Message}");
+                return new List<OperacionResumenDTO>();
+            }
+        }
     }
 }
