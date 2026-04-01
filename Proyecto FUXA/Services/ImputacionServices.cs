@@ -213,5 +213,12 @@ namespace Proyecto_FUXA.Services
             }
         }
 
+        public async Task<string> GenerarSiguienteCodigoOperacionAsync(string codigoOrdenBase)
+        {
+            var cantidad = await _context.OperacionesOrden.CountAsync(o => o.CodigoOperacion.StartsWith(codigoOrdenBase));
+
+            return $"{codigoOrdenBase}-{cantidad + 1}";
+        }
+
     }
 }

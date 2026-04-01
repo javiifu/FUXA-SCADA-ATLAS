@@ -5,6 +5,7 @@
 @inject ServicioMaquina ServicioMaquina
 @inject Radzen.DialogService DialogService
 @inject NotificationService NotificationService
+@inject ImputacionService ImputacionService
 
 <RadzenStack Gap="1.5rem" class="rz-p-4">
     <RadzenText TextStyle="TextStyle.H6">Nueva Operación para: <b>@MaquinaCreacion.Nombre</b></RadzenText>
@@ -32,10 +33,11 @@
     </RadzenCard>
 
     <RadzenText TextStyle="TextStyle.Subtitle1"><b>Seleccionar Orden de Fabricación:</b></RadzenText>
-    <RadzenDataGrid AllowFiltering="true" AllowPaging="true" PageSize="5" AllowSorting="true"
-                    Data="@ordenesActivas" TItem="Orden" SelectionMode="DataGridSelectionMode.Single"
-                    @bind-Value="@selectedOrdenes" class="rz-shadow-2"
-                    Change="@AlClicarEnFila">
+    <RadzenDataGrid Data="@ordenesActivas"
+                    TItem="Orden"
+                    SelectionMode="DataGridSelectionMode.Single"
+                    @bind-Value="@selectedOrdenes"
+                    RowSelect="@OnRowSelect">
         <Columns>
             <RadzenDataGridColumn TItem="Orden" Property="CodigoOrden" Title="Código" />
             <RadzenDataGridColumn TItem="Orden" Property="Producto" Title="Producto" />
@@ -59,68 +61,60 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Traemos solo las órdenes madre que estén "Abierta" o "Activa"
         var todas = await ServicioMaquina.GetAllOrdenes();
         ordenesActivas = todas.Where(o => o.Estado == "Abierta" || o.Estado == "Activa").ToList();
     }
 
     private async Task Guardar()
     {
-        if (selectedOrdenes != null && selectedOrdenes.Any())
+        try
         {
-            var ordenSeleccionada = selectedOrdenes.First();
+            var ordenSeleccionada = selectedOrdenes?.FirstOrDefault();
+
+            if (ordenSeleccionada == null)
+            {
+                NotificationService.Notify(NotificationSeverity.Warning, "Atención", "Debes seleccionar una orden de la tabla");
+                return;
+            }
 
             var operacion = new OperacionesOrden
             {
                 IdOrden = ordenSeleccionada.Id,
                 IdMaquina = MaquinaCreacion.Id,
-                CodigoOperacion = modelo.CodigoOperacion, 
-                CiclosObjetivo = modelo.CiclosObjetivo,   
-                PiezasFabricadas = 0,                     
-                PiezasRotas = 0,
-                Estado = "Activa",                      
-                FechaCreacion = DateTime.Now,
-                IdSeccion = 1,                            
-                IdOperacionMaestra = 1                    
+                IdSeccion = MaquinaCreacion.IdSeccion ?? 1,
+                IdOperacionMaestra = 1, 
+                CodigoOperacion = modelo.CodigoOperacion,
+                CiclosObjetivo = modelo.CiclosObjetivo,
+                PiezasFabricadas = 0,
+                Estado = "Activa",
+                FechaCreacion = DateTime.Now
             };
 
             var exito = await ServicioMaquina.InsertarOperacion(operacion);
 
             if (exito)
             {
-                NotificationService.Notify(new NotificationMessage
-                {
-                    Severity = NotificationSeverity.Success,
-                    Summary = "Operación Confirmada",
-                    Detail = "La orden se ha asignado correctamente",
-                    Duration = 4000
-                });
+                NotificationService.Notify(NotificationSeverity.Success, "Éxito", "Operación creada");
                 DialogService.Close(true);
             }
             else
             {
-                NotificationService.Notify(new NotificationMessage
-                {
-                    Severity = NotificationSeverity.Error,
-                    Summary = "Error de Asignación",
-                    Detail = "No se pudo conectar con la base de datos",
-                    Duration = 4000
-                });
+                NotificationService.Notify(NotificationSeverity.Error, "Error", "La base de datos rechazó el registro");
             }
         }
-    }
-    private void AlClicarEnFila(object args)
-    {
-        // Forzamos la captura de la selección
-        if (selectedOrdenes != null && selectedOrdenes.Any())
+        catch (Exception ex)
         {
-            var seleccion = selectedOrdenes.First();
+            NotificationService.Notify(NotificationSeverity.Error, "Error Crítico", ex.Message);
+            Console.WriteLine($"ERROR AL GUARDAR: {ex.ToString()}");
+        }
+    }
+    private async Task OnRowSelect(Orden orden)
+    {
+        if (orden != null)
+        {
+            modelo.CodigoOperacion = await ImputacionService.GenerarSiguienteCodigoOperacionAsync(orden.CodigoOrden);
 
-            // Asignamos el código
-            modelo.CodigoOperacion = seleccion.CodigoOrden;
-
-            // IMPORTANTE: Esta línea es la que hace que el texto aparezca arriba al instante
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
         }
     }
 

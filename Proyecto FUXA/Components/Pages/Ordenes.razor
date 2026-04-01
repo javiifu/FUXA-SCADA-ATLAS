@@ -31,7 +31,7 @@
                 <RadzenDataGridColumn TItem="Orden" Title="Estado" Width="120px" TextAlign="TextAlign.Center">
                     <Template Context="o">
                         <RadzenBadge BadgeStyle="@(o.Estado == "Activa" ? BadgeStyle.Success : BadgeStyle.Info)" 
-                                     Text="@o.Estado.ToLower()" />
+                                     Text="@o.Estado" />
                     </Template>
                 </RadzenDataGridColumn>
 
@@ -63,7 +63,7 @@
     {
         var res = await DialogService.OpenAsync<DialogoPlanificarOrden>("Planificar nueva orden",
             new Dictionary<string, object>(), 
-            new DialogOptions() { Width = "500px", Left = "0", Style = "position: absolute; left: 0;" });
+            new DialogOptions() { Width = "500px", Style = "position: absolute;" });
 
         if (res == true)
         {

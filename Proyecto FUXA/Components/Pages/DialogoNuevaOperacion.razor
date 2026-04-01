@@ -10,7 +10,6 @@
         <div class="col-md-6 rz-p-4"> 
             <RadzenStack Gap="1.5rem">
                 
-                @* 1. Selección de la Orden Madre (La que creaste con el botón azul grande) *@
                 <RadzenStack Gap="0.4rem">
                     <RadzenText TextStyle="TextStyle.Caption" Style="font-weight: bold;">1. SELECCIONAR ORDEN MADRE</RadzenText>
                     <RadzenDropDown TValue="int" 
@@ -22,13 +21,11 @@
                                     Placeholder="Elija la orden..." />
                 </RadzenStack>
 
-                @* 2. Ciclos Objetivo para ESTA máquina *@
                 <RadzenStack Gap="0.4rem">
                     <RadzenText TextStyle="TextStyle.Caption" Style="font-weight: bold;">2. CICLOS OBJETIVO (META)</RadzenText>
                     <RadzenNumeric TValue="int" @bind-Value="ciclos" Style="width: 100%; max-width: 350px;" />
                 </RadzenStack>
 
-                @* Botón de Guardar *@
                 <div class="rz-mt-4">
                     <RadzenButton Click="@CrearOperacionClick"
                                   Text="ASIGNAR TRABAJO"
