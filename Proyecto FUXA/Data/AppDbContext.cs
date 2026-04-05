@@ -29,29 +29,16 @@ namespace Proyecto_FUXA.Data
             modelBuilder.Entity<OperacionesOrden>().ToTable("OperacionesOrden");
 
             modelBuilder.Entity<ImputacionOperario>()
-                .HasOne(i => i.Empleado)
-                .WithMany()
-                .HasForeignKey(i => i.IdEmpleado)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<ImputacionOperario>()
-                .HasOne(i => i.Maquina)
-                .WithMany()
-                .HasForeignKey(i => i.IdMaquina)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<ImputacionOperario>()
                 .HasOne(i => i.Operacion)
                 .WithMany()
                 .HasForeignKey(i => i.IdOperacion)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<ImputacionOperario>()
-                .HasOne(i => i.Orden)
+                .HasOne(i => i.Empleado)
                 .WithMany()
-                .HasForeignKey(i => i.IdOrden)
-                .IsRequired(false)
-                .OnDelete(DeleteBehavior.SetNull);
+                .HasForeignKey(i => i.IdEmpleado)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

@@ -8,7 +8,7 @@
 @inject NotificationService NotificationService
 @inject ImputacionService ImputacionServicios
 
-<RadzenText TextStyle="TextStyle.H4" class="rz-mb-4">Imputación de Horas Operarios</RadzenText>
+<RadzenText TextStyle="TextStyle.H4" class="rz-mb-4">Imputación de horas operarios</RadzenText>
 
 <div class="container-fluid">
     <div class="row">
@@ -25,27 +25,26 @@
                             </Items>
                         </RadzenSelectBar>
                     </RadzenStack>
-
+                    @* codigo *@
                     <RadzenStack Gap="0.4rem">
                         <RadzenText TextStyle="TextStyle.Caption" Weight="FontWeight.Bold">1. CÓDIGO DE OPERACIÓN</RadzenText>
                         <RadzenTextBox @bind-Value="nuevaImputacion.CodigoOperacion"
                                        Placeholder="Selecciona en la tabla..."
                                        Style="width: 100%;" ReadOnly="true" />
                     </RadzenStack>
-
+                    @* trabajador *@
                     <RadzenStack Gap="0.4rem">
                         <RadzenText TextStyle="TextStyle.Caption" Weight="FontWeight.Bold">2. TRABAJADOR</RadzenText>
                         <RadzenDropDown TValue="int" Data="@empleados" @bind-Value="nuevaImputacion.IdEmpleado"
                                         TextProperty="Nombre" ValueProperty="Id"
                                         AllowFiltering="true" Placeholder="Buscar nombre..." Style="width: 100%;" />
                     </RadzenStack>
-
+                    @* horas *@
                     <RadzenStack Gap="0.4rem">
                         <RadzenText TextStyle="TextStyle.Caption" Weight="FontWeight.Bold">3. NÚMERO DE HORAS</RadzenText>
-                        @* Usamos decimal (m) para que coincida con el modelo *@
                         <RadzenNumeric TValue="decimal" @bind-Value="nuevaImputacion.Horas" Style="width: 100%;" Min="0.1m" Step="0.5m" />
                     </RadzenStack>
-
+                    @* boton de guardar *@
                     <RadzenButton Click="@GuardarImputacion" Text="GUARDAR IMPUTACIÓN"
                                   Icon="save" ButtonStyle="ButtonStyle.Success"
                                   Size="ButtonSize.Large" class="rz-mt-4 rz-w-100"
@@ -54,7 +53,7 @@
                 </RadzenStack>
             </RadzenCard>
         </div>
-
+        @* tabla *@
         <div class="col-md-8 rz-p-4">
             <RadzenText TextStyle="TextStyle.Subtitle1" class="rz-mb-2"><b>Click sobre una operación para seleccionarla:</b></RadzenText>
             <RadzenDataGrid Data="@operacionesFiltradas" TItem="OperacionResumenDTO"
@@ -115,16 +114,15 @@
     {
         if (nuevaImputacion.IdEmpleado == 0 || nuevaImputacion.Horas <= 0)
         {
-            NotificationService.Notify(NotificationSeverity.Warning, "Atención", "Selecciona un trabajador e indica las horas.");
+            NotificationService.Notify(NotificationSeverity.Warning, "Atención", "Selecciona un trabajador e indica las horas");
             return;
         }
 
-        // Aquí simulas el guardado
         bool exito = true;
 
         if (exito)
         {
-            NotificationService.Notify(NotificationSeverity.Success, "Guardado", "Horas imputadas correctamente.");
+            NotificationService.Notify(NotificationSeverity.Success, "Guardado", "Horas imputadas correctamente");
             nuevaImputacion = new ImputacionModel();
             StateHasChanged();
         }
@@ -135,6 +133,6 @@
         public string CodigoOperacion { get; set; } = "";
         public int IdOperacionReal { get; set; }
         public int IdEmpleado { get; set; }
-        public decimal Horas { get; set; } // Cambiado a decimal para evitar errores con RadzenNumeric
+        public decimal Horas { get; set; }
     }
 }
