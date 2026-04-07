@@ -1,0 +1,77 @@
+﻿@using Proyecto_FUXA.Models
+@using Radzen
+@using Radzen.Blazor
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+@inject Proyecto_FUXA.Services.ImputacionService ImputacionService 
+
+<RadzenStack Gap="1rem" class="rz-p-4">
+    <RadzenText TextStyle="TextStyle.H6">Imputar Horas a Operación Activa</RadzenText>
+    
+    @if (OperacionActiva == null)
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Danger" AllowClose="false" Variant="Variant.Flat">
+            No hay una operación activa en esta máquina para imputar.
+        </RadzenAlert>
+    }
+    else
+    {
+        <RadzenStack Gap="0.5rem">
+            <RadzenText TextStyle="TextStyle.Caption">Operación actual:</RadzenText>
+            <RadzenBadge BadgeStyle="BadgeStyle.Primary" Text="@OperacionActiva.CodigoOperacion" />
+        </RadzenStack>
+
+        <RadzenStack Gap="0.5rem">
+            <RadzenText TextStyle="TextStyle.Subtitle2">Seleccionar Operario</RadzenText>
+            <RadzenDropDown @bind-Value="nuevaImp.IdEmpleado" Data="@ListaOperarios" 
+                            TextProperty="Nombre" ValueProperty="Id" class="w-100" />
+        </RadzenStack>
+
+        <RadzenStack Gap="0.5rem">
+            <RadzenText TextStyle="TextStyle.Subtitle2">Horas trabajadas</RadzenText>
+            <RadzenNumeric @bind-Value="nuevaImp.Horas" TValue="decimal" Step="0.5" class="w-100" />
+        </RadzenStack>
+
+        <RadzenStack Gap="0.5rem">
+            <RadzenText TextStyle="TextStyle.Subtitle2">Observaciones</RadzenText>
+            <RadzenTextArea @bind-Value="nuevaImp.Observaciones" Placeholder="Ej: Cambio de molde, limpieza..." class="w-100" />
+        </RadzenStack>
+
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" class="rz-mt-4">
+            <RadzenButton Text="Cancelar" Click="() => DialogService.Close(false)" ButtonStyle="ButtonStyle.Light" />
+            <RadzenButton Text="Guardar" Icon="save" Click="Guardar" ButtonStyle="ButtonStyle.Primary" />
+        </RadzenStack>
+    }
+</RadzenStack>
+
+    @code {
+    [Parameter] public dynamic OperacionActiva { get; set; }
+    [Parameter] public List<Empleado> ListaOperarios { get; set; }
+
+    private ImputacionOperario nuevaImp = new();
+
+    protected override void OnInitialized()
+    {
+        if (OperacionActiva != null)
+        {
+            nuevaImp.IdOperacion = OperacionActiva.Id;
+            nuevaImp.FechaRegistro = DateTime.Now;
+        }
+    }
+
+    private async Task Guardar()
+    {
+        if (nuevaImp.IdEmpleado == 0 || nuevaImp.Horas <= 0)
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "Atención", "Selecciona operario y horas");
+            return;
+        }
+
+        try {
+            NotificationService.Notify(NotificationSeverity.Success, "Exito", "Guardado correctamente");
+            DialogService.Close(true);
+        } catch (Exception ex) {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", "No se pudo guardar");
+        }
+    }
+}

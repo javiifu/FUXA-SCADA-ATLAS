@@ -4,31 +4,61 @@
 @using Radzen.Blazor
 @using static Proyecto_FUXA.Services.ImputacionService
 @inject ImputacionService ImputacionService
+@inject DialogService DialogService
 
-<RadzenText TextStyle="TextStyle.H4" class="rz-mb-4">Monitor de Operaciones Activas</RadzenText>
+<RadzenText TextStyle="TextStyle.H4" class="rz-mb-4">Monitor de operaciones</RadzenText>
 
 <RadzenDataGrid Data="@listaOperaciones" TItem="OperacionResumenDTO" AllowPaging="true" PageSize="10">
     <Columns>
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="CodigoOperacion" Title="Cód. Operación" Width="180px" />
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="CodigoOperacion" Title="Cód. Operación" Width="140px" />
 
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="NombreOrden" Title="Orden" Width="150px" />
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="NombreOrden" Title="Orden" Width="140px" />
 
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="Producto" Title="Producto / Descripción" />
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="Producto" Title="Producto / Descripción" Width="200px" />
 
         <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="NombreMaquina" Title="Máquina" Width="150px" />
 
         <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="CiclosObjetivo" Title="Objetivo" Width="100px" TextAlign="TextAlign.Center" />
 
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" Title="Progreso" Width="200px">
-            <Template Context="data">
-                <div style="display:flex; flex-direction:column; gap:4px">
-                    <RadzenBadge BadgeStyle="BadgeStyle.Info" Text="@($"{data.PiezasFabricadas} / {data.CiclosObjetivo}")" />
-                    <RadzenProgressBar Value="@((double)data.PiezasFabricadas)" Max="@((double)data.CiclosObjetivo)" ShowValue="false" />
-                </div>
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" property="PiezasFabricadas" Title="P. fabricadas" Width="100px" TextAlign=TextAlign.Center/>
+
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="PiezasRotas" Title="P. rotas" Width="100px" TextAlign="TextAlign.Center"/>
+
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="Estado" Title="Estado" Width="80px" TextAlign="TextAlign.Center">
+            <Template Context="o">
+                @if (o.Estado.Equals("Activa"))
+                {
+                    <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="Activa"/>
+                }else if (o.Estado.Equals("Finalizado"))
+                {
+                    <RadzenBadge BadgeStyle="BadgeStyle.Warning" Text="Finalizado"/>
+                }
+
             </Template>
         </RadzenDataGridColumn>
 
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="FechaInicio" Title="Iniciada" FormatString="{0:dd/MM HH:mm}" Width="120px" />
+
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="FechaInicio" Title="Fecha inicio" FormatString="{0:dd/MM HH:mm}" Width="120px" />
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="FechaFin" Title="Fecha fin" FormatString="{0:dd/MM HH:mm}" Width="120px">
+            <Template context="o">
+                @if (o.FechaFin == null || o.FechaFin == DateTime.MinValue)
+                {
+                    <span>-</span>
+                }
+                else
+                {
+                    o.FechaFin.ToString("dd/MM HH:mm");
+                }
+            </Template>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" Title="Editar" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
+            <Template Context="operacion">
+                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat"
+                        Size="ButtonSize.Medium" Click="@(args => AbrirDialogoEdicion(operacion))"/>
+
+            </Template>
+        </RadzenDataGridColumn>
     </Columns>
 </RadzenDataGrid>
 
@@ -38,5 +68,20 @@
     protected override async Task OnInitializedAsync()
     {
         listaOperaciones = await ImputacionService.ObtenerOperacionesActivasAsync();
+    }
+
+    private async Task AbrirDialogoEdicion(OperacionResumenDTO operacion)
+    {
+        var parametros = new Dictionary<string, object>
+        {
+            {"OperacionParaEditar", operacion}
+        };
+        var res = await DialogService.OpenAsync<DialogoEditarOperacion>("Editar operacion", parametros);
+
+        if(res == true)
+        {
+            await ImputacionService.ObtenerOperacionesActivasAsync();
+            StateHasChanged();
+        }
     }
 }

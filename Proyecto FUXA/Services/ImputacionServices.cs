@@ -141,8 +141,10 @@ namespace Proyecto_FUXA.Services
             public string Producto { get; set; } = "";       
             public int CiclosObjetivo { get; set; }
             public int PiezasFabricadas { get; set; }
+            public int PiezasRotas { get; set; }
             public string Estado { get; set; } = "";
             public DateTime FechaInicio { get; set; }
+            public DateTime FechaFin { get; set; }
         }
 
         public async Task<bool> AsignarOrdenAMaquinaAsync(int idOrden, int idMaquina, int ciclos)
@@ -245,6 +247,16 @@ namespace Proyecto_FUXA.Services
                 Console.WriteLine($"Error: {e.Message}");
                 return new List<OperacionResumenDTO>();
             }
+        }
+        public async Task<bool> ActualizarOrdenAsync(Orden orden)
+        {
+            try
+            {
+                _context.Ordenes.Update(orden);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch { return false; }
         }
     }
 }

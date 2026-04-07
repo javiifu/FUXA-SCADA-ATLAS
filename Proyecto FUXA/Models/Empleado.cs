@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Proyecto_FUXA.Models
 {
@@ -11,6 +12,10 @@ namespace Proyecto_FUXA.Models
         public string? CodigoEmpleado { get; set; }
         public bool EstaActivo { get; set; }
         public string Cargo { get; set; } = "Operario"; 
+        public int IdMaquina { get; set; }
+
+        [ForeignKey("IdMaquina")]
+        public virtual Maquina? Maquina { get; set; }
 
         public string BusquedaCombinada => $"{Nombre} - {CodigoEmpleado}";
     }

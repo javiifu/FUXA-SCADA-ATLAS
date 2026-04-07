@@ -16,6 +16,7 @@ namespace Proyecto_FUXA.Data
         public DbSet<ImputacionOperario> ImputacionesOperarios { get; set; }
         public DbSet<Operacion> Operaciones { get; set; }
         public DbSet<OperacionesOrden> OperacionesOrden{ get; set; }
+        public DbSet<MaquinaOperario> MaquinasOperarios { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -27,6 +28,7 @@ namespace Proyecto_FUXA.Data
             modelBuilder.Entity<ImputacionOperario>().ToTable("ImputacionOperarios");
             modelBuilder.Entity<Operacion>().ToTable("Operaciones");
             modelBuilder.Entity<OperacionesOrden>().ToTable("OperacionesOrden");
+            modelBuilder.Entity<MaquinaOperario>().ToTable("MaquinasOperarios");
 
             modelBuilder.Entity<ImputacionOperario>()
                 .HasOne(i => i.Operacion)

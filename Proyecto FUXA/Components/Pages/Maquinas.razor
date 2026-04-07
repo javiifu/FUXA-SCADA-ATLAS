@@ -58,9 +58,10 @@ else
                                     @(maquinasFiltradas.IndexOf(item) + 1)
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="Maquina" Property="Nombre" Title="Nombre Máquina" />
-                            <RadzenDataGridColumn TItem="Maquina" Property="NombreSeccion" Title="Sección" />
-                            <RadzenDataGridColumn TItem="Maquina" Title="Encargado" Width="200px">
+                            <RadzenDataGridColumn TItem="Maquina" Property="Nombre" Title="Nombre Máquina" Width="150px"/>
+                            <RadzenDataGridColumn TItem="Maquina" Property="NombreSeccion" Title="Sección" Width="130px"/>
+                            <RadzenDataGridColumn TItem="Maquina" Property="Operacion" Title="Operacion" Width="200px"/>
+                            <RadzenDataGridColumn TItem="Maquina" Title="Encargado" Width="120px">
                                 <Template Context="m">
                                     <div style="display: flex; flex-direction: column;">
                                         <span style="font-weight: bold; color: var(--rz-text-color);">
@@ -72,7 +73,7 @@ else
                                     </div>
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="Maquina" Title="Estado" Width="150px" TextAlign="TextAlign.Center">
+                            <RadzenDataGridColumn TItem="Maquina" Title="Estado" Width="120px" TextAlign="TextAlign.Center">
                                 <Template Context="m">
                                     @if (m.EstadoActualId == 1)
                                     {
@@ -97,11 +98,11 @@ else
                                 </Template>
                             </RadzenDataGridColumn>
 
-                            <RadzenDataGridColumn TItem="Maquina" Property="CiclosReales" Title="Reales" Width="140px" TextAlign="TextAlign.Center" />
-                            <RadzenDataGridColumn TItem="Maquina" Property="CiclosObjetivo" Title="Objetivo" Width="140px" TextAlign="TextAlign.Center" />
+                            <RadzenDataGridColumn TItem="Maquina" Property="CiclosReales" Title="Reales" Width="120px" TextAlign="TextAlign.Center" />
+                            <RadzenDataGridColumn TItem="Maquina" Property="CiclosObjetivo" Title="Objetivo" Width="120px" TextAlign="TextAlign.Center" />
 
                             @*para permitir ordenar por eficiencia *@
-                            <RadzenDataGridColumn TItem="Maquina" Property="PorcentajeCiclos" Title="Eficiencia">
+                            <RadzenDataGridColumn TItem="Maquina" Property="PorcentajeCiclos" Title="Eficiencia" Width="170px">
                                 <Template Context="m">
                                     <RadzenProgressBar Value="@(Math.Round((double)m.PorcentajeCiclos, 1))"
                                                        Max="100"
@@ -112,15 +113,15 @@ else
 
                             </RadzenDataGridColumn>
 
-                            @* Boton de editar *@
+                            @* editar *@
                             <RadzenDataGridColumn TItem="Maquina" Title="Editar" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
                                 <Template Context="maquina">
                                     <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat"
-                                                  Size="ButtonSize.Medium" Click="@(args => IrAEditar(maquina.Id))" />
+                                                  Size="ButtonSize.Medium" Click="@(args => AbrirDialogoEdicion(maquina))" />
                                 </Template>
                             </RadzenDataGridColumn>
 
-                            @* Boton operacion *@
+                            @* operacion *@
                             <RadzenDataGridColumn TItem="Maquina" Title="Operacion" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
                                 <Template Context="maquina">
                                     <RadzenButton Icon="add"
@@ -129,6 +130,18 @@ else
                                                   Class="rz-border-radius-10 rz-shadow-2"
                                                   Click="@(args => AbrirAsignarOrden(maquina))" />
                                 </Template>
+                            </RadzenDataGridColumn>
+
+                            @* imputacion *@
+                            <RadzenDataGridColumn TItem="Maquina" Title="Imputar" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
+                                <Template Context="maquina">
+                                    <RadzenButton Icon="add"
+                                                    ButtonStyle="ButtonStyle.Primary"
+                                                    Size="ButtonSize.Medium"
+                                                  class="rz-border-radius-10 rz-shadow-2"
+                                                  Click ="@(args => AbrirAsignarImputacion(maquina))"/>
+                                </Template>
+
                             </RadzenDataGridColumn>
                         </Columns>
                     </RadzenDataGrid>
@@ -185,43 +198,32 @@ else
         await CargarMaquinasDesdeSQL();
     }
 
-    private void IrAEditar(int id)
-    {
-        NavManager.NavigateTo($"/editar-maquina/{id}");
-    }
-
     private async Task CargarMaquinasDesdeSQL()
     {
         try
         {
-            // traemos las máquinas y los empleados
             var resultado = await ServicioMaquina.GetAllAsync();
             var todosLosEmpleados = await ServicioMaquina.GetAllEmpleadosAsync();
-
             var listaDeTodasLasOperaciones = await ImputacionService.ObtenerOperacionesActivasAsync();
 
             foreach (var m in resultado)
             {
                 var operacionActiva = listaDeTodasLasOperaciones.FirstOrDefault(o => o.IdMaquina == m.Id);
+
                 if (operacionActiva != null)
                 {
                     m.CiclosObjetivo = operacionActiva.CiclosObjetivo;
-                    m.CiclosReales = operacionActiva.PiezasFabricadas;
 
-                    if (m.CiclosObjetivo > 0 && (m.EstadoActualId == 1 || m.EstadoActualId == 2))
-                    {
-                        m.PorcentajeCiclos = (float)((double)m.CiclosReales / m.CiclosObjetivo * 100);
-                    }
-                    else
-                    {
-                        m.PorcentajeCiclos = 0;
-                    }
+                }
+
+                if (m.CiclosObjetivo > 0 && (m.EstadoActualId == 1 || m.EstadoActualId == 2 ))
+                {
+                    m.PorcentajeCiclos = (float)((double)m.CiclosReales / m.CiclosObjetivo * 100);
+
+                    if (m.PorcentajeCiclos > 100) m.PorcentajeCiclos = 100;
                 }
                 else
                 {
-                    // Si la máquina no tiene trabajo asignado, todo a cero
-                    m.CiclosObjetivo = 0;
-                    m.CiclosReales = 0;
                     m.PorcentajeCiclos = 0;
                 }
 
@@ -240,29 +242,29 @@ else
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"error al cargar maquinas: {ex.Message}");
+            Console.WriteLine($"Error al cargar máquinas: {ex.Message}");
         }
     }
 
     private ProgressBarStyle CambiarColorBarraProgreso(double progreso)
     {
-            if (progreso >= 90)
-            {
-                return ProgressBarStyle.Success;
+        if (progreso >= 90)
+        {
+            return ProgressBarStyle.Success;
 
-            }
-            else if (progreso >= 60)
-            {
-                return ProgressBarStyle.Info;
-            }
-            else if (progreso >= 40)
-            {
-                return ProgressBarStyle.Warning;
-            }
-            else
-            {
-                return ProgressBarStyle.Danger;
-            }
+        }
+        else if (progreso >= 60)
+        {
+            return ProgressBarStyle.Info;
+        }
+        else if (progreso >= 40)
+        {
+            return ProgressBarStyle.Warning;
+        }
+        else
+        {
+            return ProgressBarStyle.Danger;
+        }
 
     }
 
@@ -385,4 +387,45 @@ else
             await CargarMaquinasDesdeSQL();
         }
     }
+
+    private async Task AbrirAsignarImputacion(Maquina maquina)
+    {
+        var operaciones = await ImputacionService.ObtenerOperacionesActivasAsync();
+        var opActiva = operaciones.FirstOrDefault(o => o.IdMaquina == maquina.Id);
+
+        var operarios = await ServicioMaquina.ObtenerOperariosDeUnaMaquina(maquina.Id);
+
+        var res = await DialogService.OpenAsync<DialogoImputar>(
+            $"Imputación: {maquina.Nombre}",
+            new Dictionary<string, object>()
+            {
+            { "OperacionActiva", opActiva },
+            { "ListaOperarios", operarios }
+            },
+            new DialogOptions() { Width = "600px" }
+        );
+
+        if (res == true)
+        {
+            await CargarMaquinasDesdeSQL();
+        }
+    }
+
+    private async Task AbrirDialogoEdicion(Maquina maquinaSeleccionada)
+    {
+
+        var parametros = new Dictionary<string, object>()
+        {
+            {"MaquinaParaEditar", maquinaSeleccionada}
+        };
+        var res = await DialogService.OpenAsync<DialogoNuevaMaquina>("Editar Máquina", parametros);
+
+        if(res == true)
+        {
+            await CargarMaquinasDesdeSQL();
+            StateHasChanged();
+        }
+    }
+
+
 }

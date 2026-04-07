@@ -14,7 +14,7 @@ namespace Proyecto_FUXA.Models
         public string Producto {  get; set; } = string.Empty;
         public DateTime FechaInicio { get; set; } = DateTime.Now;
         public DateTime? FechaFin { get; set; }
-        public string Estado { get; set; } = "Abierta";
+        public string Estado { get; set; } = "Pendiente";
 
     }
 }

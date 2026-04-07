@@ -29,32 +29,31 @@ namespace Proyecto_FUXA.Services
 
         public async Task GuardarMaquina(Maquina maquina)
         {
-            var existe = await _db.Maquinas.AnyAsync(m => m.Id == maquina.Id);
-            maquina.FechaActualizacion = DateTime.UtcNow;
+            var dbMaquina = await _db.Maquinas.FindAsync(maquina.Id);
 
-            if (maquina.Id == 0)
+            if (dbMaquina != null)
             {
-                maquina.FechaCreacion = DateTime.UtcNow;
-                _db.Maquinas.Add(maquina);
+                dbMaquina.Nombre = maquina.Nombre;
+                dbMaquina.NombreSeccion = maquina.NombreSeccion;
+                dbMaquina.CiclosReales = maquina.CiclosReales;
+                dbMaquina.EmpleadoId = maquina.EmpleadoId;
+                dbMaquina.EstadoActualId = maquina.EstadoActualId;
+                dbMaquina.FechaActualizacion = DateTime.UtcNow;
+
+                var opActiva = await _db.OperacionesOrden
+                    .FirstOrDefaultAsync(o => o.IdMaquina == maquina.Id && o.Estado == "Activa");
+
+                if (opActiva != null)
+                {
+                    opActiva.CiclosObjetivo = maquina.CiclosObjetivo;
+                }
+
+                await _db.SaveChangesAsync();
             }
-            else
-            {
-                maquina.FechaActualizacion = DateTime.UtcNow;
-                _db.Maquinas.Update(maquina);
-            }
-            await _db.SaveChangesAsync();
         }
         public async Task<List<Empleado>> GetAllEmpleadosAsync()
         {
-            try
-            {
-                return await _db.Empleados.ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error cargando empleados: {ex.Message}");
-                return new List<Empleado>();
-            }
+            return await _db.Empleados.AsNoTracking().ToListAsync();
         }
         public async Task<bool> AddEmpleadoAsync(Empleado empleado)
         {
@@ -73,8 +72,16 @@ namespace Proyecto_FUXA.Services
         }
         public async Task UpdateEmpleadoAsync(Empleado empleado)
         {
-            _db.Empleados.Update(empleado);
-            await _db.SaveChangesAsync();
+            var dbEmpleado = await _db.Empleados.FindAsync(empleado.Id);
+            if (dbEmpleado != null)
+            {
+                dbEmpleado.Nombre = empleado.Nombre;
+                dbEmpleado.Apellidos = empleado.Apellidos;
+                dbEmpleado.Cargo = empleado.Cargo;
+                dbEmpleado.IdMaquina = empleado.IdMaquina;
+
+                await _db.SaveChangesAsync();
+            }
         }
 
         public async Task AddCycleAsync(int maquinaId, int ciclosReales)
@@ -130,6 +137,83 @@ namespace Proyecto_FUXA.Services
             {
                 Console.WriteLine($"Error al insertar operación: {ex.Message}");
                 return false;
+            }
+        }
+        public async Task<bool> InsertarMaquina(Maquina nuevaMaquina)
+        {
+            try
+            {
+                nuevaMaquina.FechaCreacion = DateTime.UtcNow;
+                nuevaMaquina.FechaActualizacion = DateTime.UtcNow;
+
+                _db.Maquinas.Add(nuevaMaquina);
+                return await _db.SaveChangesAsync() > 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al insertar máquina: {ex.Message}");
+                return false;
+            }
+        }
+        public async Task<bool> ActualizarMaquina(Maquina maquinaEditada)
+        {
+            try
+            {
+                maquinaEditada.FechaActualizacion = DateTime.UtcNow;
+
+                _db.Maquinas.Update(maquinaEditada);
+                return await _db.SaveChangesAsync() > 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al actualizar máquina: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task <List<Empleado>> ObtenerEmpleadosConMaquinaAsync()
+        {
+            return await _db.Empleados.Include(e => e.Maquina).ToListAsync();
+        }
+
+        public async Task<List<Empleado>> ObtenerOperariosDeMaquina(int maquinaId)
+        {
+            return await _db.MaquinasOperarios
+                .Where(mo => mo.MaquinaId == maquinaId)
+                .Select(mo => mo.Empleado)
+                .ToListAsync();
+        }
+
+        public async Task<List<Empleado>> GetAllEmpleadosConMaquinaAsync()
+        {
+            try
+            {
+                return await _db.Empleados
+                    .Include(e => e.Maquina)
+                    .AsNoTracking()
+                    .ToListAsync();
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+                return new List<Empleado>();
+            }
+        }
+
+        public async Task<List<Empleado>> ObtenerOperariosDeUnaMaquina (int maquinaId)
+        {
+            try
+            {
+                return await _db.Empleados
+                    .Where(e => e.IdMaquina == maquinaId)
+                    .AsNoTracking()
+                    .ToListAsync();
+                        
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+                return new List<Empleado>();
             }
         }
     }

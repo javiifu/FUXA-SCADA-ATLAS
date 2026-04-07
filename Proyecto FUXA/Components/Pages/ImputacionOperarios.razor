@@ -44,12 +44,21 @@
                         <RadzenText TextStyle="TextStyle.Caption" Weight="FontWeight.Bold">3. NÚMERO DE HORAS</RadzenText>
                         <RadzenNumeric TValue="decimal" @bind-Value="nuevaImputacion.Horas" Style="width: 100%;" Min="0.1m" Step="0.5m" />
                     </RadzenStack>
+
+                    @* observaciones *@
+                    <RadzenStack Gap="0.4rem">
+                        <RadzenText TextStyle="TextStyle.Caption" Weight="FontWeight.Bold">4. OBSERVACIONES</RadzenText>
+                        <RadzenTextArea @bind-Value="nuevaImputacion.Observaciones"
+                                        Placeholder="Escribe si ha habido alguna incidencia..."
+                                        Style="width: 100%;"
+                                        Rows="3" />
+                    </RadzenStack>
+
                     @* boton de guardar *@
                     <RadzenButton Click="@GuardarImputacion" Text="GUARDAR IMPUTACIÓN"
                                   Icon="save" ButtonStyle="ButtonStyle.Success"
                                   Size="ButtonSize.Large" class="rz-mt-4 rz-w-100"
                                   Disabled="@(string.IsNullOrEmpty(nuevaImputacion.CodigoOperacion))" />
-
                 </RadzenStack>
             </RadzenCard>
         </div>
@@ -134,5 +143,6 @@
         public int IdOperacionReal { get; set; }
         public int IdEmpleado { get; set; }
         public decimal Horas { get; set; }
+        public string Observaciones { get; set; } = "";
     }
 }

@@ -10,6 +10,7 @@
 </RadzenStack>
 
 <RadzenDataGrid @ref="empleadosGrid" Data="@empleados" TItem="Empleado"
+                RowUpdate="@GuardarFila" RowCreate="@GuardarFila"
                 Style="height: 623px; width: 100%; border: 2px solid #e0e0e0; border-radius: 8px;"
                 AllowPaging="true" PageSize="10" EditMode="DataGridEditMode.Single">
     <Columns>
@@ -39,6 +40,29 @@
             </EditTemplate>
         </RadzenDataGridColumn>
 
+        @* maquina *@
+        <RadzenDataGridColumn TItem="Empleado" Title="Máquina asignada" Width="200px">
+            <Template Context="emp">
+                @if (emp.Maquina != null)
+                {
+                    <RadzenBadge BadgeStyle="BadgeStyle.Info" Text="@emp.Maquina.Nombre" />
+                }
+                else
+                {
+                    <span style="color: gray; font-style: italic;">Sin máquina</span>
+                }
+            </Template>
+            <EditTemplate Context="emp">
+                <RadzenDropDown @bind-Value="emp.IdMaquina"
+                                Data="@maquinas"
+                                TextProperty="Nombre"
+                                ValueProperty="Id"
+                                Placeholder="Seleccionar máquina..."
+                                AllowClear="true"
+                                Style="width:100%" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
         @* editar y borrar *@
         <RadzenDataGridColumn TItem="Empleado" Context="e" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Width="200px">
             <Template Context="e">
@@ -52,7 +76,7 @@
 
             <EditTemplate Context="e">
                 @* comfirmar borrar *@
-                <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@((args) => GuardarFila(e))" />
+                <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@((args) => empleadosGrid.UpdateRow(e))" />
 
                 @* cancelar *@
                 <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@((args) => CancelarEdicion(e))" />
@@ -62,17 +86,19 @@
 </RadzenDataGrid>
 
 @code {
-    RadzenDataGrid<Empleado> empleadosGrid;
+    RadzenDataGrid<Empleado>? empleadosGrid;
     List<Empleado> empleados = new();
     List<Empleado> encargados = new();
+    List<Maquina> maquinas = new();
     List<string> cargos = new() { "Encargado", "Operario" };
 
     protected override async Task OnInitializedAsync()
     {
         await CargarDatos();
+        maquinas = await ServicioMaquina.GetAllAsync();
     }
 
-    async Task CargarDatos() => empleados = await ServicioMaquina.GetAllEmpleadosAsync();
+    async Task CargarDatos() => empleados = await ServicioMaquina.GetAllEmpleadosConMaquinaAsync();
 
     async Task InsertarFila()
     {
@@ -82,7 +108,9 @@
             Apellidos = "",
             CodigoEmpleado = "EMP-" + DateTime.Now.ToString("ssfff"),
             Cargo = "Operario",
-            EstaActivo = true
+            EstaActivo = true,
+            IdMaquina = 0,
+            Maquina = null
         };
 
         await empleadosGrid.InsertRow(nuevo);
@@ -92,33 +120,20 @@
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(e.CodigoEmpleado))
+            if (e.Id == 0)
             {
-                Console.WriteLine("ERROR: El Código de Empleado es obligatorio");
-
-            }
-
-            if (e.Id == 0) 
-            {
-                Console.WriteLine($"Intentando insertar empleado: {e.Nombre} con código {e.CodigoEmpleado}");
                 await ServicioMaquina.AddEmpleadoAsync(e);
             }
-            else 
+            else
             {
-                Console.WriteLine($"Actualizando empleado ID: {e.Id}");
                 await ServicioMaquina.UpdateEmpleadoAsync(e);
             }
 
-            await empleadosGrid.UpdateRow(e);
-            await CargarDatos(); 
-            Console.WriteLine("Empleado guardado correctamente en SQL Server");
+            await CargarDatos();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"ERROR CRÍTICO AL GUARDAR: {ex.Message}");
-            if (ex.InnerException != null)
-                Console.WriteLine($"DETALLE INTERNO: {ex.InnerException.Message}");
-
+            Console.WriteLine($"ERROR: {ex.Message}");
             empleadosGrid.CancelEditRow(e);
         }
     }

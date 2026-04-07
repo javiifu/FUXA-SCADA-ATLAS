@@ -30,7 +30,9 @@
                 
                 <RadzenDataGridColumn TItem="Orden" Title="Estado" Width="120px" TextAlign="TextAlign.Center">
                     <Template Context="o">
-                        <RadzenBadge BadgeStyle="@(o.Estado == "Activa" ? BadgeStyle.Success : BadgeStyle.Info)" 
+                        <RadzenBadge BadgeStyle="@(o.Estado == "Activa" ? BadgeStyle.Success :
+                                                                         o.Estado == "Finalizado" ? BadgeStyle.Danger :
+                                                                         BadgeStyle.Info)"
                                      Text="@o.Estado" />
                     </Template>
                 </RadzenDataGridColumn>
@@ -54,12 +56,12 @@
         await CargarOrdenes();
     }
 
-    async Task CargarOrdenes()
+    private async Task CargarOrdenes()
     {
         listaOrdenes = await ImputacionService.ObtenerOrdenesActivasAsync();
     }
 
-    async Task AbrirDialogoNuevaOrden()
+    private async Task AbrirDialogoNuevaOrden()
     {
         var res = await DialogService.OpenAsync<DialogoPlanificarOrden>("Planificar nueva orden",
             new Dictionary<string, object>(), 
@@ -71,7 +73,17 @@
         }
     }
 
-    void EditarOrden(Orden orden)
+    private async Task EditarOrden(Orden orden)
     {
+        var parametros = new Dictionary<string, object> { 
+            { "OrdenParaEditar", orden } 
+        };
+
+        var res = await DialogService.OpenAsync<DialogoPlanificarOrden>("Editar orden", parametros, new DialogOptions() { Width = "500px" });
+
+        if (res == true)
+        {
+            await CargarOrdenes();
+        }
     }
 }

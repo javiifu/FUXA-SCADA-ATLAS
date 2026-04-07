@@ -14,6 +14,8 @@ namespace Proyecto_FUXA.Models
         public string Nombre { get; set; } = string.Empty;
         public int? IdSeccion { get; set; }
         public int? NumeroOrden { get; set; }
+
+        public int CiclosReales { get; set; }
         public string? NombreSeccion { get; set; } = string.Empty;
         public int? EmpleadoId { get; set; }
         public int? EstadoActualId { get; set; }
@@ -28,7 +30,7 @@ namespace Proyecto_FUXA.Models
         [NotMapped]
         public int CiclosObjetivo { get; set; }
         [NotMapped]
-        public int CiclosReales { get; set; }
+        public string? Operacion { get; set; }
         [JsonIgnore]
         public Empleado? Empleado { get; set; }
 
