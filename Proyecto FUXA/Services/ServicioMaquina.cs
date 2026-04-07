@@ -39,6 +39,8 @@ namespace Proyecto_FUXA.Services
                 dbMaquina.EmpleadoId = maquina.EmpleadoId;
                 dbMaquina.EstadoActualId = maquina.EstadoActualId;
                 dbMaquina.FechaActualizacion = DateTime.UtcNow;
+                dbMaquina.PiezasFabricadas = maquina.PiezasFabricadas;
+                dbMaquina.PiezasRotas = maquina.PiezasRotas;
 
                 var opActiva = await _db.OperacionesOrden
                     .FirstOrDefaultAsync(o => o.IdMaquina == maquina.Id && o.Estado == "Activa");
@@ -46,6 +48,8 @@ namespace Proyecto_FUXA.Services
                 if (opActiva != null)
                 {
                     opActiva.CiclosObjetivo = maquina.CiclosObjetivo;
+                    opActiva.PiezasFabricadas = maquina.PiezasFabricadas;
+                    opActiva.PiezasRotas = maquina.PiezasRotas;
                 }
 
                 await _db.SaveChangesAsync();

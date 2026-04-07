@@ -20,7 +20,7 @@
             <RadzenStack Gap="1rem">
                 @* Nombre *@
                 <RadzenStack Gap="0.5rem">
-                    <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0">Nombre de la Máquina</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0">Nombre de la máquina</RadzenText>
                     <RadzenTextBox @bind-Value="machine.Nombre" Placeholder="Ej: Prensa Hidráulica" class="w-100" />
                 </RadzenStack>
 
@@ -32,19 +32,31 @@
 
                 @* CiclosReales *@
                 <RadzenStack Gap="0.5rem">
-                    <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0">Ciclos Reales</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0">Ciclos reales</RadzenText>
                     <RadzenNumeric @bind-Value="machine.CiclosReales" class="w-100" />
                 </RadzenStack>
 
                 @* Ciclos Objetivo *@
                 <RadzenStack Gap="0.5rem">
-                    <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0">Objetivo de Ciclos</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0">Objetivo de ciclos</RadzenText>
                     <RadzenNumeric @bind-Value="machine.CiclosObjetivo" class="w-100" />
+                </RadzenStack>
+
+                @* Piezas fabricadas *@
+                <RadzenStack Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0">Piezas fabricadas</RadzenText>
+                    <RadzenNumeric @bind-Value="machine.PiezasFabricadas" class="w-100" />
+                </RadzenStack>
+
+                @* Piezas rotas *@
+                <RadzenStack Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0">Piezas rotas</RadzenText>
+                    <RadzenNumeric @bind-Value="machine.PiezasRotas" class="w-100" />
                 </RadzenStack>
 
                 @* Encargado *@
                 <RadzenStack Gap="0.5rem">
-                    <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0">Seleccionar Encargado</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0">Seleccionar encargado</RadzenText>
                     <RadzenDropDown @bind-Value="@machine.EmpleadoId" 
                                     Data="@encargados" 
                                     TextProperty="Nombre" 

@@ -140,8 +140,8 @@ namespace Proyecto_FUXA.Services
             public string NombreMaquina { get; set; } = "";
             public string Producto { get; set; } = "";       
             public int CiclosObjetivo { get; set; }
-            public int PiezasFabricadas { get; set; }
-            public int PiezasRotas { get; set; }
+            public int? PiezasFabricadas { get; set; }
+            public int? PiezasRotas { get; set; }
             public string Estado { get; set; } = "";
             public DateTime FechaInicio { get; set; }
             public DateTime FechaFin { get; set; }
@@ -204,6 +204,7 @@ namespace Proyecto_FUXA.Services
                         NombreMaquina = o.Maquina != null ? o.Maquina.Nombre : "Sin Máquina",
                         CiclosObjetivo = o.CiclosObjetivo,
                         PiezasFabricadas = o.PiezasFabricadas,
+                        PiezasRotas = o.PiezasRotas,
                         Estado = o.Estado,
                         FechaInicio = o.FechaCreacion 
                     }).ToListAsync();
@@ -257,6 +258,24 @@ namespace Proyecto_FUXA.Services
                 return true;
             }
             catch { return false; }
+        }
+
+        public async Task<bool> InsertarImputacionOperario(ImputacionOperario nuevaImp)
+        {
+            try
+            {
+
+                nuevaImp.Operacion = null;
+                nuevaImp.Empleado = null;
+
+                _context.ImputacionesOperarios.Add(nuevaImp);
+                var resultado = await _context.SaveChangesAsync();
+
+                return resultado > 0;
+            }catch(Exception ex){
+                Console.WriteLine($"Error al guardarl la imputacion: {ex.Message}");
+                return false;
+            }
         }
     }
 }

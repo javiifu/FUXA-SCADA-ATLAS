@@ -31,6 +31,10 @@ namespace Proyecto_FUXA.Models
         public int CiclosObjetivo { get; set; }
         [NotMapped]
         public string? Operacion { get; set; }
+        [NotMapped]
+        public int PiezasFabricadas { get; set; }
+        [NotMapped]
+        public int PiezasRotas { get; set; }
         [JsonIgnore]
         public Empleado? Empleado { get; set; }
 

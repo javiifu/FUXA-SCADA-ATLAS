@@ -1,0 +1,95 @@
+﻿@using Proyecto_FUXA.Models
+@using Radzen
+@using Radzen.Blazor
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+@inject Proyecto_FUXA.Services.ImputacionService ImputacionService 
+
+<RadzenStack Gap="1.5rem" class="rz-p-4">
+
+    @if (OperacionActiva == null)
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">
+            No se encontró la operación activa para esta máquina.
+        </RadzenAlert>
+    }
+    else
+    {
+        <RadzenCard Variant="Variant.Flat" class="rz-background-color-info-lighter">
+            <RadzenStack Orientation="Orientation.Vertical" Gap="0.5rem">
+                <RadzenText TextStyle="TextStyle.Subtitle1">
+                    <b>Orden:</b> @* @(OperacionActiva.NumeroOrden?.ToString() ?? "N/A") *@
+                </RadzenText>
+
+                <RadzenText TextStyle="TextStyle.Caption">
+                    <b>Código:</b> @* @(OperacionActiva.Operacion?.ToString() ?? "Sin Código") *@
+                </RadzenText>
+            </RadzenStack>
+        </RadzenCard>
+
+        <RadzenRow>
+            <RadzenColumn Size="6">
+                <RadzenStack Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.Subtitle2">Piezas fabricadas</RadzenText>
+                    <RadzenNumeric @bind-Value="piezasFabricadas" TValue="int" class="w-100" />
+                </RadzenStack>
+            </RadzenColumn>
+
+            <RadzenColumn Size="6">
+                <RadzenStack Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.Subtitle2">Piezas rotas</RadzenText>
+                    <RadzenNumeric @bind-Value="piezasRotas" TValue="int" class="w-100" />
+                </RadzenStack>
+            </RadzenColumn>
+        </RadzenRow>
+
+        <RadzenStack Gap="0.5rem">
+            <RadzenText TextStyle="TextStyle.Subtitle2">Fecha/Hora de Finalización</RadzenText>
+            <RadzenDatePicker @bind-Value="fechaFin" ShowTime="true" DateFormat="dd/MM/yyyy HH:mm" class="w-100" />
+        </RadzenStack>
+
+        <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat" ShowIcon="true">
+            Al finalizar, la máquina quedará libre para una nueva orden.
+        </RadzenAlert>
+
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="1rem">
+            <RadzenButton Text="Volver" Click="() => DialogService.Close(false)" ButtonStyle="ButtonStyle.Light" />
+            <RadzenButton Text="Cerrar Operación" Icon="done_all" Click="Finalizar" ButtonStyle="ButtonStyle.Danger" />
+        </RadzenStack>
+    }
+</RadzenStack>
+
+@code {
+    [Parameter] public dynamic OperacionActiva { get; set; }
+
+    private int piezasFabricadas;
+    private int piezasRotas;
+    private DateTime fechaFin = DateTime.Now;
+
+    protected override void OnInitialized()
+    {
+        if (OperacionActiva != null)
+        {
+            piezasFabricadas = OperacionActiva.PiezasFabricadas;
+            piezasRotas = OperacionActiva.PiezasRotas;
+        }
+    }
+
+    private async Task Finalizar()
+    {
+        try
+        {
+            OperacionActiva.PiezasFabricadas = piezasFabricadas;
+            OperacionActiva.PiezasRotas = piezasRotas;
+            OperacionActiva.FechaFin = fechaFin;
+            OperacionActiva.Estado = "Finalizado";
+
+
+            DialogService.Close(true);
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", "No se pudo finalizar la operación");
+        }
+    }
+}

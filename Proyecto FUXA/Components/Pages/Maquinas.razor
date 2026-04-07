@@ -125,7 +125,7 @@ else
                             <RadzenDataGridColumn TItem="Maquina" Title="Operacion" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
                                 <Template Context="maquina">
                                     <RadzenButton Icon="add"
-                                                  ButtonStyle="ButtonStyle.Success"
+                                                  ButtonStyle="ButtonStyle.Primary"
                                                   Size="ButtonSize.Medium"
                                                   Class="rz-border-radius-10 rz-shadow-2"
                                                   Click="@(args => AbrirAsignarOrden(maquina))" />
@@ -141,7 +141,17 @@ else
                                                   class="rz-border-radius-10 rz-shadow-2"
                                                   Click ="@(args => AbrirAsignarImputacion(maquina))"/>
                                 </Template>
+                            </RadzenDataGridColumn>
 
+                            @* finalizar *@
+                            <RadzenDataGridColumn TItem="Maquina" Title="Finalizar" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
+                                <Template Context="maquina">
+                                    <RadzenButton Icon="done_all"
+                                                  ButtonStyle="ButtonStyle.Danger"
+                                                  Size="ButtonSize.Medium"
+                                                  Class="rz-border-radius-10 rz-shadow-2"
+                                                  Click="@(args => AbrirFinalizarOperacion(maquina))" />
+                                </Template>
                             </RadzenDataGridColumn>
                         </Columns>
                     </RadzenDataGrid>
@@ -418,7 +428,23 @@ else
         {
             {"MaquinaParaEditar", maquinaSeleccionada}
         };
-        var res = await DialogService.OpenAsync<DialogoNuevaMaquina>("Editar Máquina", parametros);
+        var res = await DialogService.OpenAsync<DialogoNuevaMaquina>("Editar máquina", parametros);
+
+        if(res == true)
+        {
+            await CargarMaquinasDesdeSQL();
+            StateHasChanged();
+        }
+    }
+
+    private async Task AbrirFinalizarOperacion(Maquina maquina)
+    {
+        var parametros = new Dictionary<string, object>()
+        {
+            {"OperacionActiva", maquina}
+        };
+
+        var res = await DialogService.OpenAsync<DialogoFinalizarOperacion>("Finalizar operación", parametros);
 
         if(res == true)
         {

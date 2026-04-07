@@ -6,7 +6,7 @@
 @inject Proyecto_FUXA.Services.ImputacionService ImputacionService 
 
 <RadzenStack Gap="1rem" class="rz-p-4">
-    <RadzenText TextStyle="TextStyle.H6">Imputar Horas a Operación Activa</RadzenText>
+    <RadzenText TextStyle="TextStyle.H6">Imputar horas</RadzenText>
     
     @if (OperacionActiva == null)
     {
@@ -23,8 +23,24 @@
 
         <RadzenStack Gap="0.5rem">
             <RadzenText TextStyle="TextStyle.Subtitle2">Seleccionar Operario</RadzenText>
-            <RadzenDropDown @bind-Value="nuevaImp.IdEmpleado" Data="@ListaOperarios" 
-                            TextProperty="Nombre" ValueProperty="Id" class="w-100" />
+            <RadzenDropDown @bind-Value="nuevaImp.IdEmpleado"
+                            Data="@ListaOperarios"
+                            ValueProperty="Id"
+                            class="w-100"
+                            AllowFiltering="true"
+                            FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive">
+                <Template Context="emp">
+                    <div style="display: flex; justify-content: space-between; width: 100%;">
+                        <span>@emp.Nombre @emp.Apellidos</span>
+                        <span style="font-size: 0.8rem; color: gray;">
+                            (@emp.CodigoEmpleado)
+                        </span>
+                    </div>
+                </Template>
+                <ValueTemplate Context="emp">
+                    @($"{emp.Nombre} {emp.Apellidos} ({emp.CodigoEmpleado})")
+                </ValueTemplate>
+            </RadzenDropDown>
         </RadzenStack>
 
         <RadzenStack Gap="0.5rem">
@@ -35,6 +51,14 @@
         <RadzenStack Gap="0.5rem">
             <RadzenText TextStyle="TextStyle.Subtitle2">Observaciones</RadzenText>
             <RadzenTextArea @bind-Value="nuevaImp.Observaciones" Placeholder="Ej: Cambio de molde, limpieza..." class="w-100" />
+        </RadzenStack>
+
+        <RadzenStack Gap="0.5rem">
+            <RadzenText TextStyle="TextStyle.Subtitle2">Fecha de realización</RadzenText>
+            <RadzenDatePicker @bind-Value="nuevaImp.FechaRegistro"
+                              DateFormat="dd/MM/yyyy"
+                              Class="w-100"
+                              ShowTime="false" />
         </RadzenStack>
 
         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" class="rz-mt-4">
@@ -68,8 +92,18 @@
         }
 
         try {
-            NotificationService.Notify(NotificationSeverity.Success, "Exito", "Guardado correctamente");
-            DialogService.Close(true);
+            var exito = await ImputacionService.InsertarImputacionOperario(nuevaImp);
+
+            if (exito)
+            {
+                NotificationService.Notify(NotificationSeverity.Success, "Exito", "Guardado correctamente");
+                DialogService.Close(true);
+            }
+            else
+            {
+                NotificationService.Notify(NotificationSeverity.Success, "Error", "No se pudo guardar");
+            }
+
         } catch (Exception ex) {
             NotificationService.Notify(NotificationSeverity.Error, "Error", "No se pudo guardar");
         }
