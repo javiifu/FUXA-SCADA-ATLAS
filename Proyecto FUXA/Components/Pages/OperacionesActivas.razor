@@ -29,9 +29,9 @@
                 @if (o.Estado.Equals("Activa"))
                 {
                     <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="Activa"/>
-                }else if (o.Estado.Equals("Finalizado"))
+                }else if(o.Estado.Equals("Finalizado"))
                 {
-                    <RadzenBadge BadgeStyle="BadgeStyle.Warning" Text="Finalizado"/>
+                    <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text="Finalizado"/>
                 }
 
             </Template>
@@ -39,15 +39,15 @@
 
 
         <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="FechaInicio" Title="Fecha inicio" FormatString="{0:dd/MM HH:mm}" Width="120px" />
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="FechaFin" Title="Fecha fin" FormatString="{0:dd/MM HH:mm}" Width="120px">
-            <Template context="o">
-                @if (o.FechaFin == null || o.FechaFin == DateTime.MinValue)
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="FechaFin" Title="Fecha fin" Width="120px">
+            <Template Context="o">
+                @if (o.Estado == "Finalizado")
                 {
-                    <span>-</span>
+                    @o.FechaFin?.ToString("dd/MM HH:mm")
                 }
                 else
                 {
-                    o.FechaFin.ToString("dd/MM HH:mm");
+                    <span style="color: gray;">-</span>
                 }
             </Template>
         </RadzenDataGridColumn>
@@ -67,7 +67,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        listaOperaciones = await ImputacionService.ObtenerOperacionesActivasAsync();
+        listaOperaciones = await ImputacionService.ObtenerTodasLasOperacionesResumenAsync();
     }
 
     private async Task AbrirDialogoEdicion(OperacionResumenDTO operacion)

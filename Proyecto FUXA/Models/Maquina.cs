@@ -35,6 +35,8 @@ namespace Proyecto_FUXA.Models
         public int PiezasFabricadas { get; set; }
         [NotMapped]
         public int PiezasRotas { get; set; }
+        [NotMapped]
+        public string CodigoOperacionActiva { get; set; } = "Sin operacion";
         [JsonIgnore]
         public Empleado? Empleado { get; set; }
 

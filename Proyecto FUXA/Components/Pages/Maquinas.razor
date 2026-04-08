@@ -5,6 +5,7 @@
 @using Radzen
 @using Radzen.Blazor
 @using Proyecto_FUXA.Models
+@using static Proyecto_FUXA.Services.ImputacionService
 
 @inject ServicioMaquina ServicioMaquina
 @inject ServicioProductividad ServicioProductividad
@@ -37,6 +38,18 @@ else
                                               Icon="add_circle"
                                               ButtonStyle="ButtonStyle.Primary"
                                               Style="height: 55px; min-width: 300px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
+
+                                <RadzenButton Click=@(args => AbrirDialogoPlanificar())
+                                              Text="NUEVA MÁQUINA"
+                                              Icon="add_circle"
+                                              ButtonStyle="ButtonStyle.Primary"
+                                              Style="height: 55px; min-width: 200px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
+
+                                <RadzenButton Click=@(args => AbrirDialogoPlanificar())
+                                              Text="NUEVA SECCIÓN"
+                                              Icon="add_circle"
+                                              ButtonStyle="ButtonStyle.Primary"
+                                              Style="height: 55px; min-width: 200px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
                             </div>
                         </div>
 
@@ -60,7 +73,21 @@ else
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="Maquina" Property="Nombre" Title="Nombre Máquina" Width="150px"/>
                             <RadzenDataGridColumn TItem="Maquina" Property="NombreSeccion" Title="Sección" Width="130px"/>
-                            <RadzenDataGridColumn TItem="Maquina" Property="Operacion" Title="Operacion" Width="200px"/>
+                            <RadzenDataGridColumn TItem="Maquina" Property="CodigoOperacionActiva" Title="Operación Actual" Width="200px">
+                                <Template Context="m">
+                                    @if (m.CodigoOperacionActiva != "Sin operacion")
+                                    {
+                                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                            <span style="font-weight: bold; color: #2b60de;">@m.CodigoOperacionActiva</span>
+                                        </RadzenStack>
+                                    }
+                                    else
+                                    {
+                                        <span style="color: gray; font-style: italic; opacity: 0.7;"> Sin operación activa</span>
+                                    }
+                                </Template>
+                            </RadzenDataGridColumn>
+                            @* encargado *@
                             <RadzenDataGridColumn TItem="Maquina" Title="Encargado" Width="120px">
                                 <Template Context="m">
                                     <div style="display: flex; flex-direction: column;">
@@ -73,6 +100,7 @@ else
                                     </div>
                                 </Template>
                             </RadzenDataGridColumn>
+                            @* estado *@
                             <RadzenDataGridColumn TItem="Maquina" Title="Estado" Width="120px" TextAlign="TextAlign.Center">
                                 <Template Context="m">
                                     @if (m.EstadoActualId == 1)
@@ -86,6 +114,9 @@ else
                                     else if (m.EstadoActualId == 3)
                                     {
                                         <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text="Parada" />
+                                        m.CiclosObjetivo = 0;
+                                        m.CiclosReales = 0;
+                                        m.PorcentajeCiclos = 0;
                                     }
                                     else if (m.EstadoActualId == 4)
                                     {
@@ -147,9 +178,8 @@ else
                             <RadzenDataGridColumn TItem="Maquina" Title="Finalizar" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
                                 <Template Context="maquina">
                                     <RadzenButton Icon="done_all"
-                                                  ButtonStyle="ButtonStyle.Danger"
-                                                  Size="ButtonSize.Medium"
-                                                  Class="rz-border-radius-10 rz-shadow-2"
+                                                  Disabled="@(!listaOperacionesActivas.Any(o => o.IdMaquina == maquina.Id))"
+                                                  ButtonStyle="ButtonStyle.Success"
                                                   Click="@(args => AbrirFinalizarOperacion(maquina))" />
                                 </Template>
                             </RadzenDataGridColumn>
@@ -202,10 +232,12 @@ else
     private IList<Maquina> SelectedMaquinas = new List<Maquina>();
     private List<Maquina> maquinasFiltradas = new();
     private List<Maquina> maquinasDB = new();
+    private List<OperacionResumenDTO> listaOperacionesActivas = new();
 
     protected override async Task OnInitializedAsync()
     {
         await CargarMaquinasDesdeSQL();
+        listaOperacionesActivas = await ImputacionService.ObtenerOperacionesActivasAsync();
     }
 
     private async Task CargarMaquinasDesdeSQL()
@@ -223,7 +255,20 @@ else
                 if (operacionActiva != null)
                 {
                     m.CiclosObjetivo = operacionActiva.CiclosObjetivo;
-
+                    m.CodigoOperacionActiva = operacionActiva.CodigoOperacion;
+                    m.PiezasFabricadas = operacionActiva.PiezasFabricadas;
+                    m.PiezasRotas = operacionActiva.PiezasRotas;
+                }
+                else
+                {
+                    m.PorcentajeCiclos = 0;
+                    m.CodigoOperacionActiva = "Sin operacion";
+                    m.CiclosObjetivo = 0;
+                    m.CiclosReales = 0;
+                    if(m.EstadoActualId != 4)
+                    {
+                        m.EstadoActualId = 3;
+                    }
                 }
 
                 if (m.CiclosObjetivo > 0 && (m.EstadoActualId == 1 || m.EstadoActualId == 2 ))
@@ -231,10 +276,6 @@ else
                     m.PorcentajeCiclos = (float)((double)m.CiclosReales / m.CiclosObjetivo * 100);
 
                     if (m.PorcentajeCiclos > 100) m.PorcentajeCiclos = 100;
-                }
-                else
-                {
-                    m.PorcentajeCiclos = 0;
                 }
 
                 var emp = todosLosEmpleados.FirstOrDefault(e => e.Id == m.EmpleadoId);
@@ -394,7 +435,10 @@ else
 
         if (res == true)
         {
+
             await CargarMaquinasDesdeSQL();
+            maquina.EstadoActualId = 1;
+            StateHasChanged();
         }
     }
 
@@ -423,6 +467,18 @@ else
 
     private async Task AbrirDialogoEdicion(Maquina maquinaSeleccionada)
     {
+        var opActiva = listaOperacionesActivas.FirstOrDefault(o => o.IdMaquina == maquinaSeleccionada.Id);
+
+        if(opActiva != null)
+        {
+            maquinaSeleccionada.PiezasFabricadas = opActiva.PiezasFabricadas;
+            maquinaSeleccionada.PiezasRotas = opActiva.PiezasRotas;
+        }
+        else
+        {
+            maquinaSeleccionada.PiezasFabricadas = 0;
+            maquinaSeleccionada.PiezasRotas = 0;
+        }
 
         var parametros = new Dictionary<string, object>()
         {
@@ -439,16 +495,23 @@ else
 
     private async Task AbrirFinalizarOperacion(Maquina maquina)
     {
+
+        var opActiva = listaOperacionesActivas.FirstOrDefault(o => o.IdMaquina == maquina.Id);
+
         var parametros = new Dictionary<string, object>()
         {
-            {"OperacionActiva", maquina}
+            { "OperacionActiva", opActiva }
         };
 
-        var res = await DialogService.OpenAsync<DialogoFinalizarOperacion>("Finalizar operación", parametros);
+        var res = await DialogService.OpenAsync<DialogoFinalizarOperacion>($"Finalizar: {maquina.Nombre}", parametros);
 
         if(res == true)
         {
+
             await CargarMaquinasDesdeSQL();
+
+            listaOperacionesActivas = await ImputacionService.ObtenerOperacionesActivasAsync();
+
             StateHasChanged();
         }
     }

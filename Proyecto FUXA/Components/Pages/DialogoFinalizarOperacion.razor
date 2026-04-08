@@ -9,20 +9,24 @@
 
     @if (OperacionActiva == null)
     {
-        <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">
-            No se encontró la operación activa para esta máquina.
+        <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Shade="Shade.Lighter" ShowIcon="true">
+            No hay una operación activa en esta máquina para finalizar.
         </RadzenAlert>
+
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End">
+            <RadzenButton Text="Cerrar" Click="() => DialogService.Close()" ButtonStyle="ButtonStyle.Light" />
+        </RadzenStack>
     }
     else
     {
         <RadzenCard Variant="Variant.Flat" class="rz-background-color-info-lighter">
             <RadzenStack Orientation="Orientation.Vertical" Gap="0.5rem">
                 <RadzenText TextStyle="TextStyle.Subtitle1">
-                    <b>Orden:</b> @* @(OperacionActiva.NumeroOrden?.ToString() ?? "N/A") *@
+                    <b>Orden:</b> 
                 </RadzenText>
 
                 <RadzenText TextStyle="TextStyle.Caption">
-                    <b>Código:</b> @* @(OperacionActiva.Operacion?.ToString() ?? "Sin Código") *@
+                    <b>Código:</b> 
                 </RadzenText>
             </RadzenStack>
         </RadzenCard>
@@ -59,7 +63,7 @@
     }
 </RadzenStack>
 
-@code {
+    @code {
     [Parameter] public dynamic OperacionActiva { get; set; }
 
     private int piezasFabricadas;
@@ -84,7 +88,9 @@
             OperacionActiva.FechaFin = fechaFin;
             OperacionActiva.Estado = "Finalizado";
 
+            await ImputacionService.ActualizarCierreOperacion(OperacionActiva);
 
+            NotificationService.Notify(NotificationSeverity.Success, "Exito", "Se ha finalizado correctamente");
             DialogService.Close(true);
         }
         catch (Exception ex)

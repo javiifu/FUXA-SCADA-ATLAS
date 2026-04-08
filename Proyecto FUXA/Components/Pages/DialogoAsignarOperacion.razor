@@ -62,7 +62,7 @@
     protected override async Task OnInitializedAsync()
     {
         var todas = await ServicioMaquina.GetAllOrdenes();
-        ordenesActivas = todas.Where(o => o.Estado == "Abierta" || o.Estado == "Activa").ToList();
+        ordenesActivas = todas.Where(o => o.Estado == "Activa").ToList();
     }
 
     private async Task Guardar()

@@ -140,11 +140,11 @@ namespace Proyecto_FUXA.Services
             public string NombreMaquina { get; set; } = "";
             public string Producto { get; set; } = "";       
             public int CiclosObjetivo { get; set; }
-            public int? PiezasFabricadas { get; set; }
-            public int? PiezasRotas { get; set; }
+            public int PiezasFabricadas { get; set; } = 0;
+            public int PiezasRotas { get; set; } = 0;
             public string Estado { get; set; } = "";
             public DateTime FechaInicio { get; set; }
-            public DateTime FechaFin { get; set; }
+            public DateTime? FechaFin { get; set; }
         }
 
         public async Task<bool> AsignarOrdenAMaquinaAsync(int idOrden, int idMaquina, int ciclos)
@@ -192,7 +192,7 @@ namespace Proyecto_FUXA.Services
             {
                 return await _context.OperacionesOrden
                     .Include(o => o.Orden)   
-                    .Include(o => o.Maquina) 
+                    .Include(o => o.Maquina)
                     .Where(o => o.Estado == "Activa")
                     .Select(o => new OperacionResumenDTO
                     {
@@ -206,8 +206,11 @@ namespace Proyecto_FUXA.Services
                         PiezasFabricadas = o.PiezasFabricadas,
                         PiezasRotas = o.PiezasRotas,
                         Estado = o.Estado,
-                        FechaInicio = o.FechaCreacion 
-                    }).ToListAsync();
+                        FechaInicio = o.FechaCreacion,
+                        FechaFin = o.FechaFin
+                    })
+                    .OrderByDescending(o => o.FechaInicio)
+                    .ToListAsync();
             }
             catch (Exception e)
             {
@@ -239,8 +242,10 @@ namespace Proyecto_FUXA.Services
                         NombreMaquina = o.Maquina != null ? o.Maquina.Nombre : "Sin Máquina",
                         CiclosObjetivo = o.CiclosObjetivo,
                         PiezasFabricadas = o.PiezasFabricadas,
+                        PiezasRotas = o.PiezasRotas,
                         Estado = o.Estado,
-                        FechaInicio = o.FechaCreacion
+                        FechaInicio = o.FechaCreacion,
+                        FechaFin = o.FechaFin
                     }).ToListAsync();
             }
             catch (Exception e)
@@ -275,6 +280,44 @@ namespace Proyecto_FUXA.Services
             }catch(Exception ex){
                 Console.WriteLine($"Error al guardarl la imputacion: {ex.Message}");
                 return false;
+            }
+        }
+
+        public async Task ActualizarCierreOperacion(dynamic operacion)
+        {
+            try
+            {
+                int idOperacion = (int)operacion.Id;
+                int idMaquina = (int)operacion.IdMaquina;
+
+                var op = await _context.OperacionesOrden.FindAsync(idOperacion);
+
+                if (op != null)
+                {
+                    op.Estado = "Finalizado";
+                    op.FechaFin = (DateTime)operacion.FechaFin;
+                    op.PiezasFabricadas = (int)operacion.PiezasFabricadas;
+                    op.PiezasRotas = (int)operacion.PiezasRotas;
+
+                    await _context.SaveChangesAsync();
+                }
+
+                var maquina = await _context.Maquinas.FindAsync(idMaquina);
+                if(maquina != null)
+                {
+                    if(maquina.EstadoActualId != 4)
+                    {
+                        maquina.EstadoActualId = 3;
+                    }
+                    maquina.CiclosReales = 0;
+                }
+
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error en ActualizarCierreOperacion: {ex.Message}");
+                throw;
             }
         }
     }
