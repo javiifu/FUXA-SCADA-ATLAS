@@ -39,7 +39,7 @@ else
                                               ButtonStyle="ButtonStyle.Primary"
                                               Style="height: 55px; min-width: 300px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
 
-                                <RadzenButton Click=@(args => AbrirDialogoPlanificar())
+                                <RadzenButton Click=@(args => AbrirNuevaMaquina())
                                               Text="NUEVA MÁQUINA"
                                               Icon="add_circle"
                                               ButtonStyle="ButtonStyle.Primary"
@@ -256,8 +256,7 @@ else
                 {
                     m.CiclosObjetivo = operacionActiva.CiclosObjetivo;
                     m.CodigoOperacionActiva = operacionActiva.CodigoOperacion;
-                    m.PiezasFabricadas = operacionActiva.PiezasFabricadas;
-                    m.PiezasRotas = operacionActiva.PiezasRotas;
+
                 }
                 else
                 {
@@ -465,6 +464,31 @@ else
         }
     }
 
+    private async Task AbrirNuevaMaquina()
+    {
+        var nuevaMaquina = new Maquina
+        {
+            EstadoActualId = 3,
+            CiclosObjetivo = 0,
+            CiclosReales = 0,
+            PorcentajeCiclos = 0,
+            CodigoOperacionActiva = "Sin operacion"
+        };
+
+        var parametros = new Dictionary<string, object>()
+    {
+        { "MaquinaParaEditar", nuevaMaquina }
+    };
+
+        var res = await DialogService.OpenAsync<DialogoNuevaMaquina>("Añadir nueva máquina", parametros);
+
+        if (res == true)
+        {
+            await CargarMaquinasDesdeSQL();
+            StateHasChanged();
+        }
+    }
+
     private async Task AbrirDialogoEdicion(Maquina maquinaSeleccionada)
     {
         var opActiva = listaOperacionesActivas.FirstOrDefault(o => o.IdMaquina == maquinaSeleccionada.Id);
@@ -489,6 +513,7 @@ else
         if(res == true)
         {
             await CargarMaquinasDesdeSQL();
+            listaOperacionesActivas = await ImputacionService.ObtenerOperacionesActivasAsync();
             StateHasChanged();
         }
     }

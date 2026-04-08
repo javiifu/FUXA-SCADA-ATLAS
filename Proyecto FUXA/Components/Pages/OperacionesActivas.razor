@@ -26,6 +26,7 @@
 
         <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="Estado" Title="Estado" Width="80px" TextAlign="TextAlign.Center">
             <Template Context="o">
+                
                 @if (o.Estado.Equals("Activa"))
                 {
                     <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="Activa"/>

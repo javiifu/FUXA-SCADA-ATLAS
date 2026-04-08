@@ -143,6 +143,7 @@ namespace Proyecto_FUXA.Services
             public int PiezasFabricadas { get; set; } = 0;
             public int PiezasRotas { get; set; } = 0;
             public string Estado { get; set; } = "";
+            public int EstadoMaquinaId { get; set; }
             public DateTime FechaInicio { get; set; }
             public DateTime? FechaFin { get; set; }
         }
@@ -319,6 +320,11 @@ namespace Proyecto_FUXA.Services
                 Console.WriteLine($"Error en ActualizarCierreOperacion: {ex.Message}");
                 throw;
             }
+        }
+
+        public async Task<List<Material>> ObtenerMaterialesAsync()
+        {
+            return await _context.Materiales.OrderByDescending(e => e.Nombre).ToListAsync();
         }
     }
 }
