@@ -1,15 +1,14 @@
-<<<<<<< HEAD
-@page "/editar-maquina/{IdFuxa}"
-=======
-@page "/editar-maquina/{idFuxa}"
->>>>>>> yago
+@page "/editar-maquina/{id:int}"
 @using Proyecto_FUXA.Models
 @using Proyecto_FUXA.Services
+@using Radzen
+@using Radzen.Blazor
 
 @rendermode InteractiveServer
 
 @inject ServicioMaquina MachineService
 @inject NavigationManager Navigation
+
 
 
 <h3>@(machine?.Id == 0 ? "Registrar nueva máquina" : "Editar máquina")</h3>
@@ -23,7 +22,7 @@ else
     <div style="border-radius: 8px; border:1px solid #ccc; padding:20px; width:500px; background-color: #f9f9f9;">
 
         <div class="alert alert-info" style="font-size: 0.9rem;">
-            ID Técnico (FUXA): <strong>@idFuxa</strong>
+            ID Técnico: <strong>@id</strong>
         </div>
 
 <<<<<<< HEAD
@@ -41,19 +40,29 @@ else
 >>>>>>> yago
 
         <div class="mb-3">
-            <label class="form-label">Número de Orden</label>
-            <input type="number" class="form-control" @bind="machine.NumeroOrden" />
-        </div>
-
-        <div class="mb-3">
             <label class="form-label">Sección</label>
-            <input class="form-control" @bind="machine.NombreSeccion" placeholder="Ej: Corte, Embolsado..." />
+            <input class="form-control" @bind="@machine?.Seccion?.Nombre" placeholder="Ej: Corte, Embolsado..." />
         </div>
 
         <div class="mb-3">
             <label class="form-label">Objetivo de ciclos</label>
             <input type="number" class="form-control" @bind="machine.CiclosObjetivo" />
         </div>
+
+        <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Seleccionar Encargado</RadzenText>
+        <RadzenDropDown @bind-Value="@machine.EmpleadoId" 
+                Data="@encargados" 
+                TextProperty="Nombre" 
+                ValueProperty="Id" 
+                AllowFiltering="true" 
+                FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                Placeholder="Busca o selecciona un encargado..." 
+                Style="width: 100%; max-width: 400px;">
+
+            <Template Context="emp">
+                @emp.Nombre - @emp.CodigoEmpleado
+            </Template>
+        </RadzenDropDown>
 
         <div class="mb-3">
             <label class="form-label">Estado Actual</label>
@@ -76,13 +85,13 @@ else
 
 @code {
     [Parameter]
-<<<<<<< HEAD
-    public String IdFuxa { get; set; }
-=======
-    public string idFuxa { get; set; } = string.Empty;
->>>>>>> yago
+    public int id { get; set; }
+    List<Empleado> encargados = new();
 
     private Maquina? machine;
+    private Empleados? empleados;
+
+    int idEncargadoSeleccionado;
 
     protected override async Task OnInitializedAsync()
     {
@@ -100,7 +109,7 @@ else
                 EstadoActualId = 1
 =======
         // buscamos la maquina en la base de datos
-        var maquinaExistente = await MachineService.ObtenerPorIdFuxa(idFuxa);
+        var maquinaExistente = await MachineService.ObtenerPorId(id);
 
         if (maquinaExistente != null)
         {
@@ -111,15 +120,14 @@ else
             // sino existe se crea un objeto vacio para que se rellene
             machine = new Maquina
             {
-                IdFuxa = idFuxa,
                 Nombre = "",
-                NombreSeccion = "",
                 CiclosObjetivo = 0,
                 EstadoActualId = 1, // por defecto la ponemos activa
                 FechaCreacion = DateTime.Now
 >>>>>>> yago
             };
         }
+        CargarEncargados();
     }
 
     private async Task Guardar()
@@ -133,14 +141,39 @@ else
 =======
         if (machine == null) return;
 
-        await MachineService.GuardarMaquina(machine);
+        try
+        {
+            await MachineService.GuardarMaquina(machine);
 
->>>>>>> yago
-        Navigation.NavigateTo("/maquinas");
+            Navigation.NavigateTo("/maquinas");
+        }
+        catch(Exception ex)
+        {
+            Console.WriteLine($"Error al guardar en la base de datos: {ex.Message}");
+        }
+
+        
     }
 
     private void Cancelar()
     {
         Navigation.NavigateTo("/maquinas");
+    }
+
+    private async Task CargarEncargados()
+    {
+        var resultado = await MachineService.GetAllEmpleadosAsync();
+
+        if(resultado != null)
+        {
+            foreach (var encargado in resultado)
+            {
+                if (encargado.Cargo == "Encargado")
+                {
+                    encargados.Add(encargado);
+                }
+            }
+            Console.WriteLine($"Se han cargado {encargados.Count} encargados de la base de datos.");
+        }
     }
 }

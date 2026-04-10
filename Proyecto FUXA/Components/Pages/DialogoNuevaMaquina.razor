@@ -1,0 +1,187 @@
+﻿@using Proyecto_FUXA.Models
+@using Proyecto_FUXA.Services
+@using Radzen
+@using Radzen.Blazor
+
+@inject ServicioMaquina MachineService
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+
+<RadzenStack Gap="1.5rem" class="rz-p-4">
+    <RadzenText TextStyle="TextStyle.H5">@titulo</RadzenText>
+
+    @if (machine == null)
+    {
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    }
+    else
+    {
+        <RadzenCard Variant="Variant.Flat">
+            <RadzenStack Gap="1rem">
+                @* Nombre *@
+                <RadzenStack Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0">Nombre de la máquina</RadzenText>
+                    <RadzenTextBox @bind-Value="machine.Nombre" Placeholder="Ej: Prensa Hidráulica" class="w-100" />
+                </RadzenStack>
+
+                @* Sección *@
+                <RadzenStack Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0">Sección</RadzenText>
+                    <RadzenDropDown @bind-Value="machine.IdSeccion" 
+                                    Data="@listaSecciones"
+                                    TextProperty="Nombre"
+                                    ValueProperty="Id"
+                                    AllowFiltering="true"
+                                    FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                    Placeholder="Selecciona una seccion..."
+                                    class="w-100"/>
+                </RadzenStack>
+
+                @* CiclosReales *@
+                <RadzenStack Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0">Ciclos reales</RadzenText>
+                    <RadzenNumeric @bind-Value="machine.CiclosReales" class="w-100" />
+                </RadzenStack>
+
+                @* Ciclos Objetivo *@
+                <RadzenStack Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0">Objetivo de ciclos</RadzenText>
+                    <RadzenNumeric @bind-Value="machine.CiclosObjetivo" class="w-100" />
+                </RadzenStack>
+
+                @* Piezas fabricadas *@
+                <RadzenStack Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0">Piezas fabricadas</RadzenText>
+                    <RadzenNumeric @bind-Value="machine.PiezasFabricadas" class="w-100" />
+                </RadzenStack>
+
+                @* Piezas rotas *@
+                <RadzenStack Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0">Piezas rotas</RadzenText>
+                    <RadzenNumeric @bind-Value="machine.PiezasRotas" class="w-100" />
+                </RadzenStack>
+
+                @* Encargado *@
+                <RadzenStack Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0">Seleccionar encargado</RadzenText>
+                    <RadzenDropDown @bind-Value="@machine.EmpleadoId" 
+                                    Data="@encargados" 
+                                    TextProperty="Nombre" 
+                                    ValueProperty="Id" 
+                                    AllowFiltering="true" 
+                                    Placeholder="Selecciona encargado..." 
+                                    class="w-100">
+                        <Template Context="emp">
+                            @{
+                                var etiqueta = $"{emp.Nombre} ({emp.CodigoEmpleado})";
+                            }
+                            <RadzenText TextStyle="TextStyle.Body2">@etiqueta</RadzenText>
+                        </Template>
+                    </RadzenDropDown>
+                </RadzenStack>
+
+                @* Estado *@
+                <div class="mb-3">
+                    <label class="form-label">Estado Actual</label>
+                    <select class="form-select" @bind="machine.EstadoActualId">
+                        <option value="1">Activa</option>
+                        <option value="2">Incidencia</option>
+                        <option value="3">Parada</option>
+                        <option value="4">No disponible</option>
+                    </select>
+                </div>
+            </RadzenStack>
+        </RadzenCard>
+
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="1rem" class="rz-mt-4">
+            <RadzenButton Text="Cancelar" Click="() => DialogService.Close(false)" ButtonStyle="ButtonStyle.Light" />
+            <RadzenButton Text="Guardar Cambios" Icon="save" Click="Guardar" ButtonStyle="ButtonStyle.Primary" />
+        </RadzenStack>
+    }
+</RadzenStack>
+
+    @code {
+    [Parameter] public Maquina MaquinaParaEditar { get; set; }
+
+    private Maquina machine = new();
+    private List<Empleado> encargados = new();
+    private List<Seccion> listaSecciones = new();
+    private string titulo = "Registrar Nueva Máquina";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarEncargados();
+        await CargarSecciones();
+
+        if (MaquinaParaEditar != null)
+        {
+            machine = MaquinaParaEditar;
+            titulo = $"Editando: {machine.Nombre}";
+        }
+        else
+        {
+            machine = new Maquina 
+            { 
+                Nombre = "", 
+                EstadoActualId = 1,
+                FechaCreacion = DateTime.Now 
+            };
+        }
+    }
+
+    private async Task Guardar()
+    {              
+        var maquinas = await MachineService.GetAllMaquinas();
+
+        foreach( var m in maquinas)
+        {
+            if (m.Nombre.Equals(machine.Nombre, StringComparison.OrdinalIgnoreCase) && m.Id != machine.Id)
+            {
+                NotificationService.Notify(NotificationSeverity.Warning, "Atención", "Ya exite una maquina con ese mismo nombre");
+                return;
+            }
+        }
+
+
+        if (string.IsNullOrWhiteSpace(machine.Nombre) || machine.IdSeccion == null)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", "No se pueden dejar el nombre o seccion vacios");
+            return;
+        }
+
+        try
+        {
+            machine.Empleado = null;
+            machine.EstadoActual = null;
+            machine.Seccion = null;
+
+            await MachineService.GuardarMaquina(machine);
+
+            NotificationService.Notify(NotificationSeverity.Success, "Éxito", "Guardado correctamente");
+            DialogService.Close(true);
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", "No se ha podido guardar");
+        }
+    }
+
+    private async Task CargarEncargados()
+    {
+        var resultado = await MachineService.GetAllEmpleadosAsync();
+        if (resultado != null)
+        {
+            encargados = resultado.Where(e => e.Cargo == "Encargado").ToList();
+        }
+    }
+
+    private async Task CargarSecciones()
+    {
+        var resultado = await MachineService.ObtenerSecciones();
+
+        if(resultado != null)
+        {
+            listaSecciones = resultado;
+        }
+    }
+}

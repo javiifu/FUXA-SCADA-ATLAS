@@ -1,4 +1,6 @@
 ﻿@inherits LayoutComponentBase
+@using Radzen
+@using Radzen.Blazor
 
 <div class="page">
     <div class="sidebar">
@@ -15,6 +17,11 @@
         </article>
     </main>
 </div>
+
+<RadzenDialog />
+<RadzenNotification />
+<RadzenTooltip />
+<RadzenContextMenu />
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.

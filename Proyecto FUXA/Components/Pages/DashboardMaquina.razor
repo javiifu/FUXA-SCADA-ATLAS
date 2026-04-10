@@ -26,11 +26,11 @@ else
 
         <h4>@machine.Nombre</h4>
 
-        <p><b>Sección:</b> @machine.NombreSeccion</p>
+        <p><b>Sección:</b> @machine?.Seccion?.Nombre</p>
 
-        <p><b>Estado:</b> @machine.EstadoActual?.Nombre (@machine.EstadoActualId)</p>
+        <p><b>Estado:</b> @machine?.EstadoActual?.Nombre (@machine?.EstadoActualId)</p>
 
-        <p><b>Objetivo ciclos:</b> @machine.CiclosObjetivo</p>
+        <p><b>Objetivo ciclos:</b> @machine?.CiclosObjetivo</p>
 
         <p><b>Ciclos reales:</b> @realCycles</p>
 

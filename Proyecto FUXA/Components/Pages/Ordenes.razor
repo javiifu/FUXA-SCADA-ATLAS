@@ -1,0 +1,155 @@
+﻿@page "/ordenes"
+@using Proyecto_FUXA.Models
+@using Proyecto_FUXA.Services
+@using Radzen
+@using Radzen.Blazor
+@inject ImputacionService ImputacionService
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+
+<RadzenStack Gap="1rem" class="rz-p-4">
+
+    <RadzenRow AlignItems="AlignItems.Center">
+        <RadzenColumn Size="12" SizeMD="6">
+            <RadzenText TextStyle="TextStyle.H4" TagName="TagName.H1">Gestión ordenes</RadzenText>
+        </RadzenColumn>
+
+        <RadzenColumn Size="12" SizeMD="6">
+            <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.End" Gap="0.5rem">
+
+                <RadzenButton Click="@AbrirDialogoNuevaOrden"
+                              Text="CREAR NUEVA ORDEN"
+                              Icon="add_circle"
+                              ButtonStyle="ButtonStyle.Primary" />
+
+                <RadzenButton Click="LimpiarBusqueda"
+                              Icon="clear"
+                              ButtonStyle="ButtonStyle.Light"
+                              Variant="Variant.Flat"
+                              Size="ButtonSize.Medium" />
+
+            </RadzenStack>
+        </RadzenColumn>
+    </RadzenRow>
+
+
+    <RadzenCard Variant="Variant.Outlined">
+        <RadzenDataGrid AllowFiltering="true" AllowPaging="true" PageSize="10" AllowSorting="true" 
+                        Data="@escaparateOrdenes" TItem="Orden" EmptyText="No hay ordenes creadas."
+                        FilterMode="FilterMode.Simple" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive">
+            <Columns>
+                <RadzenDataGridColumn TItem="Orden" Property="CodigoOrden" Title="Codigo" Width="150px">
+                    <FilterTemplate>
+                        <RadzenTextBox Placeholder="Buscar..."
+                                        @bind-Value="filtroTexto"
+                                       @oninput="@(args => { filtroTexto = args.Value.ToString(); AplicarFiltros(); })"
+                                       class="w-100" />
+                    </FilterTemplate>
+                </RadzenDataGridColumn>
+                    
+                <RadzenDataGridColumn TItem="Orden" Property="Producto" Title="Producto / Descripcion" />
+                <RadzenDataGridColumn TItem="Orden" Property="FechaInicio" Title="Fecha inicio" FormatString="{0:dd/MM/yyyy HH:mm}" Width="200px" />
+                
+                <RadzenDataGridColumn TItem="Orden" Property="Estado" Title="Estado" Width="120px" TextAlign="TextAlign.Center">
+                    <FilterTemplate>
+                        <RadzenDropDown @bind-Value="filtroEstado"
+                                        Data="@opcionesEstado"
+                                        Change="@AplicarFiltros"
+                                        class="w-100" />
+                    </FilterTemplate>
+                    <Template Context="o">
+                        <RadzenBadge BadgeStyle="@(o.Estado == "Activa" ? BadgeStyle.Success :
+                                                                         o.Estado == "Finalizado" ? BadgeStyle.Danger :
+                                                                         BadgeStyle.Info)"
+                                     Text="@o.Estado" />
+                    </Template>
+                </RadzenDataGridColumn>
+
+                <RadzenDataGridColumn TItem="Orden" Title="Acciones" Width="100px" TextAlign="TextAlign.Center" Filterable="false" Sortable="false">
+                    <Template Context="o">
+                        <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Medium" 
+                                      Click="@(args => EditarOrden(o))" />
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    </RadzenCard>
+</RadzenStack>
+
+@code {
+    List<Orden> listaOrdenes = new();
+    List<Orden> almacenOrdenes = new();
+    List<Orden> escaparateOrdenes = new();
+
+    string filtroTexto = "";
+    string filtroEstado = "TODOS";
+    List<string> opcionesEstado = new List<string> { "TODOS", "Activa", "Finalizado", "Pendiente" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarOrdenes();
+    }
+
+    private async Task CargarOrdenes()
+    {
+        var datos = await ImputacionService.ObtenerOrdenesActivasAsync();
+        almacenOrdenes = datos.ToList();
+        AplicarFiltros();
+    }
+
+    private async Task AbrirDialogoNuevaOrden()
+    {
+        var res = await DialogService.OpenAsync<DialogoPlanificarOrden>("Planificar nueva orden",
+            new Dictionary<string, object>(), 
+            new DialogOptions() { Width = "500px", Style = "position: absolute;" });
+
+        if (res == true)
+        {
+            await CargarOrdenes();
+        }
+    }
+
+    private async Task EditarOrden(Orden orden)
+    {
+        var parametros = new Dictionary<string, object> { 
+            { "OrdenParaEditar", orden } 
+        };
+
+        var res = await DialogService.OpenAsync<DialogoPlanificarOrden>("Editar orden", parametros, new DialogOptions() { Width = "500px" });
+
+        if (res == true)
+        {
+            await CargarOrdenes();
+        }
+    }
+
+    private void LimpiarBusqueda()
+    {
+        filtroTexto = "";
+        filtroEstado = "TODOS";
+        AplicarFiltros();
+    }
+
+    private void AplicarFiltros()
+    {
+        var resultadoTemporal = almacenOrdenes.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(filtroTexto))
+        {
+            resultadoTemporal = resultadoTemporal.Where(orden => orden.CodigoOrden != null && orden.CodigoOrden.Contains(filtroTexto, StringComparison.OrdinalIgnoreCase));
+        }
+        if(filtroEstado != "TODOS")
+        {
+            resultadoTemporal = resultadoTemporal.Where(orden => orden.Estado == filtroEstado);
+        }
+        resultadoTemporal = resultadoTemporal.OrderBy(orden => orden.Estado switch
+        {
+            "Activa" => 1,
+            "Pendiente" => 2,
+            "Finalizado" => 3,
+            _ => 4
+        })
+        .ThenByDescending(orden => orden.FechaInicio);
+        escaparateOrdenes = resultadoTemporal.ToList();
+    }
+}

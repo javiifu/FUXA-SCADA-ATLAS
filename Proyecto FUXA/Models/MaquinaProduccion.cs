@@ -13,7 +13,7 @@ public class MaquinaProduccion
     public int MaquinaId { get; set; }
 
     [Required]
-    public int CiclosReales { get; set; }
+    public int CiclosReales { get; set; } = 500;
 
     public DateTime? FechaRegistro { get; set; }
 
