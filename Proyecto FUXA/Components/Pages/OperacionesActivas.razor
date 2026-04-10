@@ -6,9 +6,17 @@
 @inject ImputacionService ImputacionService
 @inject DialogService DialogService
 
-<RadzenText TextStyle="TextStyle.H4" class="rz-mb-4">Monitor de operaciones</RadzenText>
+<RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" class="rz-mb-4">
+    <RadzenText TextStyle="TextStyle.H4" class="rz-m-0">Monitor de operaciones</RadzenText>
 
-<RadzenDataGrid Data="@listaOperaciones" TItem="OperacionResumenDTO" AllowPaging="true" PageSize="10">
+    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+
+        <RadzenButton Icon="clear" Click="LimpiarBusqueda" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" />
+    </RadzenStack>
+</RadzenStack>
+
+<RadzenDataGrid Data="@listaOperaciones" TItem="OperacionResumenDTO" AllowPaging="true" PageSize="10"
+                AllowFiltering="true" FilterMode="FilterMode.Simple" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive">
     <Columns>
         <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="CodigoOperacion" Title="Cód. Operación" Width="140px" />
 
@@ -18,28 +26,35 @@
 
         <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="NombreMaquina" Title="Máquina" Width="150px" />
 
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="CiclosObjetivo" Title="Objetivo" Width="100px" TextAlign="TextAlign.Center" />
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="CiclosObjetivo" Title="Objetivo" Width="100px" TextAlign="TextAlign.Center" Filterable="false" />
 
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" property="PiezasFabricadas" Title="P.fabricadas" Width="100px" TextAlign=TextAlign.Center/>
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" property="PiezasFabricadas" Title="P.fabricadas" Width="100px" TextAlign="TextAlign.Center" Filterable="false" />
 
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="PiezasRotas" Title="P.rotas" Width="100px" TextAlign="TextAlign.Center"/>
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="PiezasRotas" Title="P.rotas" Width="100px" TextAlign="TextAlign.Center" Filterable="false" />
 
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="Estado" Title="Estado" Width="80px" TextAlign="TextAlign.Center">
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="Estado" Title="Estado" Width="80px" TextAlign="TextAlign.Center" SortOrder="SortOrder.Ascending">
+
+            <FilterTemplate>
+                <RadzenDropDown @bind-Value="estadoSeleccionado"
+                                Data="@opcionesEstado"
+                                Change="@AplicarFiltros"
+                                class="w-100" />
+            </FilterTemplate>
+
             <Template Context="o">
-                
                 @if (o.Estado.Equals("Activa"))
                 {
-                    <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="Activa"/>
-                }else if(o.Estado.Equals("Finalizado"))
-                {
-                    <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text="Finalizado"/>
+                    <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="Activa" />
                 }
-
+                else if (o.Estado.Equals("Finalizado"))
+                {
+                    <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text="Finalizado" />
+                }
             </Template>
         </RadzenDataGridColumn>
 
-
         <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="FechaInicio" Title="Fecha inicio" FormatString="{0:dd/MM HH:mm}" Width="120px" />
+
         <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="FechaFin" Title="Fecha fin" Width="120px">
             <Template Context="o">
                 @if (o.Estado == "Finalizado")
@@ -56,19 +71,57 @@
         <RadzenDataGridColumn TItem="OperacionResumenDTO" Title="Editar" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
             <Template Context="operacion">
                 <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat"
-                        Size="ButtonSize.Medium" Click="@(args => AbrirDialogoEdicion(operacion))"/>
-
+                              Size="ButtonSize.Medium" Click="@(args => AbrirDialogoEdicion(operacion))" />
             </Template>
         </RadzenDataGridColumn>
     </Columns>
 </RadzenDataGrid>
 
 @code {
-    List<OperacionResumenDTO> listaOperaciones;
+    List<OperacionResumenDTO> listaCompleta = new();
+    List<OperacionResumenDTO> listaOperaciones = new();
+
+    string textoBusqueda = "";
+    string estadoSeleccionado = "TODOS";
+    List<string> opcionesEstado = new List<string> { "TODOS", "Activa", "Finalizado" };
 
     protected override async Task OnInitializedAsync()
     {
-        listaOperaciones = await ImputacionService.ObtenerTodasLasOperacionesResumenAsync();
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        var datos = await ImputacionService.ObtenerTodasLasOperacionesResumenAsync();
+
+        listaCompleta = datos.OrderBy(o => o.Estado == "Activa" ? 0 : 1).ThenByDescending(o => o.FechaInicio).ToList();
+
+        AplicarFiltros();
+    }
+
+    private void AplicarFiltros()
+    {
+        var resultado = listaCompleta.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(textoBusqueda))
+        {
+            resultado = resultado.Where(o => o.NombreOrden != null &&
+                                             o.NombreOrden.Contains(textoBusqueda, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (estadoSeleccionado != "TODOS")
+        {
+            resultado = resultado.Where(o => o.Estado == estadoSeleccionado);
+        }
+
+        listaOperaciones = resultado.ToList();
+    }
+
+    private void LimpiarBusqueda()
+    {
+        textoBusqueda = "";
+        estadoSeleccionado = "TODOS";
+        AplicarFiltros();
     }
 
     private async Task AbrirDialogoEdicion(OperacionResumenDTO operacion)
@@ -79,9 +132,9 @@
         };
         var res = await DialogService.OpenAsync<DialogoEditarOperacion>("Editar operacion", parametros);
 
-        if(res == true)
+        if (res == true)
         {
-            await ImputacionService.ObtenerOperacionesActivasAsync();
+            await CargarDatos();
             StateHasChanged();
         }
     }

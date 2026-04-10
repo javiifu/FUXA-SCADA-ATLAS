@@ -11,6 +11,6 @@ public class Material
     public string Nombre { get; set; }
     public string CodigoMaterial { get; set; }
     public string? Descripcion { get; set; }
-    public double Stock { get; set; }
-    public double StockMinimo { get; set; }
+    public decimal Stock { get; set; }
+    public decimal StockMinimo { get; set; }
 }

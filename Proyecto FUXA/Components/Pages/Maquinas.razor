@@ -33,20 +33,30 @@ else
 
                         <div class="row mb-4">
                             <div class="col-md-auto">
+                                @* boton orden fabricacion *@
                                 <RadzenButton Click=@(args => AbrirDialogoPlanificar())
                                               Text="NUEVA ORDEN DE FABRICACIÓN"
                                               Icon="add_circle"
                                               ButtonStyle="ButtonStyle.Primary"
                                               Style="height: 55px; min-width: 300px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
 
+                                @* boton nueva maquina *@
                                 <RadzenButton Click=@(args => AbrirNuevaMaquina())
                                               Text="NUEVA MÁQUINA"
                                               Icon="add_circle"
                                               ButtonStyle="ButtonStyle.Primary"
                                               Style="height: 55px; min-width: 200px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
 
-                                <RadzenButton Click=@(args => AbrirDialogoPlanificar())
+                                @* boton nueva seccion *@
+                                <RadzenButton Click=@(args => AbrirDialogoNuevaSeccion())
                                               Text="NUEVA SECCIÓN"
+                                              Icon="add_circle"
+                                              ButtonStyle="ButtonStyle.Primary"
+                                              Style="height: 55px; min-width: 200px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
+
+                                @* boton nuevo material *@
+                                <RadzenButton Click=@(args => AbrirDialogoNuevoMaterial())
+                                              Text="NUEVO MATERIAL"
                                               Icon="add_circle"
                                               ButtonStyle="ButtonStyle.Primary"
                                               Style="height: 55px; min-width: 200px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
@@ -72,7 +82,7 @@ else
                                 </Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="Maquina" Property="Nombre" Title="Nombre Máquina" Width="150px"/>
-                            <RadzenDataGridColumn TItem="Maquina" Property="NombreSeccion" Title="Sección" Width="130px"/>
+                            <RadzenDataGridColumn TItem="Maquina" Property="Seccion.Nombre" Title="Sección" Width="130px"/>
                             <RadzenDataGridColumn TItem="Maquina" Property="CodigoOperacionActiva" Title="Operación Actual" Width="200px">
                                 <Template Context="m">
                                     @if (m.CodigoOperacionActiva != "Sin operacion")
@@ -374,7 +384,8 @@ else
 
         foreach (var m in maquinasFiltradas)
         {
-            if(m.NombreSeccion == nombreSeccion && m.EstadoActualId != 4)
+            string nombreSec = m.Seccion != null ? m.Seccion.Nombre : "Sin asignar";
+            if (nombreSec == nombreSeccion && m.EstadoActualId != 4)
             {
                 contador++;
                 porcentajeSeccionTotal += m.PorcentajeCiclos;
@@ -390,9 +401,10 @@ else
 
         foreach (var m in maquinasFiltradas)
         {
-            if (!nombreSecciones.Contains(m.NombreSeccion) && m.EstadoActualId != 4 && !string.IsNullOrEmpty(m.NombreSeccion) && !m.NombreSeccion.Contains("Sin asignar", StringComparison.OrdinalIgnoreCase))
+            string nombreSec = m.Seccion != null ? m.Seccion.Nombre : "Sin asignar";
+            if (!nombreSecciones.Contains(nombreSec) && m.EstadoActualId != 4 && nombreSec != "Sin asignar")
             {
-                nombreSecciones.Add(m.NombreSeccion);
+                nombreSecciones.Add(nombreSec);
             }
         }
         return nombreSecciones;
@@ -405,7 +417,7 @@ else
                 { "Datos", new AsignarTrabajador {
                     MaquinaId = maquina.Id,
                     NombreMaquina = maquina.Nombre,
-                    NombreSeccion = maquina.NombreSeccion,
+                    NombreSeccion = maquina.Seccion != null ? maquina.Seccion.Nombre : "Sin asignar",
                     EmpleadoId = maquina.EmpleadoId
                 }}
             },
@@ -476,13 +488,52 @@ else
         };
 
         var parametros = new Dictionary<string, object>()
-    {
-        { "MaquinaParaEditar", nuevaMaquina }
-    };
+        {
+            { "MaquinaParaEditar", nuevaMaquina }
+        };
 
         var res = await DialogService.OpenAsync<DialogoNuevaMaquina>("Añadir nueva máquina", parametros);
 
         if (res == true)
+        {
+            await CargarMaquinasDesdeSQL();
+            StateHasChanged();
+        }
+    }
+
+    private async Task AbrirDialogoNuevaSeccion()
+    {
+        var nuevaSeccion = new Seccion
+        {
+
+        };
+
+        var parametros = new Dictionary<string, object>()
+        {
+            {"NuevaSeccion", nuevaSeccion}
+        };
+
+        var res = await DialogService.OpenAsync<DialogoNuevaSeccion>("Nueva seccion", parametros);
+
+        if(res == true)
+        {
+            await CargarMaquinasDesdeSQL();
+            StateHasChanged();
+        }
+    }
+
+    private async Task AbrirDialogoNuevoMaterial()
+    {
+        var nuevoMaterial = new Material();
+
+        var parametros = new Dictionary<string, object>()
+        {
+            {"MaterialParaEditar", nuevoMaterial}
+        };
+
+        var res = await DialogService.OpenAsync<DialogoNuevoMaterial>("Nuevo material", parametros);
+
+        if(res == true)
         {
             await CargarMaquinasDesdeSQL();
             StateHasChanged();

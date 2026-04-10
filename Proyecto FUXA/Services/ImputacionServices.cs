@@ -326,5 +326,66 @@ namespace Proyecto_FUXA.Services
         {
             return await _context.Materiales.OrderByDescending(e => e.Nombre).ToListAsync();
         }
+
+        public async Task<bool> GuardarSeccionAsync(Seccion nuevaSeccion)
+        {
+            try
+            {
+                _context.Secciones.Add(nuevaSeccion);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> GuardarMaterialAsync(Material material)
+        {
+            try
+            {
+                if(material.Id == 0)
+                {
+                    _context.Materiales.Add(material);
+                }
+                else
+                {
+                    _context.Materiales.Update(material);
+                }
+
+                int filasAfectadas = await _context.SaveChangesAsync();
+                if(filasAfectadas > 0)
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al guardar material: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> GuardarMultiplesMaterialesAsync(List<ImputacionMaterial> listaMateriales)
+        {
+            try
+            {
+                _context.ImputacionMateriales.AddRange(listaMateriales);
+
+                var filasAfectadas = await _context.SaveChangesAsync();
+
+                return filasAfectadas > 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al guardar múltiples materiales: {ex.Message}");
+                return false;
+            }
+        }
     }
 }

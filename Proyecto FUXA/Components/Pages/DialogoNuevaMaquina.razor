@@ -27,7 +27,14 @@
                 @* Sección *@
                 <RadzenStack Gap="0.5rem">
                     <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0">Sección</RadzenText>
-                    <RadzenTextBox @bind-Value="machine.NombreSeccion" Placeholder="Ej: Corte, Ensamblado..." class="w-100" />
+                    <RadzenDropDown @bind-Value="machine.IdSeccion" 
+                                    Data="@listaSecciones"
+                                    TextProperty="Nombre"
+                                    ValueProperty="Id"
+                                    AllowFiltering="true"
+                                    FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                    Placeholder="Selecciona una seccion..."
+                                    class="w-100"/>
                 </RadzenStack>
 
                 @* CiclosReales *@
@@ -98,11 +105,13 @@
 
     private Maquina machine = new();
     private List<Empleado> encargados = new();
+    private List<Seccion> listaSecciones = new();
     private string titulo = "Registrar Nueva Máquina";
 
     protected override async Task OnInitializedAsync()
     {
         await CargarEncargados();
+        await CargarSecciones();
 
         if (MaquinaParaEditar != null)
         {
@@ -114,7 +123,6 @@
             machine = new Maquina 
             { 
                 Nombre = "", 
-                NombreSeccion = "", 
                 EstadoActualId = 1,
                 FechaCreacion = DateTime.Now 
             };
@@ -122,7 +130,25 @@
     }
 
     private async Task Guardar()
-    {
+    {              
+        var maquinas = await MachineService.GetAllMaquinas();
+
+        foreach( var m in maquinas)
+        {
+            if (m.Nombre.Equals(machine.Nombre, StringComparison.OrdinalIgnoreCase) && m.Id != machine.Id)
+            {
+                NotificationService.Notify(NotificationSeverity.Warning, "Atención", "Ya exite una maquina con ese mismo nombre");
+                return;
+            }
+        }
+
+
+        if (string.IsNullOrWhiteSpace(machine.Nombre) || machine.IdSeccion == null)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", "No se pueden dejar el nombre o seccion vacios");
+            return;
+        }
+
         try
         {
             machine.Empleado = null;
@@ -146,6 +172,16 @@
         if (resultado != null)
         {
             encargados = resultado.Where(e => e.Cargo == "Encargado").ToList();
+        }
+    }
+
+    private async Task CargarSecciones()
+    {
+        var resultado = await MachineService.ObtenerSecciones();
+
+        if(resultado != null)
+        {
+            listaSecciones = resultado;
         }
     }
 }

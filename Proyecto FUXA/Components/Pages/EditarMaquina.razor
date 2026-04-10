@@ -31,13 +31,8 @@ else
         </div>
 
         <div class="mb-3">
-            <label class="form-label">Número de Orden</label>
-            <input type="number" class="form-control" @bind="machine.NumeroOrden" />
-        </div>
-
-        <div class="mb-3">
             <label class="form-label">Sección</label>
-            <input class="form-control" @bind="machine.NombreSeccion" placeholder="Ej: Corte, Embolsado..." />
+            <input class="form-control" @bind="@machine?.Seccion?.Nombre" placeholder="Ej: Corte, Embolsado..." />
         </div>
 
         <div class="mb-3">
@@ -104,7 +99,6 @@ else
             machine = new Maquina
             {
                 Nombre = "",
-                NombreSeccion = "",
                 CiclosObjetivo = 0,
                 EstadoActualId = 1, // por defecto la ponemos activa
                 FechaCreacion = DateTime.Now

@@ -103,7 +103,7 @@
 
                         <RadzenStack Gap="0.5rem">
                             <RadzenText TextStyle="TextStyle.Subtitle2">Observaciones</RadzenText>
-                            <RadzenTextArea @bind-Value="nuevaImpMat.Observaciones" Placeholder="Ej: Lote..." class="w-100" Rows="2" />
+                            <RadzenTextArea @bind-Value="nuevaImpMat.Observaciones" class="w-100" Rows="2" />
                         </RadzenStack>
 
                         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End">
@@ -153,7 +153,7 @@
     }
 </RadzenStack>
 
-@code {
+    @code {
     [Parameter] public dynamic OperacionActiva { get; set; }
     [Parameter] public List<Empleado> ListaOperarios { get; set; }
     [Parameter] public List<Material> ListaMateriales { get; set; }
@@ -250,7 +250,8 @@
         try
         {
 
-            bool exito = true;
+            bool exito = await ImputacionService.GuardarMultiplesMaterialesAsync(listaMaterialesAImputar);
+
 
             if (exito)
             {

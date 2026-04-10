@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Proyecto_FUXA.Models;
 
+[Table("ImputacionOperarios")]
 public class ImputacionOperario
 {
     [Key]

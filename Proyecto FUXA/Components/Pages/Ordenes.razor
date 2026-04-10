@@ -22,13 +22,28 @@
 
     <RadzenCard Variant="Variant.Outlined">
         <RadzenDataGrid AllowFiltering="true" AllowPaging="true" PageSize="10" AllowSorting="true" 
-                        Data="@listaOrdenes" TItem="Orden" EmptyText="No hay ordenes creadas.">
+                        Data="@escaparateOrdenes" TItem="Orden" EmptyText="No hay ordenes creadas."
+                        FilterMode="FilterMode.Simple" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive">
             <Columns>
-                <RadzenDataGridColumn TItem="Orden" Property="CodigoOrden" Title="Codigo" Width="150px" />
+                <RadzenDataGridColumn TItem="Orden" Property="CodigoOrden" Title="Codigo" Width="150px">
+                    <FilterTemplate>
+                        <RadzenTextBox Placeholder="Buscar..."
+                                        @bind-Value="filtroTexto"
+                                       @oninput="@(args => { filtroTexto = args.Value.ToString(); AplicarFiltros(); })"
+                                       class="w-100" />
+                    </FilterTemplate>
+                </RadzenDataGridColumn>
+                    
                 <RadzenDataGridColumn TItem="Orden" Property="Producto" Title="Producto / Descripcion" />
                 <RadzenDataGridColumn TItem="Orden" Property="FechaInicio" Title="Fecha inicio" FormatString="{0:dd/MM/yyyy HH:mm}" Width="200px" />
                 
-                <RadzenDataGridColumn TItem="Orden" Title="Estado" Width="120px" TextAlign="TextAlign.Center">
+                <RadzenDataGridColumn TItem="Orden" Property="Estado" Title="Estado" Width="120px" TextAlign="TextAlign.Center">
+                    <FilterTemplate>
+                        <RadzenDropDown @bind-Value="filtroEstado"
+                                        Data="@opcionesEstado"
+                                        Change="@AplicarFiltros"
+                                        class="w-100" />
+                    </FilterTemplate>
                     <Template Context="o">
                         <RadzenBadge BadgeStyle="@(o.Estado == "Activa" ? BadgeStyle.Success :
                                                                          o.Estado == "Finalizado" ? BadgeStyle.Danger :
@@ -49,7 +64,13 @@
 </RadzenStack>
 
 @code {
-    List<Orden> listaOrdenes;
+    List<Orden> listaOrdenes = new();
+    List<Orden> almacenOrdenes = new();
+    List<Orden> escaparateOrdenes = new();
+
+    string filtroTexto = "";
+    string filtroEstado = "TODOS";
+    List<string> opcionesEstado = new List<string> { "TODOS", "Activa", "Finalizado", "Pendiente" };
 
     protected override async Task OnInitializedAsync()
     {
@@ -58,7 +79,9 @@
 
     private async Task CargarOrdenes()
     {
-        listaOrdenes = await ImputacionService.ObtenerOrdenesActivasAsync();
+        var datos = await ImputacionService.ObtenerOrdenesActivasAsync();
+        almacenOrdenes = datos.ToList();
+        AplicarFiltros();
     }
 
     private async Task AbrirDialogoNuevaOrden()
@@ -85,5 +108,20 @@
         {
             await CargarOrdenes();
         }
+    }
+
+    private void AplicarFiltros()
+    {
+        var resultadoTemporal = almacenOrdenes.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(filtroTexto))
+        {
+            resultadoTemporal = resultadoTemporal.Where(orden => orden.CodigoOrden != null && orden.CodigoOrden.Contains(filtroTexto, StringComparison.OrdinalIgnoreCase));
+        }
+        if(filtroEstado != "TODOS")
+        {
+            resultadoTemporal = resultadoTemporal.Where(Orden => Orden.Estado == filtroEstado);
+        }
+        escaparateOrdenes = resultadoTemporal.ToList();
     }
 }

@@ -21,12 +21,12 @@
     {
         <RadzenCard Variant="Variant.Flat" class="rz-background-color-info-lighter">
             <RadzenStack Orientation="Orientation.Vertical" Gap="0.5rem">
-                <RadzenText TextStyle="TextStyle.Subtitle1">
-                    <b>Orden:</b> 
+                <RadzenText TextStyle="TextStyle.DisplayH6">
+                    <b>Orden:</b> @OperacionActiva.NombreOrden
                 </RadzenText>
 
-                <RadzenText TextStyle="TextStyle.Caption">
-                    <b>Código:</b> 
+                <RadzenText TextStyle="TextStyle.Subtitle1">
+                    <b>Código:</b> @OperacionActiva.CodigoOperacion
                 </RadzenText>
             </RadzenStack>
         </RadzenCard>
