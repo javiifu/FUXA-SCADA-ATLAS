@@ -1,4 +1,4 @@
-﻿@* @page "/anadir-maquina/"
+﻿@page "/anadir-maquina/"
 @using Proyecto_FUXA.Services
 @using Proyecto_FUXA.Models
 @using System.Linq
@@ -44,14 +44,14 @@
         <button class="btn btn-secondary" @onclick="Volver">Volver</button>
         <button class="btn btn-success" @onclick="Guardar">Guardar Máquina</button>
     </div>
-</div> *@
+</div>
 
-@* @code {
+@code {
     // Creamos una instancia vacía de Maquina para enlazar los campos
-    private Maquina nuevaMaquina = new Maquina
+    private Maquina nuevaMaquina = new()
     {
         EstadoActualId = 3, // Por defecto empezamos en 'Parada'
-        EstaActivo = true
+        
     };
 
     private async Task Guardar()
@@ -73,4 +73,4 @@
     {
         Navigation.NavigateTo("/maquinas");
     }
-} *@
+} 

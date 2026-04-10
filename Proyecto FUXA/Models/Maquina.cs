@@ -11,6 +11,7 @@ namespace Proyecto_FUXA.Models
     {
         [Key]
         public int Id { get; set; }
+        public string? FuxaDeviceId { get; set; }
         public string Nombre { get; set; } = string.Empty;
         public int? IdSeccion { get; set; }
         public int CiclosReales { get; set; }
@@ -41,9 +42,21 @@ namespace Proyecto_FUXA.Models
         [ForeignKey("IdSeccion")]
         public virtual Seccion? Seccion { get; set; }
 
+        
+
         public virtual ICollection<MaquinaProduccion> Producciones { get; set; } = new List<MaquinaProduccion>();
+
+        public virtual ICollection<PlantaObjetoVisual> ObjetosVisualesPlanta { get; set; } = new List<PlantaObjetoVisual>();
+
+        public virtual ICollection<Mantenimiento> Mantenimientos { get; set; } = new List<Mantenimiento>();
+        public virtual ICollection<Incidencia> Incidencias { get; set; } = new List<Incidencia>();
 
         [ForeignKey("EstadoActualId")]
         public virtual MaquinaEstatus? EstadoActual { get; set; }
+
+        [NotMapped]
+        public int? PosX { get; set; }
+        [NotMapped]
+        public int? PosY { get; set; }
     }
 }
