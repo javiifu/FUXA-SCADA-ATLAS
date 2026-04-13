@@ -1,0 +1,89 @@
+﻿@using Proyecto_FUXA.Models
+@using Radzen
+@using Radzen.Blazor
+@using static Proyecto_FUXA.Services.ImputacionService
+@inject DialogService DialogService
+@inject Proyecto_FUXA.Services.ImputacionService ImputacionService
+
+<RadzenStack Gap="1rem">
+    <RadzenRow>
+        <RadzenColumn Size="6">
+            <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-color-base-500">Orden</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body1">@OperacionInfo.NombreOrden</RadzenText>
+        </RadzenColumn>
+        <RadzenColumn Size="6">
+            <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-color-base-500">Máquina</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body1">@OperacionInfo.NombreMaquina</RadzenText>
+        </RadzenColumn>
+    </RadzenRow>
+
+    <RadzenRow>
+        <RadzenColumn Size="12">
+            <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-color-base-500">Producto</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body1">@OperacionInfo.Producto</RadzenText>
+        </RadzenColumn>
+    </RadzenRow>
+
+    <RadzenRow>
+        <RadzenColumn Size="4">
+            <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-color-base-500">Objetivo</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body1">@OperacionInfo.CiclosObjetivo</RadzenText>
+        </RadzenColumn>
+        <RadzenColumn Size="4">
+            <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-color-base-500">Fabricadas</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body1">@OperacionInfo.PiezasFabricadas</RadzenText>
+        </RadzenColumn>
+        <RadzenColumn Size="4">
+            <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-color-base-500">Rotas</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body1">@OperacionInfo.PiezasRotas</RadzenText>
+        </RadzenColumn>
+    </RadzenRow>
+
+    <hr style="border: 0; border-top: 1px solid #ccc; margin: 10px 0;" />
+
+    @* tabla de horas operario *@
+    <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-color-base-500">Horas imputadas por operario</RadzenText>
+
+    @if (listaOperarios == null)
+    {
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    }
+    else if (!listaOperarios.Any())
+    {
+        @* si la lista esta vacia *@
+        <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Text" ShowIcon="false" class="rz-p-2 rz-m-0">
+            Nadie ha imputado horas en esta operación todavía.
+        </RadzenAlert>
+    }
+    else
+    {
+        @* tabla de datos *@
+        <RadzenDataGrid Data="@listaOperarios" TItem="OperarioHorasDTO" AllowPaging="false" class="rz-mt-2">
+            <Columns>
+                <RadzenDataGridColumn TItem="OperarioHorasDTO" Property="CodigoOperario" Title="Cód." Width="100px" />
+                <RadzenDataGridColumn TItem="OperarioHorasDTO" Property="NombreCompleto" Title="Nombre" />
+                <RadzenDataGridColumn TItem="OperarioHorasDTO" Property="TotalHoras" Title="Horas" Width="100px" TextAlign="TextAlign.Center">
+                    <Template Context="op">
+                        <b>@op.TotalHoras.ToString("0.##") h</b>
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    }
+
+    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" class="rz-mt-4">
+        <RadzenButton Text="Cerrar" Click="() => DialogService.Close()" ButtonStyle="ButtonStyle.Light" />
+    </RadzenStack>
+</RadzenStack>
+
+@code {
+    [Parameter] public OperacionResumenDTO OperacionInfo { get; set; }
+
+    private List<OperarioHorasDTO> listaOperarios;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        listaOperarios = await ImputacionService.ObtenerHorasPorOperarioAsync(OperacionInfo.Id);
+    }
+}

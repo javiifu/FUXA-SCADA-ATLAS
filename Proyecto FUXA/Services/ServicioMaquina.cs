@@ -31,29 +31,31 @@ namespace Proyecto_FUXA.Services
 
         public async Task GuardarMaquina(Maquina maquina)
         {
-            var dbMaquina = await _db.Maquinas.FindAsync(maquina.Id);
-
-
             if (maquina.Id == 0)
             {
                 maquina.FechaCreacion = DateTime.UtcNow;
                 maquina.FechaActualizacion = DateTime.UtcNow;
-
                 _db.Maquinas.Add(maquina);
                 await _db.SaveChangesAsync();
             }
             else
             {
+                var dbMaquina = await _db.Maquinas.FindAsync(maquina.Id);
                 if (dbMaquina != null)
                 {
                     dbMaquina.Nombre = maquina.Nombre;
-                    dbMaquina.IdSeccion = maquina.IdSeccion;
+
+                    if (maquina.IdSeccion.HasValue && maquina.IdSeccion > 0)
+                    {
+                        dbMaquina.IdSeccion = maquina.IdSeccion;
+                    }
+
                     dbMaquina.CiclosReales = maquina.CiclosReales;
                     dbMaquina.EmpleadoId = maquina.EmpleadoId;
                     dbMaquina.EstadoActualId = maquina.EstadoActualId;
                     dbMaquina.FechaActualizacion = DateTime.UtcNow;
-                    dbMaquina.PiezasFabricadas = maquina.PiezasFabricadas;
-                    dbMaquina.PiezasRotas = maquina.PiezasRotas;
+
+                    dbMaquina.CiclosObjetivo = maquina.CiclosObjetivo;
 
                     var opActiva = await _db.OperacionesOrden
                         .FirstOrDefaultAsync(o => o.IdMaquina == maquina.Id && o.Estado == "Activa");
@@ -252,6 +254,11 @@ namespace Proyecto_FUXA.Services
             {
                 return new List<Seccion>();
             }
+        }
+
+        public async Task<bool> ComprobarOperacionActiva(int maquinaId)
+        {
+            return await _db.OperacionesOrden.AnyAsync(op => op.IdMaquina == maquinaId && op.Estado == "Activa");
         }
     }
 }

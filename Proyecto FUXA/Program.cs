@@ -40,4 +40,16 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-app.Run();
+try
+{
+    app.Run();
+}
+catch (Exception ex)
+{
+    Console.WriteLine("-------------------------------------------------");
+    Console.WriteLine("💥 ERROR FATAL QUE ESTÁ MATANDO EL SERVIDOR: ");
+    Console.WriteLine(ex.ToString());
+    Console.WriteLine("-------------------------------------------------");
+    Console.WriteLine("Presiona ENTER para cerrar esta ventana...");
+    Console.ReadLine();
+}

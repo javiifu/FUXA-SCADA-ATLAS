@@ -13,6 +13,8 @@ public class ImputacionOperario
     public decimal Horas { get; set; }
     public string? Observaciones { get; set; }
     public DateTime FechaRegistro { get; set; } = DateTime.Now;
+    public DateTime? FechaInicio { get; set; }
+    public DateTime? FechaFin { get; set; }
 
     [ForeignKey("IdOperacion")]
     public virtual OperacionesOrden Operacion { get; set; } = null!;

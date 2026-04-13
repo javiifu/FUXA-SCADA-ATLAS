@@ -285,6 +285,14 @@ else
                     m.PorcentajeCiclos = (float)((double)m.CiclosReales / m.CiclosObjetivo * 100);
 
                     if (m.PorcentajeCiclos > 100) m.PorcentajeCiclos = 100;
+                    if (m.PorcentajeCiclos < 50)
+                    {
+                        m.EstadoActualId = 2;
+                    }
+                    if(m.PorcentajeCiclos >= 50)
+                    {
+                        m.EstadoActualId = 1;
+                    }
                 }
 
                 var emp = todosLosEmpleados.FirstOrDefault(e => e.Id == m.EmpleadoId);

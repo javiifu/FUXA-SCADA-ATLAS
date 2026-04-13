@@ -387,5 +387,23 @@ namespace Proyecto_FUXA.Services
                 return false;
             }
         }
+
+        public async Task<List<OperarioHorasDTO>> ObtenerHorasPorOperarioAsync(int idOperacion)
+        {
+            return await _context.ImputacionesOperarios
+                .Where(i => i.IdOperacion == idOperacion)
+                .GroupBy(i => new {
+                    i.Empleado.CodigoEmpleado,
+                    i.Empleado.Nombre,
+                    i.Empleado.Apellidos
+                })
+                .Select(grupo => new OperarioHorasDTO
+                {
+                    NombreCompleto = grupo.Key.Nombre + " " + grupo.Key.Apellidos,
+                    CodigoOperario = grupo.Key.CodigoEmpleado,
+                    TotalHoras = grupo.Sum(i => i.Horas)
+                })
+                .ToListAsync();
+        }
     }
 }
