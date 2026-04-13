@@ -405,5 +405,23 @@ namespace Proyecto_FUXA.Services
                 })
                 .ToListAsync();
         }
+
+        private async Task<string> GenerarCodigoMaterial(string nombreMaterial)
+        {
+
+            string limpio = new string((nombreMaterial ?? "MAT")
+                .Trim()
+                .ToUpper()
+                .Where(c => char.IsLetter(c)) 
+                .ToArray());
+
+            string prefijo = limpio.Length >= 3 ? limpio.Substring(0, 3) : limpio.PadRight(3, 'X');
+
+            int contador = await _context.Materiales
+                .Where(m => m.CodigoMaterial.StartsWith(prefijo + "-"))
+                .CountAsync();
+
+            return $"{prefijo}-{(contador + 1):D3}";
+        }
     }
 }
