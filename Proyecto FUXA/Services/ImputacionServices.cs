@@ -104,6 +104,14 @@ namespace Proyecto_FUXA.Services
                 .ToListAsync();
         }
 
+        //public async Task<List<OperacionesOrden>> ObtenerOperacionesActivasAsync()
+        //{
+        //    return await _context.OperacionesOrden
+        //        .Where(o => o.Estado == "Activa")
+        //        .OrderByDescending(o => o.Id)
+        //        .ToListAsync();
+        //}
+
         public async Task<bool> CrearNuevaOperacionAsync(int idOrden, int idMaquina, int ciclos)
         {
             try

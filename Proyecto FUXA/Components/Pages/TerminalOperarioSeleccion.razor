@@ -1,0 +1,68 @@
+﻿@page "/terminal-operario-seleccion"
+@using Proyecto_FUXA.Models
+@using Proyecto_FUXA.Services
+@using Radzen
+@using Radzen.Blazor
+@inject ServicioMaquina ServicioMaquina
+@inject NavigationManager NavManager
+
+<RadzenStack Gap="2rem" class="rz-p-6">
+    @* cabecera *@
+    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center" 
+                 Style="padding: 20px; border-radius: 12px; color: white;">
+        <RadzenStack Gap="0">
+            <RadzenText TextStyle="TextStyle.H4" Style="color: black; margin: 0;">Seleccione su puesto de trabajo</RadzenText>
+        </RadzenStack>
+    </RadzenStack>
+
+    @if (listaMaquinas == null)
+    {
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    }
+    else
+    {
+        @* botones con maquinas *@
+        <RadzenDataList Data="@listaMaquinas" TItem="Maquina" WrapItems="true" AllowPaging="false">
+            <Template Context="m">
+                <RadzenCard @onclick="@(() => IrATerminal(m.Id))" 
+                            Style="width: 280px; height: 180px; cursor: pointer; transition: transform 0.2s;" 
+                            class="rz-m-2 rz-border-radius-4 rz-shadow-6 machine-card">
+                    <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="height: 100%;">
+                        <RadzenIcon Icon="settings_suggest" Style="font-size: 4rem; color: #1F4E79;" />
+                        <RadzenText TextStyle="TextStyle.H5" Style="font-weight: bold; color: #1A2E3F; text-align: center;">
+                            @m.Nombre
+                        </RadzenText>
+                        <RadzenBadge BadgeStyle="BadgeStyle.Light" Text="@(m.Seccion?.Nombre ?? "Sin sección")" />
+                    </RadzenStack>
+                </RadzenCard>
+            </Template>
+        </RadzenDataList>
+    }
+</RadzenStack>
+
+<style>
+    .machine-card:hover {
+        transform: scale(1.03);
+        border: 2px solid #2E75B6 !important;
+    }
+    .machine-card:active {
+        transform: scale(0.98);
+        background-color: #F0F4F8;
+    }
+</style>
+
+@code {
+    private List<Maquina> listaMaquinas;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // crgamos todas las maquinas
+        listaMaquinas = await ServicioMaquina.GetAllAsync();
+    }
+
+    private void IrATerminal(int id)
+    {
+        // redirigimos a la maquina
+        NavManager.NavigateTo($"/terminal-operario/{id}");
+    }
+}

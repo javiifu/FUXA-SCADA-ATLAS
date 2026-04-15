@@ -19,7 +19,7 @@ builder.Services.AddScoped<TooltipService>();
 builder.Services.AddScoped<ContextMenuService>();
 builder.Services.AddScoped<ImputacionService>();
 builder.Services.AddScoped<NotificationService>();
-
+builder.Services.AddScoped<ServicioEmpleado>();
 builder.Services.AddScoped<ServicioMaquina>();
 builder.Services.AddScoped<ServicioProductividad>();
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("http://localhost:1881/") });
