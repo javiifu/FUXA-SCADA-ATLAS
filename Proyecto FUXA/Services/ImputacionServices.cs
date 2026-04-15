@@ -104,14 +104,6 @@ namespace Proyecto_FUXA.Services
                 .ToListAsync();
         }
 
-        //public async Task<List<OperacionesOrden>> ObtenerOperacionesActivasAsync()
-        //{
-        //    return await _context.OperacionesOrden
-        //        .Where(o => o.Estado == "Activa")
-        //        .OrderByDescending(o => o.Id)
-        //        .ToListAsync();
-        //}
-
         public async Task<bool> CrearNuevaOperacionAsync(int idOrden, int idMaquina, int ciclos)
         {
             try
@@ -430,6 +422,54 @@ namespace Proyecto_FUXA.Services
                 .CountAsync();
 
             return $"{prefijo}-{(contador + 1):D3}";
+        }
+
+        public async Task<bool> ImputarTrabajoDesdeTerminalAsync(int idOperacion, int idMaquina, int idEmpleado, DateTime inicio, DateTime fin, int pHechasTurno, int pRotasTurno)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                decimal horasTotales = (decimal)(fin - inicio).TotalHours;
+
+                // sumamos al acumulado de la operacion
+                var opActiva = await _context.OperacionesOrden.FindAsync(idOperacion);
+                if (opActiva != null)
+                {
+                    opActiva.PiezasFabricadas += pHechasTurno; 
+                    opActiva.PiezasRotas += pRotasTurno;     
+                }
+
+                // Sumamos a los ciclos de la máquina
+                var dbMaquina = await _context.Maquinas.FindAsync(idMaquina);
+                if (dbMaquina != null)
+                {
+                    dbMaquina.CiclosReales += pHechasTurno;
+                    dbMaquina.FechaActualizacion = DateTime.Now;
+                }
+
+                var nuevaImp = new ImputacionOperario
+                {
+                    IdOperacion = idOperacion,
+                    IdEmpleado = idEmpleado,
+                    FechaRegistro = DateTime.Now,
+                    FechaInicio = inicio,
+                    FechaFin = fin,
+                    Horas = Math.Round(horasTotales, 2),
+                    PiezasFabricadas = pHechasTurno, 
+                    PiezasRotas = pRotasTurno       
+                };
+
+                _context.ImputacionesOperarios.Add(nuevaImp);
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return false;
+            }
         }
     }
 }

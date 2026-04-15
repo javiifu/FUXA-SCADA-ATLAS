@@ -62,9 +62,11 @@
             @* para seleccionar una operacion activa *@
             <RadzenText TextStyle="TextStyle.H5" class="instruction">Seleccione operacion para @maquinaActual.Nombre</RadzenText>
 
-            @if (ordenesDisponibles == null)
+            @if (ordenesDisponibles.Count == 0)
             {
-                <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+                <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat" Shade="Shade.Lighter" AllowClose="false">
+                    No hay operaciones activas en esta máquina.
+                </RadzenAlert>
             }
             else
             {
@@ -75,6 +77,7 @@
                             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
                                 <RadzenStack Gap="0">
                                     <RadzenText TextStyle="TextStyle.H6" Style="margin:0; font-weight:bold; color:#1A2E3F;">@orden.CodigoOperacion</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Body1" Style="color: #6B8FAD">Producto: @orden.Producto</RadzenText>
                                     <RadzenText TextStyle="TextStyle.Body2" Style="color:#6B8FAD;">Piezas: @orden.CiclosObjetivo</RadzenText>
                                 </RadzenStack>
                                 <RadzenIcon Icon="play_circle" Style="font-size: 2rem; color: #1D9E75;" />
@@ -87,14 +90,47 @@
         else if (pasoActual == 3)
         {
             <RadzenStack Gap="1.5rem">
-                <RadzenCard Variant="Variant.Flat" Style="background: #fff; border: 1px solid #D5E3EF;">
-                    <RadzenRow>
-                        <RadzenColumn Size="6"><RadzenText TextStyle="TextStyle.Overline">OPERACIÓN</RadzenText><RadzenText><b>@ordenSeleccionada.CodigoOperacion</b></RadzenText></RadzenColumn>
-                        <RadzenColumn Size="6"><RadzenText TextStyle="TextStyle.Overline">OPERARIO</RadzenText><RadzenText><b>@operarioSeleccionado.Nombre @operarioSeleccionado.Apellidos</b></RadzenText></RadzenColumn>
+                <RadzenCard Variant="Variant.Flat" Style="background: #fff; border: 1px solid #D5E3EF;" class="rz-mb-4">
+                    <RadzenRow AlignItems="AlignItems.Center">
+                        @* operación y operario *@
+                        <RadzenColumn Size="12" SizeMD="4">
+                            <RadzenStack Gap="0">
+                                <RadzenText TextStyle="TextStyle.Overline" Style="color: #6B8FAD;">IDENTIFICACIÓN</RadzenText>
+                                <RadzenText TextStyle="TextStyle.Body1"><b>Orden:</b> @ordenSeleccionada.CodigoOperacion</RadzenText>
+                                <RadzenText TextStyle="TextStyle.Body1"><b>Operario:</b> @operarioSeleccionado.Nombre @operarioSeleccionado.Apellidos</RadzenText>
+                            </RadzenStack>
+                        </RadzenColumn>
+
+                        @* parte superior derecha *@
+                        <RadzenColumn Size="12" SizeMD="8">
+                            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="2rem">
+                                @* objetivo *@
+                                <RadzenStack Gap="0" Style="text-align: center;">
+                                    <RadzenText TextStyle="TextStyle.Overline" Style="color: #6B8FAD;">CICLOS OBJETIVO</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.H6"><b>@ordenSeleccionada.CiclosObjetivo</b></RadzenText>
+                                </RadzenStack>
+
+                                @* total fabricado *@
+                                <RadzenStack Gap="0" Style="text-align: center; border-left: 1px solid #D5E3EF; padding-left: 2rem;">
+                                    <RadzenText TextStyle="TextStyle.Overline" Style="color: #6B8FAD;">PIEZAS FABRICADAS</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.H6" Style="color: var(--rz-primary);">
+                                        <b>@ordenSeleccionada.PiezasFabricadas</b>
+                                    </RadzenText>
+                                </RadzenStack>
+
+                                @* total rotas *@
+                                <RadzenStack Gap="0" Style="text-align: center; border-left: 1px solid #D5E3EF; padding-left: 2rem;">
+                                    <RadzenText TextStyle="TextStyle.Overline" Style="color: #6B8FAD;">PIEZAS ROTAS</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.H6" Style="color: var(--rz-danger);">
+                                        <b>@ordenSeleccionada.PiezasRotas</b>
+                                    </RadzenText>
+                                </RadzenStack>
+                            </RadzenStack>
+                        </RadzenColumn>
                     </RadzenRow>
                 </RadzenCard>
 
-                @* Pantalla del Cronómetro (como el HTML) *@
+                @* cronometro *@
                 <div class="timer-strip-fuxa">
                     <div class="timer-val-big">@TimeSpan.FromSeconds(segundosTrabajo).ToString(@"hh\:mm\:ss")</div>
                     <div class="timer-status">
@@ -103,46 +139,74 @@
                     </div>
                 </div>
 
-                @* Botones de Actividad *@
+                @* botones de actividad *@
                 <div class="act-grid-terminal">
                     <button class="act-btn-fuxa @(tipoActividad == "Setup" ? "active" : "")" @onclick='() => tipoActividad = "Setup"'>Setup</button>
-                    <button class="act-btn-fuxa @(tipoActividad == "Produccion" ? "active" : "")" @onclick='() => tipoActividad = "Produccion"'>Produccion</button>
-                    <button class="act-btn-fuxa @(tipoActividad == "Avería" ? "active" : "")" @onclick='() => tipoActividad = "Avería"'>Averia</button>
+                    <button class="act-btn-fuxa @(tipoActividad == "Producción" ? "active" : "")" @onclick='() => tipoActividad = "Producción"'>Producción</button>
+                    <button class="act-btn-fuxa @(tipoActividad == "Avería" ? "active" : "")" @onclick='() => tipoActividad = "Avería"'>Avería</button>
                     <button class="act-btn-fuxa @(tipoActividad == "Parada" ? "active" : "")" @onclick='() => tipoActividad = "Parada"'>Parada</button>
                 </div>
 
                 <RadzenRow Gap="1rem">
-                    @* Columna para piezas abricadas *@
+                    @* piezas fabricadas *@
                     <RadzenColumn Size="12" SizeMD="6">
                         <div class="pcs-card-fuxa">
-                            <RadzenText TextStyle="TextStyle.Subtitle2">PIEZAS FABRICADAS</RadzenText>
+                            <RadzenText TextStyle="TextStyle.H4"><b>Piezas fabricadas</b></RadzenText>
                             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
                                 <RadzenButton Icon="remove" ButtonStyle="ButtonStyle.Danger" Click="() => ModificarPiezasFabricadas(-1)" />
-                                <RadzenText TextStyle="TextStyle.DisplayH4" Style="margin:0;">@piezasFabricadas</RadzenText>
+
+                                <RadzenNumeric TValue="int" @bind-Value="piezasFabricadas"
+                                               ShowUpDown="false"
+                                               TextAlign="TextAlign.Center"
+                                               Variant="Variant.Flat"
+                                               Style="font-size: 2.125rem; font-weight: 400; line-height: 1.235; width: 100%; 
+                                                    background: transparent; border: none; box-shadow: none; color: rgba(0, 0, 0, 0.87);" />
+
                                 <RadzenButton Icon="add" ButtonStyle="ButtonStyle.Success" Click="() => ModificarPiezasFabricadas(1)" />
                             </RadzenStack>
                         </div>
                     </RadzenColumn>
 
-                    @* Columna para Piezas Rotas *@
+                    @* piezas rotas *@
                     <RadzenColumn Size="12" SizeMD="6">
-                        <div class="pcs-card-fuxa">
-                            <RadzenText TextStyle="TextStyle.Subtitle2">PIEZAS ROTAS</RadzenText>
+                        <div class="pcs-card-fuxa" style="background-color:#FFAC99">
+                            <RadzenText TextStyle="TextStyle.Subtitle2">Piezas rotas</RadzenText>
                             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
                                 <RadzenButton Icon="remove" ButtonStyle="ButtonStyle.Danger" Click="() => ModificarPiezasRotas(-1)" />
-                                <RadzenText TextStyle="TextStyle.DisplayH4" Style="margin:0;">@piezasRotas</RadzenText>
+
+                                <RadzenNumeric TValue="int" @bind-Value="piezasRotas"
+                                               ShowUpDown="false"
+                                               TextAlign="TextAlign.Center"
+                                               Variant="Variant.Flat"
+                                               Style="font-size: 2.125rem; font-weight: 400; line-height: 1.235; width: 100%; 
+                                                    background: transparent; border: none; box-shadow: none; color: rgba(0, 0, 0, 0.87);" />
+
                                 <RadzenButton Icon="add" ButtonStyle="ButtonStyle.Success" Click="() => ModificarPiezasRotas(1)" />
                             </RadzenStack>
                         </div>
                     </RadzenColumn>
                 </RadzenRow>
 
+                @* botones de parada y finalizar *@
+                <RadzenRow Gap="1rem" class="rz-mt-4">
+                    <RadzenColumn Size="12" SizeMD="6">
+                        <RadzenButton Text="@(estaPausado ? "REANUDAR" : "PAUSAR")"
+                                      Icon="@(estaPausado ? "play_arrow" : "pause")"
+                                      ButtonStyle="ButtonStyle.Warning"
+                                      Size="ButtonSize.Large"
+                                      Click="PausarImputacion"
+                                      Style="height: 80px; font-weight: bold; border-radius: 12px; width: 100%; font-size: 1.2rem;" />
+                    </RadzenColumn>
 
-                <RadzenButton Text="Imputar operación" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Large"
-                              Click="FinalizarImputacion" Style="height: 60px; font-weight: bold; border-radius: 12px;" />
-
-                <RadzenButton Text="Pausar" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Large"
-                              Click="PausarImputacion" Style="height: 60px; font-weight: bold; border-radius: 12px;" />
+                    <RadzenColumn Size="12" SizeMD="6">
+                        <RadzenButton Text="IMPUTAR OPERACIÓN"
+                                      Icon="check_circle"
+                                      ButtonStyle="ButtonStyle.Success"
+                                      Size="ButtonSize.Large"
+                                      Click="FinalizarImputacion"
+                                      Style="height: 80px; font-weight: bold; border-radius: 12px; width: 100%; font-size: 1.2rem;" />
+                    </RadzenColumn>
+                </RadzenRow>
             </RadzenStack>
         }
     </div>
@@ -323,6 +387,8 @@
     private string tipoActividad = "Produccion";
     private int piezasFabricadas = 0;
     private int piezasRotas = 0;
+    private DateTime horaInicioProceso;
+    private int piezasAlEmpezarTurno;
 
     protected override async Task OnInitializedAsync()
     {
@@ -382,28 +448,49 @@
     private void SeleccionarOrden(OperacionResumenDTO orden)
     {
         ordenSeleccionada = orden;
+        piezasFabricadas = 0;
+        piezasRotas = 0;
+        horaInicioProceso = DateTime.Now;
         pasoActual = 3;
+        StateHasChanged();
     }
 
     private void ModificarPiezasFabricadas(int valor)
     {
         piezasFabricadas = Math.Max(0, piezasFabricadas + valor);
+        StateHasChanged();
     }
 
     private void ModificarPiezasRotas(int valor)
     {
         piezasRotas = Math.Max(0, piezasRotas + valor);
+        StateHasChanged();
     }
 
     private async Task FinalizarImputacion()
     {
+        // calculamos horas decimales (segundos / 3600)
+        decimal horas = (decimal)segundosTrabajo / 3600;
 
-        NavManager.NavigateTo("/terminal-operario-seleccion");
+        bool exito = await ImputacionService.ImputarTrabajoDesdeTerminalAsync(
+            ordenSeleccionada.Id,
+            IdMaquina,
+            operarioSeleccionado.Id,
+            horaInicioProceso,
+            DateTime.Now,
+            piezasFabricadas,
+            piezasRotas
+        );
+
+        if (exito)
+        {
+            NavManager.NavigateTo("/terminal-operario-seleccion");
+        }
     }
 
     private async Task PausarImputacion()
     {
-        
+        estaPausado = !estaPausado;
     }
 
     public void Dispose()

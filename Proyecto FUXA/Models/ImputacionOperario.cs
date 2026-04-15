@@ -15,6 +15,8 @@ public class ImputacionOperario
     public DateTime FechaRegistro { get; set; } = DateTime.Now;
     public DateTime? FechaInicio { get; set; }
     public DateTime? FechaFin { get; set; }
+    public int PiezasFabricadas { get; set; } = 0;
+    public int PiezasRotas { get; set; } = 0;
 
     [ForeignKey("IdOperacion")]
     public virtual OperacionesOrden Operacion { get; set; } = null!;
