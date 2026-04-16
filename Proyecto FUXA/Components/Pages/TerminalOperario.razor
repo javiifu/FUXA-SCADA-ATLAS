@@ -78,7 +78,7 @@
                                 <RadzenStack Gap="0">
                                     <RadzenText TextStyle="TextStyle.H6" Style="margin:0; font-weight:bold; color:#1A2E3F;">@orden.CodigoOperacion</RadzenText>
                                     <RadzenText TextStyle="TextStyle.Body1" Style="color: #6B8FAD">Producto: @orden.Producto</RadzenText>
-                                    <RadzenText TextStyle="TextStyle.Body2" Style="color:#6B8FAD;">Piezas: @orden.CiclosObjetivo</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="color:#6B8FAD;">Ciclos objetivo: @orden.CiclosObjetivo</RadzenText>
                                 </RadzenStack>
                                 <RadzenIcon Icon="play_circle" Style="font-size: 2rem; color: #1D9E75;" />
                             </RadzenStack>
@@ -495,6 +495,8 @@
 
     private async Task FinalizarImputacion()
     {
+        bool operacionCerrada = await ImputacionService.VerificarOperacionCerrada(ordenSeleccionada.Id);
+
         decimal horas = (decimal)segundosTrabajo / 3600;
 
         bool exito = await ImputacionService.ImputarTrabajoDesdeTerminalAsync(
@@ -509,9 +511,18 @@
 
         if (exito)
         {
+            if (operacionCerrada)
+            {
+                NotificationService.Notify(NotificationSeverity.Warning, "Aviso", "Turno guardado. (Nota: La operación ya había sido finalizada por otro compañero).", duration: 5000);
+            }
+            else
+            {
+                NotificationService.Notify(NotificationSeverity.Success, "Éxito", "Turno guardado correctamente.");
+            }
             isDisposed = true;
             if (timer != null) timer.Stop();
-            await Task.Delay(50);
+
+            await Task.Delay(1000);
             NavManager.NavigateTo("/terminal-operario-seleccion");
         }
     }
@@ -582,6 +593,8 @@
 
         if (confirmacion == true)
         {
+            bool operacionCerrada = await ImputacionService.VerificarOperacionCerrada(ordenSeleccionada.Id);
+
             if (piezasFabricadas > 0 || piezasRotas > 0)
             {
                 await ImputacionService.ImputarTrabajoDesdeTerminalAsync(
@@ -595,13 +608,23 @@
                 );
             }
 
+            if (operacionCerrada)
+            {
+                NotificationService.Notify(NotificationSeverity.Warning, "Información", "Tus piezas se han guardado, pero la operación ya había sido finalizada por otro compañero.", duration: 5000);
+            }
+            else
+            {
+                await ImputacionService.CerrarOperacionAsync(ordenSeleccionada.Id);
+                NotificationService.Notify(NotificationSeverity.Success, "Completado", "Operación cerrada y piezas guardadas.");
+            }
+
             bool exito = await ImputacionService.CerrarOperacionAsync(ordenSeleccionada.Id);
 
             if (exito)
             {
                 isDisposed = true;
                 if (timer != null) timer.Stop();
-                await Task.Delay(50);
+                await Task.Delay(1500);
                 NavManager.NavigateTo("/terminal-operario-seleccion");
             }
         }

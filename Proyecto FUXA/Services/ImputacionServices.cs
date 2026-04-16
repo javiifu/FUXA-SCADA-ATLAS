@@ -495,5 +495,20 @@ namespace Proyecto_FUXA.Services
                 return false;
             }
         }
+
+        public async Task<bool> VerificarOperacionCerrada(int idOperacion)
+        {
+            try
+            {
+                var operacion = await _context.OperacionesOrden.FindAsync(idOperacion);
+
+                return operacion != null && operacion.Estado == "Finalizado";
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
     }
 }
