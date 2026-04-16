@@ -2,7 +2,9 @@
 using Proyecto_FUXA.Models;
 
 using Microsoft.EntityFrameworkCore;
+
 using System.ComponentModel.DataAnnotations.Schema;
+
 
 namespace Proyecto_FUXA.Services
 {
@@ -178,7 +180,7 @@ namespace Proyecto_FUXA.Services
             try
             {
                 return await _context.Ordenes
-                    .Where(o => o.Estado != "cerrada")
+                    .Where(o => o.Estado != "Activa")
                     .OrderByDescending(o => o.FechaInicio)
                     .ToListAsync();
             }
@@ -468,6 +470,28 @@ namespace Proyecto_FUXA.Services
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
+                return false;
+            }
+        }
+
+        public async Task<bool> CerrarOperacionAsync(int idOperacion)
+        {
+            try
+            {
+                var operacion = await _context.OperacionesOrden.FindAsync(idOperacion);
+
+                if(operacion != null)
+                {
+                    operacion.Estado = "Finalizada";
+
+                    await _context.SaveChangesAsync();
+                    return true;
+                }
+                return false;
+            }catch(Exception ex)
+            {
+                
+                Console.WriteLine($"Error: { ex.Message}");
                 return false;
             }
         }

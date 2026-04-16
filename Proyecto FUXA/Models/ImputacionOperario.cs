@@ -10,6 +10,8 @@ public class ImputacionOperario
     public int Id { get; set; }
     public int IdOperacion { get; set; }
     public int IdEmpleado { get; set; }
+
+    [Column(TypeName = "decimal(18, 2)")]
     public decimal Horas { get; set; }
     public string? Observaciones { get; set; }
     public DateTime FechaRegistro { get; set; } = DateTime.Now;
