@@ -45,5 +45,7 @@ namespace Proyecto_FUXA.Models
 
         [ForeignKey("EstadoActualId")]
         public virtual MaquinaEstatus? EstadoActual { get; set; }
+
+        public virtual ICollection<MaquinaMaterial> MaquinasMateriales { get; set; } = new List<MaquinaMaterial>();
     }
 }

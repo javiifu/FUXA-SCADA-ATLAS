@@ -1,0 +1,177 @@
+﻿@using Proyecto_FUXA.Models
+@using Proyecto_FUXA.Services
+@using Radzen
+@using Radzen.Blazor
+
+@inject ImputacionService ImputacionService
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+<div class="fuxa-dialog-wrapper">
+    <div class="fuxa-step-card">
+        <div class="step-header">
+            <RadzenIcon Icon="category" Style="font-size: 1.5rem; color: #1F4E79; margin-right: 10px;" />
+            <RadzenText TextStyle="TextStyle.Subtitle1" class="step-title">Seleccione el material</RadzenText>
+        </div>
+
+        @if (materialesDisponibles == null)
+        {
+            <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+        }
+        else if (!materialesDisponibles.Any())
+        {
+            <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat">
+                No hay materiales vinculados a esta máquina.
+            </RadzenAlert>
+        }
+        else
+        {
+            <RadzenDropDown @bind-Value="idMaterialSeleccionado"
+                            Data="@materialesDisponibles"
+                            TextProperty="Nombre"
+                            ValueProperty="Id"
+                            AllowFiltering="true"
+                            Placeholder="Buscar material..."
+                            class="fuxa-modern-input rz-mb-4" />
+
+            <div class="step-header rz-mt-4">
+                <RadzenIcon Icon="scale" Style="font-size: 1.5rem; color: #1F4E79; margin-right: 10px;" />
+                <RadzenText TextStyle="TextStyle.Subtitle1" class="step-title">Cantidad consumida</RadzenText>
+            </div>
+
+            <RadzenNumeric TValue="double" @bind-Value="cantidadConsumida"
+                           Min="0.1m"
+                           class="fuxa-modern-input numeric-center" />
+        }
+    </div>
+
+    <div class="fuxa-dialog-actions">
+        <RadzenButton Text="VOLVER"
+                      Icon="arrow_back"
+                      Click="() => DialogService.Close()"
+                      class="btn-fuxa-outline" />
+
+        <RadzenButton Text="AÑADIR CONSUMO"
+                      Icon="add_circle"
+                      Click="GuardarMaterial"
+                      Disabled="@(idMaterialSeleccionado == 0 || cantidadConsumida <= 0)"
+                      class="btn-fuxa-success" />
+    </div>
+</div>
+
+<style>
+    .fuxa-dialog-wrapper {
+        padding: 10px;
+        background: #FFFFFF;
+    }
+
+    .fuxa-step-card {
+        background: #F8FAFC;
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        padding: 20px;
+    }
+
+    .step-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .step-title {
+        color: #1A2E3F;
+        font-weight: 700;
+        margin: 0 !important;
+    }
+
+    .fuxa-modern-input {
+        width: 100%;
+        height: 54px !important;
+        border-radius: 10px !important;
+        border: 2px solid #E2E8F0 !important;
+        background: #FFFFFF !important;
+        font-size: 1.1rem !important;
+        transition: all 0.2s ease !important;
+    }
+
+        .fuxa-modern-input:focus {
+            border-color: #1F4E79 !important;
+            box-shadow: 0 0 0 4px rgba(31, 78, 121, 0.1) !important;
+        }
+
+    .numeric-center input {
+        text-align: center !important;
+        font-weight: bold !important;
+        font-size: 1.5rem !important;
+        color: #1F4E79 !important;
+    }
+
+    .fuxa-dialog-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 15px;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #E2E8F0;
+    }
+
+    .btn-fuxa-outline {
+        background: transparent !important;
+        border: 2px solid #CBD5E1 !important;
+        color: #64748B !important;
+        border-radius: 10px !important;
+        font-weight: bold !important;
+        height: 50px !important;
+        padding: 0 25px !important;
+    }
+
+        .btn-fuxa-outline:hover {
+            background: #F1F5F9 !important;
+            color: #1E293B !important;
+        }
+
+    .btn-fuxa-success {
+        background: #1D9E75 !important;
+        border-radius: 10px !important;
+        font-weight: bold !important;
+        height: 50px !important;
+        padding: 0 25px !important;
+        color: white !important;
+    }
+
+        .btn-fuxa-success:hover {
+            background: #15805d !important;
+            transform: translateY(-1px);
+        }
+</style>
+
+@code {
+    [Parameter] public int IdMaquina { get; set; }
+    [Parameter] public int IdOperacion { get; set; }
+
+    private List<Material> materialesDisponibles;
+    private int idMaterialSeleccionado;
+    private double cantidadConsumida = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        materialesDisponibles = await ImputacionService.ObtenerMaterialesPorMaquinaAsync(IdMaquina);
+    }
+
+    private async Task GuardarMaterial()
+    {
+        bool exito = await ImputacionService.RegistrarConsumoMaterialAsync(IdOperacion, idMaterialSeleccionado, cantidadConsumida);
+
+        if (exito)
+        {
+            NotificationService.Notify(NotificationSeverity.Success, "Añadido", "Material registrado correctamente.");
+
+            idMaterialSeleccionado = 0;
+            cantidadConsumida = 1;
+        }
+        else
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", "No se pudo registrar el material.");
+        }
+    }
+}

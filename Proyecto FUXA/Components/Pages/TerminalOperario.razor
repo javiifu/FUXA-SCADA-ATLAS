@@ -184,6 +184,17 @@
                     </RadzenColumn>
                 </RadzenRow>
 
+                <RadzenRow class="rz-mb-4">
+                    <RadzenColumn Size="12">
+                        <RadzenButton Text="AÑADIR MATERIALES AL TURNO"
+                                      Icon="inventory_2"
+                                      ButtonStyle="ButtonStyle.Info"
+                                      Size="ButtonSize.Large"
+                                      Click="AbrirDialogoMateriales"
+                                      Style="height: 60px; font-weight: bold; border-radius: 12px; width: 100%; font-size: 1.1rem; background-color: #1F4E79;" />
+                    </RadzenColumn>
+                </RadzenRow>
+
                 <RadzenRow Gap="1rem">
                     <RadzenColumn Size="12" SizeMD="6">
                         <RadzenButton Text="@(estaPausado ? "REANUDAR MÁQUINA" : "PAUSAR MÁQUINA")"
@@ -628,5 +639,28 @@
                 NavManager.NavigateTo("/terminal-operario-seleccion");
             }
         }
+    }
+
+    private async Task AbrirDialogoMateriales()
+    {
+        dialogoAbierto = true;
+
+        await DialogService.OpenAsync<DialogoMaterialesOperacion>(
+            $"Materiales - {maquinaActual.Nombre}",
+            new Dictionary<string, object>
+            {
+            { "IdMaquina", IdMaquina },
+            { "IdOperacion", ordenSeleccionada.Id }
+            },
+            new DialogOptions()
+            {
+                Width = "500px",
+                Resizable = false,
+                Draggable = true,
+                Style = "border-radius: 16px;"
+            }
+        );
+
+        dialogoAbierto = false;
     }
 }
