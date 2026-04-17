@@ -535,7 +535,7 @@ public class ImputacionService
         }
     }
 
-    public async Task<bool> RegistrarConsumoMaterialAsync(int idOperacion, int idMaterial, decimal cantidad, string? observaciones = null)
+    public async Task<bool> RegistrarConsumoMaterialAsync(int idOperacion, int idMaterial, decimal cantidad, int idEmpleado , string? observaciones = null)
     {
         try
         {
@@ -543,6 +543,7 @@ public class ImputacionService
             {
                 IdOperacion = idOperacion,
                 IdMaterial = idMaterial,
+                IdEmpleado = idEmpleado,
                 Cantidad = cantidad,
                 Observaciones = observaciones,
                 FechaRegistro = DateTime.Now

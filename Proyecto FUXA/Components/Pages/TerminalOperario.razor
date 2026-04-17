@@ -649,8 +649,9 @@
             $"Materiales - {maquinaActual.Nombre}",
             new Dictionary<string, object>
             {
-            { "IdMaquina", IdMaquina },
-            { "IdOperacion", ordenSeleccionada.Id }
+                { "IdMaquina", IdMaquina },
+                { "IdOperacion", ordenSeleccionada.Id },
+                { "IdEmpleado", operarioSeleccionado.Id}
             },
             new DialogOptions()
             {

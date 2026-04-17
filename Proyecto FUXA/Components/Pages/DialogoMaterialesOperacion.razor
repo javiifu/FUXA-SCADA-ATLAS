@@ -234,6 +234,7 @@
 @code {
     [Parameter] public int IdMaquina { get; set; }
     [Parameter] public int IdOperacion { get; set; }
+    [Parameter] public int IdEmpleado { get; set; }
 
     private List<Material> materialesDisponibles;
     private List<ImputacionMaterial> consumosActuales;
@@ -256,7 +257,7 @@
 
     private async Task GuardarMaterial()
     {
-        bool exito = await ImputacionService.RegistrarConsumoMaterialAsync(IdOperacion, idMaterialSeleccionado, cantidadConsumida);
+        bool exito = await ImputacionService.RegistrarConsumoMaterialAsync(IdOperacion, idMaterialSeleccionado, cantidadConsumida, IdEmpleado);
 
         if (exito)
         {
@@ -283,6 +284,7 @@
                 IdMaterial = idMaterialSeleccionado,
                 Cantidad = cantidadConsumida,
                 FechaRegistro = DateTime.Now,
+                IdEmpleado = IdEmpleado,
                 Material = materialUsado 
             };
 
