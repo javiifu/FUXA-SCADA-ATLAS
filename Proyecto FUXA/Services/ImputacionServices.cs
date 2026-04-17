@@ -514,20 +514,28 @@ public class ImputacionService
     {
         try
         {
-            return await _context.MaquinasMateriales
-            .Where(m => m.IdMaquina == idMaquina)
-            .Include(mm => mm.Material)
-            .Select(mm => mm.Material)
-            .ToListAsync();
+            var idsMateriales = await _context.MaquinasMateriales
+                .Where(mm => mm.IdMaquina == idMaquina)
+                .Select(mm => mm.IdMaterial)
+                .ToListAsync();
+
+            if (!idsMateriales.Any())
+            {
+                return new List<Material>();
+            }
+
+            return await _context.Materiales
+                .Where(m => idsMateriales.Contains(m.Id))
+                .ToListAsync();
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"Error obteniendo materiales: {ex.Message}");
             return new List<Material>();
         }
-        
     }
 
-    public async Task<bool> RegistrarConsumoMaterialAsync(int idOperacion, int idMaterial, double cantidad, string? observaciones = null)
+    public async Task<bool> RegistrarConsumoMaterialAsync(int idOperacion, int idMaterial, decimal cantidad, string? observaciones = null)
     {
         try
         {
@@ -551,4 +559,29 @@ public class ImputacionService
         }
     }
 
+    public async Task<List<ImputacionMaterial>> ObtenerConsumosPorOperacionAsync(int idOperacion)
+    {
+        try
+        {
+            var listaConsumos = await _context.ImputacionMateriales
+                .AsNoTracking()
+                .Where(im => im.IdOperacion == idOperacion)
+                .OrderByDescending(im => im.FechaRegistro)
+                .ToListAsync();
+
+            var todosLosMateriales = await _context.Materiales.AsNoTracking().ToListAsync();
+
+            foreach (var consumo in listaConsumos)
+            {
+                consumo.Material = todosLosMateriales.FirstOrDefault(m => m.Id == consumo.IdMaterial);
+            }
+
+            return listaConsumos;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fatal leyendo BBDD: {ex.Message}");
+            return new List<ImputacionMaterial>();
+        }
+    }
 }

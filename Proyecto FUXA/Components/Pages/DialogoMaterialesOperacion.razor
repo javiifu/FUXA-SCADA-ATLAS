@@ -8,54 +8,109 @@
 @inject DialogService DialogService
 
 <div class="fuxa-dialog-wrapper">
-    <div class="fuxa-step-card">
-        <div class="step-header">
-            <RadzenIcon Icon="category" Style="font-size: 1.5rem; color: #1F4E79; margin-right: 10px;" />
-            <RadzenText TextStyle="TextStyle.Subtitle1" class="step-title">Seleccione el material</RadzenText>
-        </div>
+    <RadzenRow Gap="1.5rem">
 
-        @if (materialesDisponibles == null)
-        {
-            <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
-        }
-        else if (!materialesDisponibles.Any())
-        {
-            <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat">
-                No hay materiales vinculados a esta máquina.
-            </RadzenAlert>
-        }
-        else
-        {
-            <RadzenDropDown @bind-Value="idMaterialSeleccionado"
-                            Data="@materialesDisponibles"
-                            TextProperty="Nombre"
-                            ValueProperty="Id"
-                            AllowFiltering="true"
-                            Placeholder="Buscar material..."
-                            class="fuxa-modern-input rz-mb-4" />
+        @* COLUMNA IZQUIERDA: FORMULARIO *@
+        <RadzenColumn Size="12" SizeMD="5">
+            <div class="fuxa-step-card h-100">
+                <div class="step-header">
+                    <RadzenIcon Icon="category" Style="font-size: 1.5rem; color: #1F4E79; margin-right: 10px;" />
+                    <RadzenText TextStyle="TextStyle.Subtitle1" class="step-title">Seleccione material</RadzenText>
+                </div>
 
-            <div class="step-header rz-mt-4">
-                <RadzenIcon Icon="scale" Style="font-size: 1.5rem; color: #1F4E79; margin-right: 10px;" />
-                <RadzenText TextStyle="TextStyle.Subtitle1" class="step-title">Cantidad consumida</RadzenText>
+                @if (materialesDisponibles == null)
+                {
+                    <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+                }
+                else if (!materialesDisponibles.Any())
+                {
+                    <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat">
+                        No hay materiales disponibles.
+                    </RadzenAlert>
+                }
+                else
+                {
+                    <RadzenDropDown @bind-Value="idMaterialSeleccionado"
+                                    Data="@materialesDisponibles"
+                                    TextProperty="Nombre"
+                                    ValueProperty="Id"
+                                    AllowFiltering="true"
+                                    Placeholder="Buscar material..."
+                                    class="fuxa-modern-input rz-mb-4" />
+
+                    <div class="step-header rz-mt-4">
+                        <RadzenIcon Icon="scale" Style="font-size: 1.5rem; color: #1F4E79; margin-right: 10px;" />
+                        <RadzenText TextStyle="TextStyle.Subtitle1" class="step-title">Cantidad consumida</RadzenText>
+                    </div>
+
+                    <RadzenNumeric TValue="decimal" @bind-Value="cantidadConsumida"
+                                   Min="0.1m"
+                                   class="fuxa-modern-input numeric-center rz-mb-4" />
+
+                    <RadzenButton Text="AÑADIR CONSUMO"
+                                  Icon="add_circle"
+                                  Click="GuardarMaterial"
+                                  Disabled="@(idMaterialSeleccionado == 0 || cantidadConsumida <= 0)"
+                                  class="btn-fuxa-success w-100" />
+                }
             </div>
+        </RadzenColumn>
 
-            <RadzenNumeric TValue="double" @bind-Value="cantidadConsumida"
-                           Min="0.1m"
-                           class="fuxa-modern-input numeric-center" />
-        }
-    </div>
+        @* COLUMNA DERECHA: HISTORIAL *@
+        <RadzenColumn Size="12" SizeMD="7">
+            <div class="fuxa-step-card h-100" style="background-color: #FFFFFF;">
+                <div class="step-header" style="border-bottom: 2px solid #E2E8F0; padding-bottom: 10px;">
+                    <RadzenIcon Icon="history" Style="font-size: 1.5rem; color: #64748B; margin-right: 10px;" />
+                    <RadzenText TextStyle="TextStyle.Subtitle1" class="step-title" Style="color: #64748B;">Materiales imputados</RadzenText>
+                </div>
+
+                @if (consumosActuales == null)
+                {
+                    <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" class="rz-mt-4" />
+                }
+                else if (!consumosActuales.Any())
+                {
+                    <div class="empty-state-fuxa">
+                        <RadzenIcon Icon="inventory_2" Style="font-size: 3rem; color: #CBD5E1;" />
+                        <p>Aún no hay materiales registrados para esta operación.</p>
+                    </div>
+                }
+                else
+                {
+                    <RadzenDataGrid @ref="gridConsumos" Data="@consumosActuales" TItem="ImputacionMaterial"
+                                    AllowPaging="true" PageSize="5"
+                                    class="fuxa-custom-grid rz-mt-3">
+                        <Columns>
+                            <RadzenDataGridColumn TItem="ImputacionMaterial" Property="Material.CodigoMaterial" Title="Código"/>
+
+                            <RadzenDataGridColumn TItem="ImputacionMaterial" Property="Material.Nombre" Title="Material">
+                                <Template Context="data">
+                                    <span style="font-weight: bold; color: #1A2E3F;">
+                                        @(data.Material?.Nombre ?? "Desconocido")
+                                    </span>
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            <RadzenDataGridColumn TItem="ImputacionMaterial" Property="Cantidad" Title="Cant." Width="100px">
+                                <Template Context="data">
+                                    <span style="color: black; font-weight: bold; font-size: 1.1rem;"><b>@data.Cantidad</b></span>
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            <RadzenDataGridColumn TItem="ImputacionMaterial" Property="FechaRegistro" Title="Hora" Width="100px">
+                                <Template Context="data">
+                                    <span style="color: #64748B;">@data.FechaRegistro.ToString("HH:mm")</span>
+                                </Template>
+                            </RadzenDataGridColumn>
+                        </Columns>
+                    </RadzenDataGrid>
+                }
+            </div>
+        </RadzenColumn>
+    </RadzenRow>
 
     <div class="fuxa-dialog-actions">
-        <RadzenButton Text="VOLVER"
-                      Icon="arrow_back"
-                      Click="() => DialogService.Close()"
-                      class="btn-fuxa-outline" />
-
-        <RadzenButton Text="AÑADIR CONSUMO"
-                      Icon="add_circle"
-                      Click="GuardarMaterial"
-                      Disabled="@(idMaterialSeleccionado == 0 || cantidadConsumida <= 0)"
-                      class="btn-fuxa-success" />
+        <RadzenButton Text="CERRAR VENTANA" Icon="done" Click="() => DialogService.Close()" class="btn-fuxa-outline" />
     </div>
 </div>
 
@@ -143,6 +198,37 @@
             background: #15805d !important;
             transform: translateY(-1px);
         }
+
+    .empty-state-fuxa {
+        text-align: center;
+        padding: 30px 10px;
+        color: #94A3B8;
+    }
+
+        .empty-state-fuxa p {
+            margin-top: 10px;
+            font-weight: 500;
+        }
+
+    .fuxa-custom-grid {
+        border: none !important;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+        .fuxa-custom-grid .rz-grid-table thead th {
+            background-color: #F1F5F9;
+            color: #475569;
+            font-weight: 800;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #E2E8F0;
+        }
+
+        .fuxa-custom-grid .rz-grid-table td {
+            border-bottom: 1px solid #F1F5F9;
+        }
 </style>
 
 @code {
@@ -150,12 +236,22 @@
     [Parameter] public int IdOperacion { get; set; }
 
     private List<Material> materialesDisponibles;
+    private List<ImputacionMaterial> consumosActuales;
+    private RadzenDataGrid<ImputacionMaterial> gridConsumos;
+
     private int idMaterialSeleccionado;
-    private double cantidadConsumida = 1;
+    private decimal cantidadConsumida = 1m;
 
     protected override async Task OnInitializedAsync()
     {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
         materialesDisponibles = await ImputacionService.ObtenerMaterialesPorMaquinaAsync(IdMaquina);
+
+        consumosActuales = await ImputacionService.ObtenerConsumosPorOperacionAsync(IdOperacion);
     }
 
     private async Task GuardarMaterial()
@@ -166,8 +262,29 @@
         {
             NotificationService.Notify(NotificationSeverity.Success, "Añadido", "Material registrado correctamente.");
 
+            var materialUsado = materialesDisponibles.FirstOrDefault(m => m.Id == idMaterialSeleccionado);
+
+            var nuevoConsumoVirtual = new ImputacionMaterial
+            {
+                IdOperacion = IdOperacion,
+                IdMaterial = idMaterialSeleccionado,
+                Cantidad = cantidadConsumida,
+                FechaRegistro = DateTime.Now,
+                Material = materialUsado 
+            };
+
+            if (consumosActuales == null) consumosActuales = new List<ImputacionMaterial>();
+
+            consumosActuales.Insert(0, nuevoConsumoVirtual);
+
             idMaterialSeleccionado = 0;
             cantidadConsumida = 1;
+
+            if (gridConsumos != null)
+            {
+                await gridConsumos.Reload();
+            }
+            StateHasChanged();
         }
         else
         {
