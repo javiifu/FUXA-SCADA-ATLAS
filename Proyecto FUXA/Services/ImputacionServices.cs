@@ -584,4 +584,51 @@ public class ImputacionService
             return new List<ImputacionMaterial>();
         }
     }
+
+    public async Task<bool> RestadoStockAsync(int idMaterial, decimal cantidadConsumida)
+    {
+        try
+        {
+            var material = await _context.Materiales.FindAsync(idMaterial);
+
+            if (material != null)
+            {
+                if (material.Stock < cantidadConsumida)
+                {
+                    return false;
+                }
+
+                material.Stock -= cantidadConsumida;
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            return false;
+        }catch (Exception ex)
+        {
+            Console.WriteLine($"Error al restar stock {ex.Message}");
+            return false;
+        }
+    }
+    public async Task<bool> StockMinimoAsync(int idMaquina, decimal cantidadConsumida)
+    {
+        try
+        {
+            var material = await _context.Materiales.FindAsync(idMaquina);
+
+            if(material != null)
+            {
+                decimal stockMinimoAviso = material.Stock - cantidadConsumida;
+                if(material.StockMinimo > stockMinimoAviso)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }catch(Exception ex)
+        {
+            Console.WriteLine($"Error con el stock minimo {ex.Message}");
+            return false;
+        }
+    }
 }

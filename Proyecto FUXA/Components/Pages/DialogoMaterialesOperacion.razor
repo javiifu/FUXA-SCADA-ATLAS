@@ -10,7 +10,7 @@
 <div class="fuxa-dialog-wrapper">
     <RadzenRow Gap="1.5rem">
 
-        @* COLUMNA IZQUIERDA: FORMULARIO *@
+        @* imputacion materiales *@
         <RadzenColumn Size="12" SizeMD="5">
             <div class="fuxa-step-card h-100">
                 <div class="step-header">
@@ -56,7 +56,7 @@
             </div>
         </RadzenColumn>
 
-        @* COLUMNA DERECHA: HISTORIAL *@
+        @* tabla de materiales imputados *@
         <RadzenColumn Size="12" SizeMD="7">
             <div class="fuxa-step-card h-100" style="background-color: #FFFFFF;">
                 <div class="step-header" style="border-bottom: 2px solid #E2E8F0; padding-bottom: 10px;">
@@ -81,7 +81,7 @@
                                     AllowPaging="true" PageSize="5"
                                     class="fuxa-custom-grid rz-mt-3">
                         <Columns>
-                            <RadzenDataGridColumn TItem="ImputacionMaterial" Property="Material.CodigoMaterial" Title="Código"/>
+                            <RadzenDataGridColumn TItem="ImputacionMaterial" Property="Material.CodigoMaterial" Title="Código" Width="100px"/>
 
                             <RadzenDataGridColumn TItem="ImputacionMaterial" Property="Material.Nombre" Title="Material">
                                 <Template Context="data">
@@ -97,9 +97,9 @@
                                 </Template>
                             </RadzenDataGridColumn>
 
-                            <RadzenDataGridColumn TItem="ImputacionMaterial" Property="FechaRegistro" Title="Hora" Width="100px">
+                            <RadzenDataGridColumn TItem="ImputacionMaterial" Property="FechaRegistro" Title="Fecha" Width="150px">
                                 <Template Context="data">
-                                    <span style="color: #64748B;">@data.FechaRegistro.ToString("HH:mm")</span>
+                                    <span style="color: #64748B;">@data.FechaRegistro.ToString("dd/MM/yyyy HH:mm")</span>
                                 </Template>
                             </RadzenDataGridColumn>
                         </Columns>
@@ -260,6 +260,19 @@
 
         if (exito)
         {
+            bool restaCorrecta = await ImputacionService.RestadoStockAsync(idMaterialSeleccionado, cantidadConsumida);
+            bool stockMinimoBool = await ImputacionService.StockMinimoAsync(idMaterialSeleccionado, cantidadConsumida);
+
+            if (!restaCorrecta)
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Error", "La cantidad imputada es superior al stock");
+                return;
+            }
+            if (stockMinimoBool)
+            {
+                NotificationService.Notify(NotificationSeverity.Warning, "Aviso", "El material ha alcanzado el stock mínimo");
+            }
+
             NotificationService.Notify(NotificationSeverity.Success, "Añadido", "Material registrado correctamente.");
 
             var materialUsado = materialesDisponibles.FirstOrDefault(m => m.Id == idMaterialSeleccionado);
