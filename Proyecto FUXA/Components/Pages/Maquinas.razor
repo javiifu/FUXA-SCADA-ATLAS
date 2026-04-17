@@ -587,7 +587,7 @@ else
             { "OperacionActiva", opActiva }
         };
 
-        var res = await DialogService.OpenAsync<DialogoFinalizarOperacion>($"Finalizar: {maquina.Nombre}", parametros);
+        var res = await DialogService.OpenAsync<DialogoFinalizarOperacionMaquina>($"Finalizar: {maquina.Nombre}", parametros);
 
         if(res == true)
         {
