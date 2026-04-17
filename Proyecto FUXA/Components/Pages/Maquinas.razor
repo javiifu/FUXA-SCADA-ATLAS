@@ -279,19 +279,43 @@ else
                 
                 maquinasHMI.Add(new MaquinaHMI
                 {
-                    Id = maquina.Id,
-                    Nombre = maquina.Nombre,
-                    Seccion = string.IsNullOrWhiteSpace(maquina.Seccion) ? "Sin asignar" : maquina.Seccion,
-                    EstadoActualId = maquina.EstadoActualId,
-                    CiclosObjetivo = maquina.CiclosObjetivo,
-                    CiclosReales = maquina.CiclosReales,
-                    IncidenciasActivas = maquina.IncidenciasActivas,
-                    IncidenciasActivasDetalle = maquina.IncidenciasActivasDetalle,
-                    UltimoMantenimiento = maquina.UltimoMantenimiento,
-                    ProximoMantenimiento = maquina.ProximoMantenimiento,
-                    PorcentajeCiclos = (float)ServicioProductividad.CalcularProductividadPorHora(maquina.CiclosReales, maquina.CiclosObjetivo)
-                });
-                        
+                    m.CiclosObjetivo = operacionActiva.CiclosObjetivo;
+                    m.CodigoOperacionActiva = operacionActiva.CodigoOperacion;
+
+                }
+                else
+                {
+                    m.PorcentajeCiclos = 0;
+                    m.CodigoOperacionActiva = "Sin operacion";
+                    m.CiclosObjetivo = 0;
+                    m.CiclosReales = 0;
+                    if(m.EstadoActualId != 4)
+                    {
+                        m.EstadoActualId = 3;
+                    }
+                }
+
+                if (m.CiclosObjetivo > 0 && (m.EstadoActualId == 1 || m.EstadoActualId == 2 ))
+                {
+                    m.PorcentajeCiclos = (float)((double)m.CiclosReales / m.CiclosObjetivo * 100);
+
+                    if (m.PorcentajeCiclos > 100) m.PorcentajeCiclos = 100;
+                    if (m.PorcentajeCiclos < 50)
+                    {
+                        m.EstadoActualId = 2;
+                    }
+                    if(m.PorcentajeCiclos >= 50)
+                    {
+                        m.EstadoActualId = 1;
+                    }
+                }
+
+                var emp = todosLosEmpleados.FirstOrDefault(e => e.Id == m.EmpleadoId);
+                if (emp != null)
+                {
+                    m.NombreOperario = $"{emp.Nombre} {emp.Apellidos}";
+                    m.CargoOperario = emp.Cargo;
+                }
             }
             maquinasFiltradas = maquinasHMI.ToList();
             SelectedMaquinas = maquinasHMI.Any()
@@ -738,6 +762,97 @@ else
                 CloseDialogOnOverlayClick = true
             });
     }
-}
+
+    private async Task AbrirDialogoNuevaSeccion()
+    {
+        var nuevaSeccion = new Seccion
+        {
+
+        };
+
+        var parametros = new Dictionary<string, object>()
+        {
+            {"NuevaSeccion", nuevaSeccion}
+        };
+
+        var res = await DialogService.OpenAsync<DialogoNuevaSeccion>("Nueva seccion", parametros);
+
+        if(res == true)
+        {
+            await CargarMaquinasDesdeSQL();
+            StateHasChanged();
+        }
+    }
+
+    private async Task AbrirDialogoNuevoMaterial()
+    {
+        var nuevoMaterial = new Material();
+
+        var parametros = new Dictionary<string, object>()
+        {
+            {"MaterialParaEditar", nuevoMaterial}
+        };
+
+        var res = await DialogService.OpenAsync<DialogoNuevoMaterial>("Nuevo material", parametros);
+
+        if(res == true)
+        {
+            await CargarMaquinasDesdeSQL();
+            StateHasChanged();
+        }
+    }
+
+    private async Task AbrirDialogoEdicion(Maquina maquinaSeleccionada)
+    {
+        var opActiva = listaOperacionesActivas.FirstOrDefault(o => o.IdMaquina == maquinaSeleccionada.Id);
+
+        if(opActiva != null)
+        {
+            maquinaSeleccionada.PiezasFabricadas = opActiva.PiezasFabricadas;
+            maquinaSeleccionada.PiezasRotas = opActiva.PiezasRotas;
+        }
+        else
+        {
+            maquinaSeleccionada.PiezasFabricadas = 0;
+            maquinaSeleccionada.PiezasRotas = 0;
+        }
+
+        var parametros = new Dictionary<string, object>()
+        {
+            {"MaquinaParaEditar", maquinaSeleccionada}
+        };
+        var res = await DialogService.OpenAsync<DialogoNuevaMaquina>("Editar máquina", parametros);
+
+        if(res == true)
+        {
+            await CargarMaquinasDesdeSQL();
+            listaOperacionesActivas = await ImputacionService.ObtenerOperacionesActivasAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task AbrirFinalizarOperacion(Maquina maquina)
+    {
+
+        var opActiva = listaOperacionesActivas.FirstOrDefault(o => o.IdMaquina == maquina.Id);
+
+        var parametros = new Dictionary<string, object>()
+        {
+            { "OperacionActiva", opActiva }
+        };
+
+        var res = await DialogService.OpenAsync<DialogoFinalizarOperacionMaquina>($"Finalizar: {maquina.Nombre}", parametros);
+
+        if(res == true)
+        {
+
+            await CargarMaquinasDesdeSQL();
+
+            listaOperacionesActivas = await ImputacionService.ObtenerOperacionesActivasAsync();
+
+            StateHasChanged();
+        }
+    }
+
 
 }

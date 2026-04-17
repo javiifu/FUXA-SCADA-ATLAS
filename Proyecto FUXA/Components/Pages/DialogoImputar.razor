@@ -44,16 +44,28 @@
                                 </ValueTemplate>
                             </RadzenDropDown>
                         </RadzenStack>
-
-                        <RadzenStack Gap="0.5rem">
-                            <RadzenText TextStyle="TextStyle.Subtitle2">Horas trabajadas</RadzenText>
-                            <RadzenNumeric @bind-Value="nuevaImp.Horas" TValue="decimal" Step="0.5" class="w-100" />
-                        </RadzenStack>
-
+                        @* observaciones *@
                         <RadzenStack Gap="0.5rem">
                             <RadzenText TextStyle="TextStyle.Subtitle2">Observaciones</RadzenText>
-                            <RadzenTextArea @bind-Value="nuevaImp.Observaciones" Placeholder="Ej: Cambio de molde..." class="w-100" />
+                            <RadzenTextArea @bind-Value="nuevaImp.Observaciones" class="w-100" />
                         </RadzenStack>
+
+                        @* horas *@
+                        <RadzenStack Gap="0.5rem">
+                            <RadzenText TextStyle="TextStyle.Subtitle2">Horas de trabajo</RadzenText>
+                            <RadzenRow>
+                                <RadzenColumn Size="6">
+                                    <RadzenText TextStyle="TextStyle.Caption" class="rz-color-base-500">Hora inicio</RadzenText>
+                                    <RadzenDatePicker @bind-Value="horaInicio" ShowTime="true" TimeOnly="true" DateFormat="HH:mm" class="w-100" />
+                                </RadzenColumn>
+                                <RadzenColumn Size="6">
+                                    <RadzenText TextStyle="TextStyle.Caption" class="rz-color-base-500">Hora fin</RadzenText>
+                                    <RadzenDatePicker @bind-Value="horaFin" ShowTime="true" TimeOnly="true" DateFormat="HH:mm" class="w-100" />
+                                </RadzenColumn>
+                            </RadzenRow>
+                        </RadzenStack>
+
+                        <RadzenStack class="rz-color-base-500">Horas: @CalcularHorasEnTiempoReal()</RadzenStack>
 
                         <RadzenStack Gap="0.5rem">
                             <RadzenText TextStyle="TextStyle.Subtitle2">Fecha de realización</RadzenText>
@@ -96,7 +108,7 @@
                             <RadzenColumn Size="5">
                                 <RadzenStack Gap="0.5rem">
                                     <RadzenText TextStyle="TextStyle.Subtitle2">Cantidad</RadzenText>
-                                    <RadzenNumeric @bind-Value="nuevaImpMat.Cantidad" TValue="double" Step="1" class="w-100" />
+                                    <RadzenNumeric @bind-Value="nuevaImpMat.Cantidad" TValue="decimal" Step="1" class="w-100" />
                                 </RadzenStack>
                             </RadzenColumn>
                         </RadzenRow>
@@ -158,21 +170,16 @@
     [Parameter] public List<Empleado> ListaOperarios { get; set; }
     [Parameter] public List<Material> ListaMateriales { get; set; }
 
-    private ImputacionOperario nuevaImp = new();
-    private ImputacionMaterial nuevaImpMat = new();
+    ImputacionOperario nuevaImp = new ImputacionOperario();
+    ImputacionMaterial nuevaImpMat = new ImputacionMaterial();
+
+    DateTime? horaInicio;
+    DateTime? horaFin;
 
     private List<ImputacionMaterial> listaMaterialesAImputar = new();
 
     protected override async Task OnInitializedAsync()
     {
-        if (OperacionActiva != null)
-        {
-            nuevaImp.IdOperacion = OperacionActiva.Id;
-            nuevaImp.FechaRegistro = DateTime.Now;
-
-            nuevaImpMat.IdOperacion = OperacionActiva.Id;
-            nuevaImpMat.FechaRegistro = DateTime.Now;
-        }
 
         if (ListaMateriales == null || !ListaMateriales.Any())
         {
@@ -185,13 +192,54 @@
         ListaMateriales = await ImputacionService.ObtenerMaterialesAsync();
     }
 
+    private string CalcularHorasEnTiempoReal()
+    {
+        if(!horaInicio.HasValue || !horaFin.HasValue)
+        {
+            return "0h 0m";
+        }
+
+        TimeSpan diferencia = horaFin.Value - horaInicio.Value;
+
+        if(diferencia.TotalHours < 0)
+        {
+            diferencia = diferencia.Add(TimeSpan.FromHours(24));
+        }
+
+        int horas = (int)diferencia.TotalHours;
+        int minutos = diferencia.Minutes;
+
+        return $"{horas}h {minutos}m";
+    }
+
     private async Task GuardarHoras()
     {
-        if (nuevaImp.IdEmpleado == 0 || nuevaImp.Horas <= 0)
+        if (!horaInicio.HasValue || !horaFin.HasValue)
         {
-            NotificationService.Notify(NotificationSeverity.Warning, "Atención", "Selecciona operario y horas");
+            NotificationService.Notify(NotificationSeverity.Error, "Error", "Debes seleccionar las horas de inicio y fin");
             return;
         }
+
+        TimeSpan diferencia = horaFin.Value - horaInicio.Value;
+
+        if (diferencia.TotalHours < 0)
+        {
+            diferencia = diferencia.Add(TimeSpan.FromHours(24));
+        }
+
+        nuevaImp.Horas = (decimal)diferencia.TotalHours;
+
+        if(nuevaImp.FechaRegistro == default(DateTime))
+        {
+            nuevaImp.FechaRegistro = DateTime.Now;
+        }
+
+        DateTime diaElegido = nuevaImp.FechaRegistro.Date;
+
+        nuevaImp.FechaInicio = diaElegido.Add(horaInicio.Value.TimeOfDay);
+        nuevaImp.FechaFin = diaElegido.Add(horaFin.Value.TimeOfDay);
+
+        nuevaImp.IdOperacion = OperacionActiva.Id;
 
         try
         {

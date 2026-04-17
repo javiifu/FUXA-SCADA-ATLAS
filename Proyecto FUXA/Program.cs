@@ -34,7 +34,7 @@ builder.Services.AddScoped<TooltipService>();
 builder.Services.AddScoped<ContextMenuService>();
 builder.Services.AddScoped<ImputacionService>();
 builder.Services.AddScoped<NotificationService>();
-
+builder.Services.AddScoped<ServicioEmpleado>();
 builder.Services.AddScoped<ServicioMaquina>();
 builder.Services.AddScoped<ServicioIncidencia>();
 builder.Services.AddScoped<ServicioProductividad>();
@@ -66,4 +66,16 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-app.Run();
+try
+{
+    app.Run();
+}
+catch (Exception ex)
+{
+    Console.WriteLine("-------------------------------------------------");
+    Console.WriteLine("💥 ERROR FATAL QUE ESTÁ MATANDO EL SERVIDOR: ");
+    Console.WriteLine(ex.ToString());
+    Console.WriteLine("-------------------------------------------------");
+    Console.WriteLine("Presiona ENTER para cerrar esta ventana...");
+    Console.ReadLine();
+}

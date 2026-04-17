@@ -172,29 +172,31 @@ namespace Proyecto_FUXA.Services
 
         public async Task GuardarMaquina(Maquina maquina)
         {
-            var dbMaquina = await _db.Maquinas.FindAsync(maquina.Id);
-
-
             if (maquina.Id == 0)
             {
                 maquina.FechaCreacion = DateTime.UtcNow;
                 maquina.FechaActualizacion = DateTime.UtcNow;
-
                 _db.Maquinas.Add(maquina);
                 await _db.SaveChangesAsync();
             }
             else
             {
+                var dbMaquina = await _db.Maquinas.FindAsync(maquina.Id);
                 if (dbMaquina != null)
                 {
                     dbMaquina.Nombre = maquina.Nombre;
-                    dbMaquina.IdSeccion = maquina.IdSeccion;
+
+                    if (maquina.IdSeccion.HasValue && maquina.IdSeccion > 0)
+                    {
+                        dbMaquina.IdSeccion = maquina.IdSeccion;
+                    }
+
                     dbMaquina.CiclosReales = maquina.CiclosReales;
                     dbMaquina.EmpleadoId = maquina.EmpleadoId;
                     dbMaquina.EstadoActualId = maquina.EstadoActualId;
                     dbMaquina.FechaActualizacion = DateTime.UtcNow;
-                    dbMaquina.PiezasFabricadas = maquina.PiezasFabricadas;
-                    dbMaquina.PiezasRotas = maquina.PiezasRotas;
+
+                    dbMaquina.CiclosObjetivo = maquina.CiclosObjetivo;
 
                     var opActiva = await _db.OperacionesOrden
                         .FirstOrDefaultAsync(o => o.IdMaquina == maquina.Id && o.Estado == "Activa");
@@ -402,77 +404,9 @@ namespace Proyecto_FUXA.Services
             }
         }
 
-
-        public async Task<DateTime?> GuardarProximoMantenimientoAsync(int maquinaId, DateTime? fechaProgramada)
+        public async Task<bool> ComprobarOperacionActiva(int maquinaId)
         {
-            var mantenimiento = await _db.Mantenimientos
-                .Where(m => m.MaquinaId == maquinaId && m.FechaProgramada != null)
-                .OrderByDescending(m => m.FechaProgramada)
-                .ThenByDescending(m => m.Id)
-                .FirstOrDefaultAsync();
-
-            if (mantenimiento is null)
-            {
-                if (fechaProgramada is null)
-                {
-                    return null;
-                }
-                mantenimiento = new Mantenimiento
-                {
-                    MaquinaId = maquinaId,
-                    Estado = "Programado",
-                    Tipo = "Preventivo",
-                    FechaProgramada = fechaProgramada,
-                    FechaCreacion = DateTime.UtcNow,
-                    Observaciones = null
-                };
-
-                _db.Mantenimientos.Add(mantenimiento);
-            }
-            else
-            {
-                mantenimiento.FechaProgramada = fechaProgramada;
-            }
-
-            await _db.SaveChangesAsync();
-            return mantenimiento.FechaProgramada;
-        }
-    
-
-    public async Task<int> CrearIncidenciaAsync(IncidenciaActivaDto dto)
-        {
-            var maquina = await _db.Maquinas.FirstOrDefaultAsync(m => m.Id == dto.MaquinaId);
-
-            if (maquina is null)
-                throw new InvalidOperationException($"No existe la máquina con Id {dto.MaquinaId}.");
-
-            if (string.IsNullOrWhiteSpace(dto.Titulo))
-                throw new InvalidOperationException("El título es obligatorio.");
-
-            if (string.IsNullOrWhiteSpace(dto.Prioridad))
-                throw new InvalidOperationException("La prioridad es obligatoria.");
-
-            if (string.IsNullOrWhiteSpace(dto.Estado))
-                throw new InvalidOperationException("El estado es obligatorio.");
-
-            var incidencia = new Incidencia
-            {
-                MaquinaId = dto.MaquinaId,
-                Titulo = dto.Titulo.Trim(),
-                Descripcion = string.IsNullOrWhiteSpace(dto.Descripcion) ? null : dto.Descripcion.Trim(),
-                Prioridad = dto.Prioridad.Trim(),
-                Estado = dto.Estado.Trim(),
-                FechaApertura = dto.FechaApertura == default ? DateTime.Now : dto.FechaApertura,
-                FechaCierre = dto.FechaCierre,
-                UsuarioApertura = string.IsNullOrWhiteSpace(dto.UsuarioApertura) ? null : dto.UsuarioApertura.Trim(),
-                UsuarioAsignado = string.IsNullOrWhiteSpace(dto.UsuarioAsignado) ? null : dto.UsuarioAsignado.Trim()
-            };
-
-            _db.Incidencias.Add(incidencia);
-
-            await _db.SaveChangesAsync();
-
-            return incidencia.Id;
+            return await _db.OperacionesOrden.AnyAsync(op => op.IdMaquina == maquinaId && op.Estado == "Activa");
         }
     }
 }

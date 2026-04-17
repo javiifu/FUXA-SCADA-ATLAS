@@ -13,4 +13,6 @@ public class Material
     public string? Descripcion { get; set; }
     public decimal Stock { get; set; }
     public decimal StockMinimo { get; set; }
+
+    public virtual ICollection<MaquinaMaterial> MaquinasMateriales { get; set; } = new List<MaquinaMaterial>();
 }

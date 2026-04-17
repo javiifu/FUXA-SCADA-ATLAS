@@ -54,9 +54,6 @@ namespace Proyecto_FUXA.Models
         [ForeignKey("EstadoActualId")]
         public virtual MaquinaEstatus? EstadoActual { get; set; }
 
-        [NotMapped]
-        public int? PosX { get; set; }
-        [NotMapped]
-        public int? PosY { get; set; }
+        public virtual ICollection<MaquinaMaterial> MaquinasMateriales { get; set; } = new List<MaquinaMaterial>();
     }
 }

@@ -1,10 +1,12 @@
 ﻿@page "/operaciones-activas"
+@using Proyecto_FUXA.Models
 @using Proyecto_FUXA.Services
 @using Radzen
 @using Radzen.Blazor
 @using static Proyecto_FUXA.Services.ImputacionService
 @inject ImputacionService ImputacionService
 @inject DialogService DialogService
+@inject ServicioMaquina ServicioMaquina
 
 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" class="rz-mb-4">
     <RadzenText TextStyle="TextStyle.H4" class="rz-m-0">Monitor de operaciones</RadzenText>
@@ -18,7 +20,15 @@
 <RadzenDataGrid Data="@listaOperaciones" TItem="OperacionResumenDTO" AllowPaging="true" PageSize="10"
                 AllowFiltering="true" FilterMode="FilterMode.Simple" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive">
     <Columns>
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="CodigoOperacion" Title="Cód. Operación" Width="140px" />
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="CodigoOperacion" Title="Cód. Operación" Width="140px">
+            <Template Context="o">
+                <a href="javascript:void(0)"
+                   @onclick="() => AbrirInfoOperacion(o)"
+                   style="font-weight: bold; color: var(--rz-primary); text-decoration: underline; cursor: pointer;">
+                    @o.CodigoOperacion
+                </a>
+            </Template>
+        </RadzenDataGridColumn>
 
         <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="NombreOrden" Title="Orden" Width="140px" />
 
@@ -65,6 +75,13 @@
                 {
                     <span style="color: gray;">-</span>
                 }
+            </Template>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn TItem="OperacionResumenDTO" Title="Imputacion posteriori" Width="120px" TextAlign="TextAlign.Center">
+            <Template Context="maquina">
+                <RadzenButton Icon="add" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Flat"
+                              Size="ButtonSize.Medium" Click="@(args => AbrirDialogoImputarAposteriori(maquina))" />
             </Template>
         </RadzenDataGridColumn>
 
@@ -131,6 +148,45 @@
             {"OperacionParaEditar", operacion}
         };
         var res = await DialogService.OpenAsync<DialogoEditarOperacion>("Editar operacion", parametros);
+
+        if (res == true)
+        {
+            await CargarDatos();
+            StateHasChanged();
+        }
+    }
+
+    private async Task AbrirInfoOperacion(OperacionResumenDTO operacion)
+    {
+        var parametros = new Dictionary<string, object>
+        {
+            {"OperacionInfo", operacion}
+        };
+
+        await DialogService.OpenAsync<DialogoInfoOperacion>(
+            $"Detalles de Operacion: {operacion.CodigoOperacion}",
+            parametros,
+            new DialogOptions() { Width = "625px", Height = "700px", Resizable = true, Draggable = true }
+        );
+    }
+
+    private async Task AbrirDialogoImputarAposteriori(OperacionResumenDTO operacionSeleccionada)
+    {
+
+        var operarios = await ServicioMaquina.ObtenerOperariosDeUnaMaquina(operacionSeleccionada.IdMaquina);
+
+        var parametros = new Dictionary<string, object>
+    {
+
+        { "OperacionActiva", operacionSeleccionada },
+        { "ListaOperarios", operarios }
+    };
+
+        var res = await DialogService.OpenAsync<DialogoImputar>(
+            $"Imputar Horas: {operacionSeleccionada.CodigoOperacion}",
+            parametros,
+            new DialogOptions() { Width = "600px", Resizable = true, Draggable = true }
+        );
 
         if (res == true)
         {
