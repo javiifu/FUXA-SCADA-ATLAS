@@ -665,4 +665,38 @@ public class ImputacionService
             return false;
         }
     }
+
+    public async Task<bool> RegistrarConsumoMaterialAsync(int idOperacion, int idMaterial, decimal cantidad, int idEmpleado, bool esMerma)
+    {
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            var nuevoConsumo = new ImputacionMaterial
+            {
+                IdOperacion = idOperacion,
+                IdMaterial = idMaterial,
+                Cantidad = cantidad,
+                IdEmpleado = idEmpleado,
+                EsMerma = esMerma, 
+                FechaRegistro = DateTime.Now
+            };
+
+            _context.ImputacionMateriales.Add(nuevoConsumo);
+
+            var material = await _context.Materiales.FindAsync(idMaterial);
+            if (material != null)
+            {
+                material.Stock -= cantidad;
+            }
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return true;
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync();
+            return false;
+        }
+    }
 }

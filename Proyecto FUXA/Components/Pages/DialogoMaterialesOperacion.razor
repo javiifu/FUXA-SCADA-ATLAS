@@ -48,6 +48,13 @@
                                    Min="0.1m"
                                    class="fuxa-modern-input numeric-center rz-mb-4" />
 
+                    <div class="rz-mb-4" style="display: flex; align-items: center; justify-content: space-between; background: #FFF1F2; padding: 10px 15px; border-radius: 8px; border: 1px solid #FECACA;">
+                        <div>
+                            <RadzenText TextStyle="TextStyle.Subtitle2" Style="margin: 0; color: #BE123C; font-weight: bold;">¿Es merma / desperdicio?</RadzenText>
+                        </div>
+                        <RadzenSwitch @bind-Value="esMerma" />
+                    </div>
+
                     <RadzenButton Text="AÑADIR CONSUMO"
                                   Icon="add_circle"
                                   Click="GuardarMaterial"
@@ -89,6 +96,12 @@
                                     <span style="font-weight: bold; color: #1A2E3F;">
                                         @(data.Material?.Nombre ?? "Desconocido")
                                     </span>
+                                    @if (data.EsMerma)
+                                    {
+                                        <span style="background-color: #EF4444; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-left: 10px; font-weight: bold; vertical-align: middle;">
+                                            MERMA
+                                        </span>
+                                    }
                                 </Template>
                             </RadzenDataGridColumn>
 
@@ -103,6 +116,7 @@
                                     <span style="color: #64748B;">@data.FechaRegistro.ToString("dd/MM/yyyy HH:mm")</span>
                                 </Template>
                             </RadzenDataGridColumn>
+
                             <RadzenDataGridColumn TItem="ImputacionMaterial" Title="" Width="60px" TextAlign="TextAlign.Center">
                                 <Template Context="data">
                                     <RadzenButton Icon="delete"
@@ -341,6 +355,7 @@
 
     private int idMaterialSeleccionado;
     private decimal cantidadConsumida = 1m;
+    private bool esMerma = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -356,7 +371,7 @@
 
     private async Task GuardarMaterial()
     {
-        bool exito = await ImputacionService.RegistrarConsumoMaterialAsync(IdOperacion, idMaterialSeleccionado, cantidadConsumida, IdEmpleado);
+        bool exito = await ImputacionService.RegistrarConsumoMaterialAsync(IdOperacion, idMaterialSeleccionado, cantidadConsumida, IdEmpleado, esMerma);
 
         if (exito)
         {
@@ -375,24 +390,11 @@
 
             NotificationService.Notify(NotificationSeverity.Success, "Añadido", "Material registrado correctamente.");
 
-            var materialUsado = materialesDisponibles.FirstOrDefault(m => m.Id == idMaterialSeleccionado);
-
-            var nuevoConsumoVirtual = new ImputacionMaterial
-            {
-                IdOperacion = IdOperacion,
-                IdMaterial = idMaterialSeleccionado,
-                Cantidad = cantidadConsumida,
-                FechaRegistro = DateTime.Now,
-                IdEmpleado = IdEmpleado,
-                Material = materialUsado 
-            };
-
-            if (consumosActuales == null) consumosActuales = new List<ImputacionMaterial>();
-
-            consumosActuales.Insert(0, nuevoConsumoVirtual);
+            await CargarDatos();
 
             idMaterialSeleccionado = 0;
             cantidadConsumida = 1;
+            esMerma = false;
 
             if (gridConsumos != null)
             {
@@ -403,6 +405,7 @@
         else
         {
             NotificationService.Notify(NotificationSeverity.Error, "Error", "No se pudo registrar el material.");
+            esMerma = false;
         }
     }
 

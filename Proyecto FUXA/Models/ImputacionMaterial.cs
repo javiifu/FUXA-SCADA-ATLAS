@@ -10,6 +10,7 @@ public class ImputacionMaterial
     public int IdMaterial { get; set; }
     public int IdEmpleado { get; set; }
     public decimal Cantidad { get; set; }
+    public bool EsMerma { get; set; }
     public string? Observaciones { get; set; }
     public DateTime FechaRegistro { get; set; }
 
