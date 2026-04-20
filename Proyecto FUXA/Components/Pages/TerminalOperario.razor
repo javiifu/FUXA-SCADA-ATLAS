@@ -426,16 +426,8 @@
         try
         {
             maquinaActual = await ServicioMaquina.GetByIdAsync(IdMaquina);
-            var todosLosEmpleados = await ServicioEmpleado.GetAllAsync();
 
-            if (todosLosEmpleados != null)
-            {
-                operariosAsignados = todosLosEmpleados.Where(e => e.IdMaquina == IdMaquina).ToList();
-            }
-            else
-            {
-                operariosAsignados = new List<Empleado>();
-            }
+            operariosAsignados = await ServicioEmpleado.ObtenerOperariosPorMaquinaAsync(IdMaquina);
 
             ordenesDisponibles = await ImputacionService.ObtenerOperacionesActivasAsync();
             ordenesDisponibles = ordenesDisponibles.Where(o => o.IdMaquina == IdMaquina).ToList();

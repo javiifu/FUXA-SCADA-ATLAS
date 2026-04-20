@@ -97,8 +97,8 @@ else
                                     }
                                 </Template>
                             </RadzenDataGridColumn>
-                            @* encargado *@
-                            <RadzenDataGridColumn TItem="Maquina" Title="Encargado" Width="120px">
+                            @* empleado *@
+                            <RadzenDataGridColumn TItem="Maquina" Title="Empleado" Width="120px">
                                 <Template Context="m">
                                     <div style="display: flex; flex-direction: column;">
                                         <span style="font-weight: bold; color: var(--rz-text-color);">
@@ -263,7 +263,6 @@ else
         try
         {
             var resultado = await ServicioMaquina.GetAllAsync();
-            var todosLosEmpleados = await ServicioMaquina.GetAllEmpleadosAsync();
             var listaDeTodasLasOperaciones = await ImputacionService.ObtenerOperacionesActivasAsync();
 
             foreach (var m in resultado)
@@ -274,7 +273,6 @@ else
                 {
                     m.CiclosObjetivo = operacionActiva.CiclosObjetivo;
                     m.CodigoOperacionActiva = operacionActiva.CodigoOperacion;
-
                 }
                 else
                 {
@@ -282,13 +280,13 @@ else
                     m.CodigoOperacionActiva = "Sin operacion";
                     m.CiclosObjetivo = 0;
                     m.CiclosReales = 0;
-                    if(m.EstadoActualId != 4)
+                    if (m.EstadoActualId != 4)
                     {
                         m.EstadoActualId = 3;
                     }
                 }
 
-                if (m.CiclosObjetivo > 0 && (m.EstadoActualId == 1 || m.EstadoActualId == 2 ))
+                if (m.CiclosObjetivo > 0 && (m.EstadoActualId == 1 || m.EstadoActualId == 2))
                 {
                     m.PorcentajeCiclos = (float)((double)m.CiclosReales / m.CiclosObjetivo * 100);
 
@@ -297,17 +295,34 @@ else
                     {
                         m.EstadoActualId = 2;
                     }
-                    if(m.PorcentajeCiclos >= 50)
+                    if (m.PorcentajeCiclos >= 50)
                     {
                         m.EstadoActualId = 1;
                     }
                 }
 
-                var emp = todosLosEmpleados.FirstOrDefault(e => e.Id == m.EmpleadoId);
-                if (emp != null)
+                if (m.MaquinasEmpleados != null && m.MaquinasEmpleados.Any())
                 {
-                    m.NombreOperario = $"{emp.Nombre} {emp.Apellidos}";
-                    m.CargoOperario = emp.Cargo;
+                    var encargado = m.MaquinasEmpleados
+                        .Select(me => me.Empleado)
+                        .FirstOrDefault(e => e.Cargo == "Encargado");
+
+                    if (encargado != null)
+                    {
+                        m.NombreOperario = $"{encargado.Nombre} {encargado.Apellidos}";
+                        m.CargoOperario = "Encargado";
+                    }
+                    else
+                    {
+                        var operario = m.MaquinasEmpleados.Select(me => me.Empleado).First();
+                        m.NombreOperario = $"{operario.Nombre} {operario.Apellidos}";
+                        m.CargoOperario = "Operario";
+                    }
+                }
+                else
+                {
+                    m.NombreOperario = "Sin asignar";
+                    m.CargoOperario = "-";
                 }
             }
 
@@ -428,16 +443,17 @@ else
 
     private async Task AbrirAsignarTrabajador(Maquina maquina)
     {
-        var resultado = await DialogService.OpenAsync<AsignarDialog>("Asignar Personal",
-            new Dictionary<string, object> {
-                { "Datos", new AsignarTrabajador {
-                    MaquinaId = maquina.Id,
-                    NombreMaquina = maquina.Nombre,
-                    NombreSeccion = maquina.Seccion != null ? maquina.Seccion.Nombre : "Sin asignar",
-                    EmpleadoId = maquina.EmpleadoId
-                }}
-            },
-            new DialogOptions() { Width = "500px", Resizable = true, Draggable = true });
+
+        var parametros = new Dictionary<string, object> {
+        { "IdMaquina", maquina.Id },
+        { "NombreMaquina", maquina.Nombre }
+    };
+
+        var resultado = await DialogService.OpenAsync<DialogoGestionOperariosMaquina>(
+            "Personal de la Máquina",
+            parametros,
+            new DialogOptions() { Width = "750px", Resizable = true, Draggable = true }
+        );
 
         if (resultado == true)
         {

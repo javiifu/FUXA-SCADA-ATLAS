@@ -40,21 +40,6 @@ else
             <input type="number" class="form-control" @bind="machine.CiclosObjetivo" />
         </div>
 
-        <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Seleccionar Encargado</RadzenText>
-        <RadzenDropDown @bind-Value="@machine.EmpleadoId" 
-                Data="@encargados" 
-                TextProperty="Nombre" 
-                ValueProperty="Id" 
-                AllowFiltering="true" 
-                FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
-                Placeholder="Busca o selecciona un encargado..." 
-                Style="width: 100%; max-width: 400px;">
-
-            <Template Context="emp">
-                @emp.Nombre - @emp.CodigoEmpleado
-            </Template>
-        </RadzenDropDown>
-
         <div class="mb-3">
             <label class="form-label">Estado Actual</label>
             <select class="form-select" @bind="machine.EstadoActualId">
@@ -87,7 +72,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         // buscamos la maquina en la base de datos
-        var maquinaExistente = await MachineService.ObtenerPorId(id);
+        var maquinaExistente = await MachineService.GetByIdAsync(id);
 
         if (maquinaExistente != null)
         {

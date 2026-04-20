@@ -20,6 +20,7 @@ namespace Proyecto_FUXA.Data
         public DbSet<Material> Materiales { get; set; }
         public DbSet<ImputacionMaterial> ImputacionMateriales { get; set; }
         public DbSet<MaquinaMaterial> MaquinasMateriales { get; set; }
+        public DbSet<EmpleadoMaquina> EmpleadoMaquinas { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -36,6 +37,7 @@ namespace Proyecto_FUXA.Data
             modelBuilder.Entity<Material>().ToTable("Materiales");
             modelBuilder.Entity<ImputacionMaterial>().ToTable("ImputacionMateriales");
             modelBuilder.Entity<MaquinaMaterial>().ToTable("MaquinasMateriales");
+            modelBuilder.Entity<EmpleadoMaquina>().ToTable("MaquinasEmpleados");
 
             modelBuilder.Entity<ImputacionOperario>()
                 .HasOne(i => i.Operacion)
@@ -62,7 +64,10 @@ namespace Proyecto_FUXA.Data
                 .HasOne(mm => mm.Material)
                 .WithMany(mat => mat.MaquinasMateriales)
                 .HasForeignKey(mm => mm.IdMaterial)
-                .OnDelete(DeleteBehavior.Cascade); 
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EmpleadoMaquina>()
+                .HasKey(em => new { em.IdMaquina, em.IdEmpleado });
         }
     }
 }

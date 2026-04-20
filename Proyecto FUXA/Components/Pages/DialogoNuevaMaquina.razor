@@ -34,14 +34,14 @@
                 @* Sección *@
                 <RadzenStack Gap="0.5rem">
                     <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0">Sección</RadzenText>
-                    <RadzenDropDown @bind-Value="machine.IdSeccion" 
+                    <RadzenDropDown @bind-Value="machine.IdSeccion"
                                     Data="@listaSecciones"
                                     TextProperty="Nombre"
                                     ValueProperty="Id"
                                     AllowFiltering="true"
                                     FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
                                     Placeholder="Selecciona una seccion..."
-                                    class="w-100"/>
+                                    class="w-100" />
                 </RadzenStack>
 
                 @* CiclosReales *@
@@ -68,25 +68,6 @@
                     <RadzenNumeric @bind-Value="machine.PiezasRotas" class="w-100" Disabled="@camposBloqueados" />
                 </RadzenStack>
 
-                @* Encargado *@
-                <RadzenStack Gap="0.5rem">
-                    <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0">Seleccionar encargado</RadzenText>
-                    <RadzenDropDown @bind-Value="@machine.EmpleadoId" 
-                                    Data="@encargados" 
-                                    TextProperty="Nombre" 
-                                    ValueProperty="Id" 
-                                    AllowFiltering="true" 
-                                    Placeholder="Selecciona encargado..." 
-                                    class="w-100">
-                        <Template Context="emp">
-                            @{
-                                var etiqueta = $"{emp.Nombre} ({emp.CodigoEmpleado})";
-                            }
-                            <RadzenText TextStyle="TextStyle.Body2">@etiqueta</RadzenText>
-                        </Template>
-                    </RadzenDropDown>
-                </RadzenStack>
-
                 @* Estado *@
                 <RadzenStack Gap="0.5rem" class="rz-mb-4">
                     <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0">Estado Actual</RadzenText>
@@ -107,11 +88,10 @@
     }
 </RadzenStack>
 
-    @code {
+@code {
     [Parameter] public Maquina MaquinaParaEditar { get; set; }
 
     private Maquina machine = new();
-    private List<Empleado> encargados = new();
     private List<Seccion> listaSecciones = new();
     private string titulo = "Registrar Nueva Máquina";
 
@@ -119,7 +99,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await CargarEncargados();
         await CargarSecciones();
 
         if (MaquinaParaEditar != null)
@@ -133,21 +112,21 @@
         }
         else
         {
-            machine = new Maquina 
-            { 
-                Nombre = "", 
+            machine = new Maquina
+            {
+                Nombre = "",
                 EstadoActualId = 1,
-                FechaCreacion = DateTime.Now 
+                FechaCreacion = DateTime.Now
             };
         }
     }
 
     private async Task Guardar()
-    {              
+    {
 
         var maquinas = await MachineService.GetAllMaquinas();
 
-        foreach( var m in maquinas)
+        foreach (var m in maquinas)
         {
             if (m.Nombre.Equals(machine.Nombre, StringComparison.OrdinalIgnoreCase) && m.Id != machine.Id)
             {
@@ -166,7 +145,7 @@
 
         try
         {
-            machine.Empleado = null;
+            // Ya no anulamos machine.Empleado porque la propiedad se eliminó del modelo
             machine.EstadoActual = null;
 
             await MachineService.GuardarMaquina(machine);
@@ -180,20 +159,11 @@
         }
     }
 
-    private async Task CargarEncargados()
-    {
-        var resultado = await MachineService.GetAllEmpleadosAsync();
-        if (resultado != null)
-        {
-            encargados = resultado.Where(e => e.Cargo == "Encargado").ToList();
-        }
-    }
-
     private async Task CargarSecciones()
     {
         var resultado = await MachineService.ObtenerSecciones();
 
-        if(resultado != null)
+        if (resultado != null)
         {
             listaSecciones = resultado;
         }

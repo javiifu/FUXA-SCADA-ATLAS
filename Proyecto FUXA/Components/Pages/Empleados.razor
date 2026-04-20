@@ -2,7 +2,9 @@
 @using Proyecto_FUXA.Models
 @using Radzen.Blazor
 @using Radzen
+
 @inject Proyecto_FUXA.Services.ServicioMaquina ServicioMaquina
+@inject DialogService DialogService
 
 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Class="rz-mb-4">
     <RadzenText TextStyle="TextStyle.H3" Class="rz-m-0">Gestión de Personal</RadzenText>
@@ -40,27 +42,18 @@
             </EditTemplate>
         </RadzenDataGridColumn>
 
-        @* maquina *@
-        <RadzenDataGridColumn TItem="Empleado" Title="Máquina asignada" Width="200px">
+        @* gestionar maquinas *@
+        <RadzenDataGridColumn TItem="Empleado" Title="Máquinas" Width="120px" TextAlign="TextAlign.Center" Filterable="false" Sortable="false">
             <Template Context="emp">
-                @if (emp.Maquina != null)
+                @if (emp.Id != 0)
                 {
-                    <RadzenBadge BadgeStyle="BadgeStyle.Info" Text="@emp.Maquina.Nombre" />
-                }
-                else
-                {
-                    <span style="color: gray; font-style: italic;">Sin máquina</span>
+                    <RadzenButton Icon="precision_manufacturing"
+                                  ButtonStyle="ButtonStyle.Info"
+                                  Variant="Variant.Flat"
+                                  Size="ButtonSize.Medium"
+                                  Click="@(args => AbrirGestionMaquinas(emp))" />
                 }
             </Template>
-            <EditTemplate Context="emp">
-                <RadzenDropDown @bind-Value="emp.IdMaquina"
-                                Data="@maquinas"
-                                TextProperty="Nombre"
-                                ValueProperty="Id"
-                                Placeholder="Seleccionar máquina..."
-                                AllowClear="true"
-                                Style="width:100%" />
-            </EditTemplate>
         </RadzenDataGridColumn>
 
         @* editar y borrar *@
@@ -89,16 +82,17 @@
     RadzenDataGrid<Empleado>? empleadosGrid;
     List<Empleado> empleados = new();
     List<Empleado> encargados = new();
-    List<Maquina> maquinas = new();
     List<string> cargos = new() { "Encargado", "Operario" };
 
     protected override async Task OnInitializedAsync()
     {
         await CargarDatos();
-        maquinas = await ServicioMaquina.GetAllAsync();
     }
 
-    async Task CargarDatos() => empleados = await ServicioMaquina.GetAllEmpleadosConMaquinaAsync();
+    async Task CargarDatos()
+    {
+        empleados = await ServicioMaquina.GetAllEmpleadosAsync();
+    }
 
     async Task InsertarFila()
     {
@@ -108,9 +102,8 @@
             Apellidos = "",
             CodigoEmpleado = "EMP-" + DateTime.Now.ToString("ssfff"),
             Cargo = "Operario",
-            EstaActivo = true,
-            IdMaquina = 0,
-            Maquina = null
+            EstaActivo = true
+            
         };
 
         await empleadosGrid.InsertRow(nuevo);
@@ -140,7 +133,6 @@
 
     async Task BorrarFila(Empleado e)
     {
-        // si es un empleado nuevo que aún no está en SQL lo quitamos de la lista
         if (e.Id == 0)
         {
             empleados.Remove(e);
@@ -149,15 +141,15 @@
         else
         {
             await ServicioMaquina.DeleteEmpleadoAsync(e);
-            await CargarDatos(); //despues de borrar cargamos la lista
+            await CargarDatos();
         }
-    }
-
-    private async Task CargarEncargados()
-    {
-        encargados = await ServicioMaquina.GetAllEmpleadosAsync();
     }
 
     void EditarFila(Empleado e) => empleadosGrid.EditRow(e);
     void CancelarEdicion(Empleado e) => empleadosGrid.CancelEditRow(e);
+
+    private async Task AbrirGestionMaquinas(Empleado empleado)
+    {
+        Console.WriteLine($"Abriendo gestión de máquinas para: {empleado.Nombre}");
+    }
 }
