@@ -32,12 +32,21 @@
                 {
                     <RadzenDropDown @bind-Value="idMaterialSeleccionado"
                                     Data="@materialesDisponibles"
-                                    TextProperty="Nombre"
+                                    TextProperty="BusquedaCombinada"
                                     ValueProperty="Id"
                                     AllowFiltering="true"
                                     FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
-                                    Placeholder="Buscar material..."
-                                    class="fuxa-modern-input rz-mb-4" />
+                                    Placeholder="Buscar material o código..."
+                                    class="fuxa-modern-input rz-mb-4">
+                        <Template Context="mat">
+                            <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                                <span>@mat.Nombre</span>
+                                <span style="color: #94A3B8; font-size: 0.85rem; margin-left: 15px; font-family: monospace;">
+                                    @mat.CodigoMaterial
+                                </span>
+                            </div>
+                        </Template>
+                    </RadzenDropDown>
 
                     <div class="step-header rz-mt-4">
                         <RadzenIcon Icon="scale" Style="font-size: 1.5rem; color: #1F4E79; margin-right: 10px;" />

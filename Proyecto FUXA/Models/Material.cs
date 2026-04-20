@@ -17,5 +17,5 @@ public class Material
     public virtual ICollection<MaquinaMaterial> MaquinasMateriales { get; set; } = new List<MaquinaMaterial>();
 
     [NotMapped]
-    public string SearchProperty => $"{Nombre} {CodigoMaterial}";
+    public string BusquedaCombinada => $"{Nombre} {CodigoMaterial}";
 }

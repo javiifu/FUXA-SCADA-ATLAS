@@ -97,6 +97,7 @@
         }
         else if (pasoActual == 3)
         {
+            @* panel superior *@
             <RadzenStack Gap="1.5rem">
                 <RadzenCard Variant="Variant.Flat" Style="background: #fff; border: 1px solid #D5E3EF;" class="rz-mb-4">
                     <RadzenRow AlignItems="AlignItems.Center">
@@ -148,6 +149,7 @@
                     <button class="act-btn-fuxa @(tipoActividad == "Parada" ? "active" : "")" @onclick='() => tipoActividad = "Parada"'>Parada</button>
                 </div>
 
+                @* piezas fabricadas *@
                 <RadzenRow Gap="1rem">
                     <RadzenColumn Size="12" SizeMD="6">
                         <div class="pcs-card-fuxa">
@@ -166,6 +168,7 @@
                         </div>
                     </RadzenColumn>
 
+                    @* piezas rotas *@
                     <RadzenColumn Size="12" SizeMD="6">
                         <div class="pcs-card-fuxa" style="background-color:#FFAC99">
                             <RadzenText TextStyle="TextStyle.H5"><b>Piezas rotas</b></RadzenText>
@@ -182,6 +185,11 @@
                             </RadzenStack>
                         </div>
                     </RadzenColumn>
+                </RadzenRow>
+
+                @* ciclos reales *@
+                <RadzenRow>
+
                 </RadzenRow>
 
                 <RadzenRow class="rz-mb-4">
