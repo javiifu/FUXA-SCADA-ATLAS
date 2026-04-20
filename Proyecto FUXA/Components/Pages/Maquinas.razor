@@ -98,15 +98,20 @@ else
                                 </Template>
                             </RadzenDataGridColumn>
                             @* empleado *@
-                            <RadzenDataGridColumn TItem="Maquina" Title="Empleado" Width="120px">
+                            <RadzenDataGridColumn TItem="Maquina" Title="Encargado" Width="150px">
                                 <Template Context="m">
-                                    <div style="display: flex; flex-direction: column;">
-                                        <span style="font-weight: bold; color: var(--rz-text-color);">
-                                            @m.NombreOperario
-                                        </span>
-                                        <span style="font-size: 0.75rem; color: var(--rz-text-secondary-color);">
-                                            @m.CargoOperario
-                                        </span>
+                                    <div style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;"
+                                         @onclick="@(args => AbrirAsignarTrabajador(m))">
+                                        <div style="display: flex; flex-direction: column;">
+                                            <span style="font-weight: bold; color: #1F4E79;">
+                                                @m.NombreOperario
+                                            </span>
+                                            <span style="font-size: 0.75rem; color: #64748B;">
+                                                @m.CargoOperario
+                                            </span>
+                                        </div>
+                                        @* Un pequeño icono para que el usuario sepa que puede hacer clic *@
+                                        <RadzenIcon Icon="swap_horiz" Style="font-size: 1.2rem; color: #CBD5E1;" />
                                     </div>
                                 </Template>
                             </RadzenDataGridColumn>
