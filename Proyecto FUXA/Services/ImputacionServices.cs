@@ -637,4 +637,32 @@ public class ImputacionService
             return false;
         }
     }
+
+    public async Task<bool> EliminarConsumoAsync(int idConsumo)
+    {
+        using var transaccion = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            var consumo = await _context.ImputacionMateriales.FindAsync(idConsumo);
+
+            if (consumo == null) return false;
+
+            var material = await _context.Materiales.FindAsync(consumo.IdMaterial);
+            if(material != null)
+            {
+                material.Stock += consumo.Cantidad;
+            }
+            _context.ImputacionMateriales.Remove(consumo);
+            await _context.SaveChangesAsync();
+            await transaccion.CommitAsync();
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            await transaccion.RollbackAsync();
+            Console.WriteLine($"Error al borrar el consumo: {ex.Message}");
+            return false;
+        }
+    }
 }

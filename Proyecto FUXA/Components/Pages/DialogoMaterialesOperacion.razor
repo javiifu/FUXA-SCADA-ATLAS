@@ -103,6 +103,15 @@
                                     <span style="color: #64748B;">@data.FechaRegistro.ToString("dd/MM/yyyy HH:mm")</span>
                                 </Template>
                             </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="ImputacionMaterial" Title="" Width="60px" TextAlign="TextAlign.Center">
+                                <Template Context="data">
+                                    <RadzenButton Icon="delete"
+                                                  ButtonStyle="ButtonStyle.Danger"
+                                                  Variant="Variant.Flat"
+                                                  Size="ButtonSize.Small"
+                                                  Click="@(() => BorrarConsumo(data))" />
+                                </Template>
+                            </RadzenDataGridColumn>
                         </Columns>
                     </RadzenDataGrid>
                 }
@@ -230,6 +239,95 @@
         .fuxa-custom-grid .rz-grid-table td {
             border-bottom: 1px solid #F1F5F9;
         }
+
+    .fuxa-delete-dialog {
+        border-radius: 16px !important;
+        border: 2px solid #FECACA !important; 
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+        background-color: #FFFFFF !important;
+    }
+
+        .fuxa-delete-dialog .rz-dialog-titlebar {
+            background-color: #FFFFFF !important; 
+            color: #EF4444 !important; 
+            border-top-left-radius: 16px;
+            border-top-right-radius: 16px;
+            padding: 20px 25px 10px 25px !important; 
+            border-bottom: none !important; 
+        }
+
+        .fuxa-delete-dialog .rz-dialog-title {
+            font-weight: 800 !important;
+            letter-spacing: 0.5px;
+            font-size: 1.3rem !important;
+            text-transform: uppercase;
+        }
+
+            .fuxa-delete-dialog .rz-dialog-title::before {
+                content: '⚠️';
+                margin-right: 10px;
+                font-size: 1.4rem;
+            }
+
+        .fuxa-delete-dialog .rz-dialog-titlebar-close {
+            color: #94A3B8 !important;
+            background: #F1F5F9 !important;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+        }
+
+        .fuxa-delete-dialog .rz-dialog-content {
+            padding: 20px 25px 30px 25px !important;
+            font-size: 1.2rem !important;
+            text-align: center;
+            color: #1E293B; 
+            font-weight: 500;
+            background-color: #FFFFFF !important;
+        }
+
+        .fuxa-delete-dialog .rz-dialog-confirm-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            padding: 0px 25px 25px 25px !important;
+            background-color: #FFFFFF !important;
+            border-bottom-left-radius: 16px;
+            border-bottom-right-radius: 16px;
+        }
+
+            .fuxa-delete-dialog .rz-dialog-confirm-buttons .rz-button:first-child {
+                background-color: #EF4444 !important; 
+                color: white !important;
+                border-radius: 12px !important;
+                font-weight: 700 !important;
+                padding: 0 30px !important;
+                height: 50px !important;
+                box-shadow: 0 4px 6px rgba(239, 68, 68, 0.2) !important; 
+                transition: all 0.2s;
+            }
+
+                .fuxa-delete-dialog .rz-dialog-confirm-buttons .rz-button:first-child:hover {
+                    background-color: #DC2626 !important; 
+                    transform: translateY(-1px);
+                }
+
+            .fuxa-delete-dialog .rz-dialog-confirm-buttons .rz-button:last-child {
+                background-color: #FFFFFF !important;
+                border: 2px solid #E2E8F0 !important;
+                color: #64748B !important;
+                border-radius: 12px !important;
+                font-weight: 700 !important;
+                padding: 0 30px !important;
+                height: 50px !important;
+                transition: all 0.2s;
+            }
+
+                .fuxa-delete-dialog .rz-dialog-confirm-buttons .rz-button:last-child:hover {
+                    background-color: #F8FAFC !important;
+                    color: #1E293B !important;
+                    border-color: #CBD5E1 !important;
+                }
 </style>
 
 @code {
@@ -305,6 +403,39 @@
         else
         {
             NotificationService.Notify(NotificationSeverity.Error, "Error", "No se pudo registrar el material.");
+        }
+    }
+
+    private async Task BorrarConsumo(ImputacionMaterial consumo)
+    {
+        var confirmacion = await DialogService.Confirm(
+            $"¿Seguro que quieres borrar el consumo de {consumo.Cantidad} {consumo.Material?.Nombre}?",
+            "Confirmar borrado",
+
+            new ConfirmOptions() { 
+                OkButtonText = "Sí, borrar", 
+                CancelButtonText = "No, cancelar",
+                CssClass = "fuxa-delete-dialog"
+            });
+        if(confirmacion == true)
+        {
+            bool exito = await ImputacionService.EliminarConsumoAsync(consumo.Id);
+
+            if (exito)
+            {
+                consumosActuales.Remove(consumo);
+
+                if(gridConsumos != null)
+                {
+                    await gridConsumos.Reload();
+                }
+                StateHasChanged();
+                NotificationService.Notify(NotificationSeverity.Success, "Borrado", "El consumo se ha eliminado y el stock se ha devuelto");
+            }
+            else
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Error", "No se pudo eliminar el registro");
+            }
         }
     }
 }
