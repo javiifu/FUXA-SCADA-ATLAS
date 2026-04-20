@@ -62,9 +62,14 @@
             <Columns>
                 <RadzenDataGridColumn TItem="OperarioHorasDTO" Property="CodigoOperario" Title="Cód." Width="100px" />
                 <RadzenDataGridColumn TItem="OperarioHorasDTO" Property="NombreCompleto" Title="Nombre" />
-                <RadzenDataGridColumn TItem="OperarioHorasDTO" Property="TotalHoras" Title="Horas" Width="100px" TextAlign="TextAlign.Center">
+                <RadzenDataGridColumn TItem="OperarioHorasDTO" Property="TotalHoras" Title="Tiempo" Width="110px" TextAlign="TextAlign.Center">
                     <Template Context="op">
-                        <b>@op.TotalHoras.ToString("0.##") h</b>
+                        <span style="font-weight: bold; color: #475569;">
+                            @{
+                                var tiempoReloj = TimeSpan.FromHours((double)op.TotalHoras);
+                            }
+                            @((int)tiempoReloj.TotalHours)h @tiempoReloj.Minutes.ToString("D2")m
+                        </span>
                     </Template>
                 </RadzenDataGridColumn>
             </Columns>

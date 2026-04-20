@@ -180,7 +180,7 @@ public class ImputacionService
         try
         {
             return await _context.Ordenes
-                .Where(o => o.Estado != "Activa")
+                .Where(o => o.Estado == "Activa")
                 .OrderByDescending(o => o.FechaInicio)
                 .ToListAsync();
         }
@@ -188,6 +188,11 @@ public class ImputacionService
         {
             return new List<Orden>();
         }
+    }
+
+    public async Task<List<Orden>> ObtenerOrdenesAsync()
+    {
+        return await _context.Ordenes.ToListAsync();
     }
     public async Task<List<OperacionResumenDTO>> ObtenerOperacionesActivasAsync()
     {

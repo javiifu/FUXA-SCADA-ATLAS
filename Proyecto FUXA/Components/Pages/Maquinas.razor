@@ -83,7 +83,7 @@ else
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="Maquina" Property="Nombre" Title="Nombre Máquina" Width="150px"/>
                             <RadzenDataGridColumn TItem="Maquina" Property="Seccion.Nombre" Title="Sección" Width="130px"/>
-                            <RadzenDataGridColumn TItem="Maquina" Property="CodigoOperacionActiva" Title="Operación Actual" Width="200px">
+                            <RadzenDataGridColumn TItem="Maquina" Property="CodigoOperacionActiva" Title="Operación Actual" Width="170px">
                                 <Template Context="m">
                                     @if (m.CodigoOperacionActiva != "Sin operacion")
                                     {
@@ -159,6 +159,14 @@ else
                                 <Template Context="maquina">
                                     <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat"
                                                   Size="ButtonSize.Medium" Click="@(args => AbrirDialogoEdicion(maquina))" />
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            @* materiales *@
+                            <RadzenDataGridColumn TItem="Maquina" Title="Materiales" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
+                                <Template context="maquina">
+                                    <RadzenButton Icon="category" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Flat"
+                                        Size="ButtonSize.Medium" Click="@(args => AbrirAsignarMateriales(maquina))"/>
                                 </Template>
                             </RadzenDataGridColumn>
 
@@ -573,6 +581,33 @@ else
         {
             await CargarMaquinasDesdeSQL();
             listaOperacionesActivas = await ImputacionService.ObtenerOperacionesActivasAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task AbrirAsignarMateriales(Maquina maquinaSeleccionada)
+    {
+        var parametros = new Dictionary<string, object>
+        {
+            {"IdMaquina", maquinaSeleccionada.Id}
+        };
+
+        var opciones = new DialogOptions
+            {
+                Width = "750px",
+                Resizable = true,
+                Draggable = true,
+                Style = "border-radius: 12px;"
+            };
+        var resultado = await DialogService.OpenAsync<DialogoGestionMaterialesMaquina>(
+            $"Materiales - {maquinaSeleccionada.Nombre}",
+            parametros,
+            opciones
+        );
+
+        if(resultado == true)
+        {
+            await CargarMaquinasDesdeSQL();
             StateHasChanged();
         }
     }

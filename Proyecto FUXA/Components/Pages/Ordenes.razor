@@ -92,7 +92,7 @@
 
     private async Task CargarOrdenes()
     {
-        var datos = await ImputacionService.ObtenerOrdenesActivasAsync();
+        var datos = await ImputacionService.ObtenerOrdenesAsync();
         almacenOrdenes = datos.ToList();
         AplicarFiltros();
     }

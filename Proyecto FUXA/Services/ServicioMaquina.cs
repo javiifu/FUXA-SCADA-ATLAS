@@ -260,5 +260,53 @@ namespace Proyecto_FUXA.Services
         {
             return await _db.OperacionesOrden.AnyAsync(op => op.IdMaquina == maquinaId && op.Estado == "Activa");
         }
+
+        public async Task<List<Material>> ObtenerTodosLosMaterialesAsync()
+        {
+            return await _db.Materiales
+                .OrderBy(n => n.Nombre)
+                .ToListAsync();
+        }
+
+        public async Task<List<Material>> ObtenerMaterialesDeMaquinaAsync(int idMaquina)
+        {
+            var materiales = await _db.MaquinasMateriales
+                .Where(mm => mm.IdMaquina == idMaquina)
+                .Include(mm => mm.Material)
+                .Select(mm => mm.Material)
+                .ToListAsync();
+
+            return materiales ?? new List<Material>();
+        }
+
+        public async Task AsignarMaterialAMaquinaAsync(int idMaquina, int idMaterial)
+        {
+            var existe = await _db.MaquinasMateriales
+                .AnyAsync(mm => mm.IdMaquina == idMaquina && mm.IdMaterial == idMaterial);
+
+            if (!existe)
+            {
+                var nuevaRelacion = new MaquinaMaterial
+                {
+                    IdMaquina = idMaquina,
+                    IdMaterial = idMaterial
+                };
+
+                _db.MaquinasMateriales.Add(nuevaRelacion);
+                await _db.SaveChangesAsync();
+            }
+        }
+
+        public async Task DesvincularMaterialDeMaquinaAsync(int idMaquina, int idMaterial)
+        {
+            var relacion = await _db.MaquinasMateriales
+                .FirstOrDefaultAsync(mm => mm.IdMaquina == idMaquina && mm.IdMaterial == idMaterial);
+
+            if(relacion != null)
+            {
+                _db.MaquinasMateriales.Remove(relacion);
+                await _db.SaveChangesAsync();
+            }
+        }
     }
 }
