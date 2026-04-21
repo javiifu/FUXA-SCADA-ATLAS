@@ -70,21 +70,49 @@
             }
             else
             {
-                <RadzenStack Gap="1rem">
-                    @foreach (var orden in ordenesDisponibles)
-                    {
-                        <RadzenCard @onclick="() => SeleccionarOrden(orden)" class="of-card-terminal" Style="cursor:pointer; border: 1px solid #D5E3EF;">
-                            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
-                                <RadzenStack Gap="0">
-                                    <RadzenText TextStyle="TextStyle.H6" Style="margin:0; font-weight:bold; color:#1A2E3F;">@orden.CodigoOperacion</RadzenText>
-                                    <RadzenText TextStyle="TextStyle.Body1" Style="color: #6B8FAD">Producto: @orden.Producto</RadzenText>
-                                    <RadzenText TextStyle="TextStyle.Body2" Style="color:#6B8FAD;">Ciclos objetivo: @orden.CiclosObjetivo</RadzenText>
-                                </RadzenStack>
-                                <RadzenIcon Icon="play_circle" Style="font-size: 2rem; color: #1D9E75;" />
-                            </RadzenStack>
-                        </RadzenCard>
-                    }
+                <RadzenStack Gap="1.2rem" class="rz-p-2">
+    @foreach (var orden in ordenesDisponibles)
+    {
+        <RadzenCard @onclick="() => SeleccionarOrden(orden)" 
+                    class="order-card-modern" 
+                    Style="@(orden.Estado == "Activa" ? "border-left: 8px solid #28a745;" : "border-left: 8px solid #17a2b8;")">
+            
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                
+                <RadzenStack Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.H5" Style="margin:0; font-weight: 800; color:#1A2E3F; letter-spacing: 0.5px;">
+                        @orden.CodigoOperacion
+                    </RadzenText>
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                        <RadzenIcon Icon="inventory_2" Style="font-size: 1.1rem; color: #6B8FAD;" />
+                        <RadzenText TextStyle="TextStyle.Body1" Style="color: #4A5568; font-weight: 500;">
+                            @orden.Producto
+                        </RadzenText>
+                    </RadzenStack>
+                    <RadzenBadge BadgeStyle="BadgeStyle.Light" IsPill="true" Text="@($"Objetivo: {orden.CiclosObjetivo} pcs")" Style="width: fit-content; padding: 5px 12px;" />
                 </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="2rem">
+                    
+                    <div class="status-badge-container">
+                        @if (orden.Estado.Equals("Activa"))
+                        {
+                            <RadzenBadge BadgeStyle="BadgeStyle.Success" class="badge-xl" Text="ACTIVA" />
+                        }
+                        else if (orden.Estado.Equals("Pendiente"))
+                        {
+                            <RadzenBadge BadgeStyle="BadgeStyle.Info" class="badge-xl" Text="PENDIENTE" />
+                        }
+                    </div>
+
+                    <RadzenIcon Icon="@(orden.Estado == "Activa" ? "play_circle" : "pause_circle")" 
+                                Style="@($"font-size: 3.5rem; color: {(orden.Estado == "Activa" ? "#28a745" : "#cbd5e0")};")" />
+                </RadzenStack>
+
+            </RadzenStack>
+        </RadzenCard>
+    }
+</RadzenStack>
             }
             <div style="margin-top: 3rem;">
                 <RadzenButton Text="NUEVA OPERACIÓN"
@@ -404,6 +432,37 @@
             outline: none !important;
             box-shadow: none !important;
         }
+
+
+    .order-card-modern {
+        background: #ffffff;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        transition: all 0.2s ease-in-out;
+        padding: 1.5rem !important;
+        margin-bottom: 0.5rem;
+    }
+
+        .order-card-modern:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            background: #f8fafc;
+        }
+
+    .badge-xl {
+        font-size: 1.2rem !important;
+        padding: 12px 24px !important;
+        font-weight: 800 !important;
+        letter-spacing: 1px;
+        border-radius: 8px !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .status-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 </style>
 
 @code {
