@@ -60,7 +60,6 @@
                     <Template Context="o">
                         <RadzenBadge BadgeStyle="@(o.Estado == "Activa" ? BadgeStyle.Success :
                                                                          o.Estado == "Finalizado" ? BadgeStyle.Danger :
-                                                                         o.Estado == "Pendiente" ? BadgeStyle.Info :
                                                                          BadgeStyle.Info)"
                                      Text="@o.Estado" />
                     </Template>

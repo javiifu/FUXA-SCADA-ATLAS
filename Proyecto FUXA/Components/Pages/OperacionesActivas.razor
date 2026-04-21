@@ -56,10 +56,15 @@
                 {
                     <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="Activa" />
                 }
+                else if (o.Estado.Equals("Pendiente"))
+                {
+                    <RadzenBadge BadgeStyle="BadgeStyle.Info" Text="Pendiente" />
+                }
                 else if (o.Estado.Equals("Finalizado"))
                 {
                     <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text="Finalizado" />
                 }
+                
             </Template>
         </RadzenDataGridColumn>
 
@@ -100,7 +105,7 @@
 
     string textoBusqueda = "";
     string estadoSeleccionado = "TODOS";
-    List<string> opcionesEstado = new List<string> { "TODOS", "Activa", "Finalizado" };
+    List<string> opcionesEstado = new List<string> { "TODOS", "Pendiente" ,"Activa", "Finalizado" };
 
     protected override async Task OnInitializedAsync()
     {
