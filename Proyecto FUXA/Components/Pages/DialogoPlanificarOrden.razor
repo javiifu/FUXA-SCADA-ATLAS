@@ -63,6 +63,11 @@
             if (OrdenParaEditar == null)
             {
                 exito = await ImputacionService.InsertarOrdenMadreAsync(nuevaOrden);
+
+                if (exito)
+                {
+                    await ImputacionService.GenerarHojaRutaAsync(nuevaOrden.Id);
+                }
             }
             else
             {
@@ -74,7 +79,7 @@
                 NotificationService.Notify(new NotificationMessage
                 {
                     Severity = NotificationSeverity.Success,
-                    Summary = "¡Operación completada!",
+                    Summary = "Operación completada",
                     Detail = $"La orden {nuevaOrden.CodigoOrden} se guardó correctamente.",
                     Duration = 4000
                 });

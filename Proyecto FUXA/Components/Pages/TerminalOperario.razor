@@ -664,4 +664,44 @@
 
         dialogoAbierto = false;
     }
+
+    private async Task IniciarTrabajo()
+    {
+        var orden = await ImputacionService.GetOrdenById(ordenSeleccionada.CodigoOperacion);
+
+        if (orden == null)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", "No se encontró la orden");
+            return;
+        }
+
+        bool puedeEmpezar = await ImputacionService.PuedeIniciarOperacionAsync(ordenSeleccionada.Id, orden.Id);
+
+        if (!puedeEmpezar)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Bloqueado", "No puedes empezar. Hay procesos anteriores (de mayor preferencia) pendientes de finalizar.");
+            return;
+        }
+
+        try
+        {
+
+            await ImputacionService.IniciarFichajeAsync(ordenSeleccionada.Id, operarioSeleccionado.Id);
+
+            NotificationService.Notify(NotificationSeverity.Success, "Iniciado", "Operación activada correctamente.");
+
+            await CargarDatos();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", "No se pudo iniciar el fichaje: " + ex.Message);
+        }
+    }
+
+    private async Task CargarDatos()
+    {
+        ordenesDisponibles = await ImputacionService.ObtenerOperacionesActivasAsync();
+        ordenesDisponibles = ordenesDisponibles.Where(o => o.IdMaquina == IdMaquina).ToList();
+        StateHasChanged();
+    }
 }

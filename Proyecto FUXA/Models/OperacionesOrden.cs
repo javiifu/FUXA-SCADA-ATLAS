@@ -10,6 +10,7 @@ namespace Proyecto_FUXA.Models
         public int IdSeccion { get; set; }
         public int IdMaquina { get; set; }
         public int IdOperacionMaestra { get; set; }
+        public int Preferencia { get; set; }
         public int CiclosObjetivo { get; set; }
         public int PiezasFabricadas { get; set; }
         public int PiezasRotas { get; set; }

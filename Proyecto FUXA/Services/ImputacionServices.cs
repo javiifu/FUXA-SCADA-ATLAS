@@ -4,6 +4,7 @@ using Proyecto_FUXA.Models;
 using Microsoft.EntityFrameworkCore;
 
 using System.ComponentModel.DataAnnotations.Schema;
+using Proyecto_FUXA.Components.Pages;
 
 
 namespace Proyecto_FUXA.Services;
@@ -150,6 +151,11 @@ public class ImputacionService
         public DateTime? FechaFin { get; set; }
     }
 
+    public async Task<Orden?> GetOrdenById(string codigo)
+    {
+        return await _context.Ordenes.FirstOrDefaultAsync(o => o.CodigoOrden == codigo);
+    }
+
     public async Task<bool> AsignarOrdenAMaquinaAsync(int idOrden, int idMaquina, int ciclos)
     {
         var ordenPadre = await _context.Ordenes.FindAsync(idOrden);
@@ -199,9 +205,9 @@ public class ImputacionService
         try
         {
             return await _context.OperacionesOrden
-                .Include(o => o.Orden)   
+                .Include(o => o.Orden)
                 .Include(o => o.Maquina)
-                .Where(o => o.Estado == "Activa")
+                .Where(o => o.Estado == "Activa" || o.Estado == "Pendiente")
                 .Select(o => new OperacionResumenDTO
                 {
                     Id = o.Id,
@@ -699,4 +705,81 @@ public class ImputacionService
             return false;
         }
     }
+
+    public async Task<bool> PuedeIniciarOperacionAsync(int idOperacion, int idOrden)
+    {
+        var opActual = await _context.OperacionesOrden.FindAsync(idOperacion);
+        if (opActual == null) return false;
+
+        var hayBloqueo = await _context.OperacionesOrden
+            .AnyAsync(o => o.IdOrden == idOrden &&
+                           o.Preferencia > opActual.Preferencia &&
+                           o.Estado != "Finalizado");
+
+        return !hayBloqueo;
+    }
+
+    public async Task IniciarFichajeAsync(int idOperacion, int idEmpleado)
+    {
+        var operacion = await _context.OperacionesOrden.FindAsync(idOperacion);
+
+        if (operacion != null)
+        {
+            operacion.Estado = "Activa";
+
+            var nuevaImputacion = new ImputacionOperario
+            {
+                IdOperacion = idOperacion,
+                IdEmpleado = idEmpleado,
+                FechaInicio = DateTime.Now
+            };
+
+            _context.ImputacionesOperarios.Add(nuevaImputacion);
+            await _context.SaveChangesAsync();
+        }
+    }
+    public async Task GenerarHojaRutaAsync(int idOrden)
+    {
+        var ordenPadre = await _context.Ordenes.FindAsync(idOrden);
+        if (ordenPadre == null) return;
+
+        var secciones = await _context.Secciones.ToListAsync();
+
+        var opMaestra = await _context.Operaciones.FirstOrDefaultAsync();
+
+        int contadorSufijo = 1;
+
+        foreach (var seccion in secciones)
+        {
+            var maquinas = await _context.Maquinas
+                .Where(m => m.IdSeccion == seccion.Id)
+                .ToListAsync();
+
+            foreach (var maquina in maquinas)
+            {
+                var nuevaOperacion = new OperacionesOrden
+                {
+                    IdOrden = idOrden,
+                    IdSeccion = seccion.Id,
+                    IdMaquina = maquina.Id,
+                    Preferencia = seccion.Preferencia,
+                    Estado = "Pendiente",
+                    FechaCreacion = DateTime.Now,
+
+                    CodigoOperacion = $"{ordenPadre.CodigoOrden}-{contadorSufijo}",
+
+                    IdOperacionMaestra = opMaestra?.Id ?? 1,
+
+                    CiclosObjetivo = 0 
+                };
+
+                _context.OperacionesOrden.Add(nuevaOperacion);
+                contadorSufijo++; 
+            }
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
+
 }
