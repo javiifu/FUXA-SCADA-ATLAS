@@ -14,20 +14,20 @@
         </RadzenText>
         <RadzenRow Gap="1rem" AlignItems="AlignItems.Center">
             <RadzenColumn Size="12" SizeMD="8">
+                @* Cambiado TextProperty a BusquedaCombinada para que busque por código también *@
                 <RadzenDropDown @bind-Value="idMaterialSeleccionado"
                                 Data="@materialesNoAsignados"
-                                TextProperty="SearchProperty"
+                                TextProperty="BusquedaCombinada"
                                 ValueProperty="Id"
                                 AllowFiltering="true"
                                 FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
                                 Placeholder="Buscar por nombre o código..."
-                                class="fuxa-modern-input rz-mb-4"
-                                Style="width: 100%;">
+                                Style="width: 100%; border-radius: 8px; height: 45px;">
 
                     <Template Context="item">
                         <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
                             <span>@((item as Material).Nombre)</span>
-                            <span style="color: #94A3B8; font-size: 0.8rem; font-weight: normal; margin-left: 15px;">
+                            <span style="color: #94A3B8; font-size: 0.8rem; font-weight: normal; margin-left: 15px; font-family: monospace;">
                                 @((item as Material).CodigoMaterial)
                             </span>
                         </div>
@@ -45,7 +45,7 @@
                               ButtonStyle="ButtonStyle.Success"
                               Disabled="@(idMaterialSeleccionado == 0)"
                               Click="AnadirMaterial"
-                              Style="width: 100%; height: 45px; font-weight: bold;" />
+                              Style="width: 100%; height: 45px; font-weight: bold; border-radius: 8px;" />
             </RadzenColumn>
         </RadzenRow>
     </RadzenCard>
@@ -79,7 +79,7 @@
     </RadzenDataGrid>
 
     <div class="rz-mt-4" style="text-align: right; border-top: 1px solid #E2E8F0; padding-top: 15px;">
-        <RadzenButton Text="CERRAR" Click="() => DialogService.Close(true)" ButtonStyle="ButtonStyle.Light" Style="font-weight: bold;" />
+        <RadzenButton Text="CERRAR" Click="() => DialogService.Close(true)" ButtonStyle="ButtonStyle.Light" Style="font-weight: bold; border-radius: 8px;" />
     </div>
 </div>
 
@@ -110,19 +110,30 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await Task.Delay(100);
         await CargarDatos();
     }
 
     private async Task CargarDatos()
     {
-        materialesAsignados = await ServicioMaquina.ObtenerMaterialesDeMaquinaAsync(IdMaquina) ?? new List<Material>();
-        todosLosMateriales = await ServicioMaquina.ObtenerTodosLosMaterialesAsync() ?? new List<Material>();
+        try
+        {
+            materialesAsignados = await ServicioMaquina.ObtenerMaterialesDeMaquinaAsync(IdMaquina) ?? new List<Material>();
 
-        var idsAsignados = materialesAsignados.Select(m => m.Id).ToList();
-        materialesNoAsignados = todosLosMateriales.Where(m => !idsAsignados.Contains(m.Id)).ToList();
+            await Task.Delay(100);
 
-        idMaterialSeleccionado = 0;
-        StateHasChanged();
+            todosLosMateriales = await ServicioMaquina.ObtenerTodosLosMaterialesAsync() ?? new List<Material>();
+
+            var idsAsignados = materialesAsignados.Select(m => m.Id).ToList();
+            materialesNoAsignados = todosLosMateriales.Where(m => !idsAsignados.Contains(m.Id)).ToList();
+
+            idMaterialSeleccionado = 0;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error en CargarDatos Materiales: {ex.Message}");
+        }
     }
 
     private async Task AnadirMaterial()
@@ -130,12 +141,14 @@
         try
         {
             await ServicioMaquina.AsignarMaterialAMaquinaAsync(IdMaquina, idMaterialSeleccionado);
-            NotificationService.Notify(NotificationSeverity.Success, "Éxito", "Material añadido a la máquina.");
+            NotificationService.Notify(NotificationSeverity.Success, "Éxito", "Material añadido.");
+
+            await Task.Delay(50); 
             await CargarDatos();
         }
         catch (Exception)
         {
-            NotificationService.Notify(NotificationSeverity.Error, "Error", "No se pudo añadir el material.");
+            NotificationService.Notify(NotificationSeverity.Error, "Error", "No se pudo añadir.");
         }
     }
 
@@ -144,12 +157,14 @@
         try
         {
             await ServicioMaquina.DesvincularMaterialDeMaquinaAsync(IdMaquina, material.Id);
-            NotificationService.Notify(NotificationSeverity.Info, "Borrado", "Material quitado de la máquina.");
+            NotificationService.Notify(NotificationSeverity.Info, "Borrado", "Material quitado.");
+
+            await Task.Delay(50);
             await CargarDatos();
         }
         catch (Exception)
         {
-            NotificationService.Notify(NotificationSeverity.Error, "Error", "No se pudo quitar el material.");
+            NotificationService.Notify(NotificationSeverity.Error, "Error", "No se pudo quitar.");
         }
     }
 }

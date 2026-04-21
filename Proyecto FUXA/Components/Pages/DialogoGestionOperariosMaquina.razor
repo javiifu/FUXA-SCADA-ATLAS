@@ -91,14 +91,26 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await Task.Delay(50);
         await CargarDatos();
     }
 
     private async Task CargarDatos()
     {
-        empleadosDisponibles = await ServicioMaquina.GetAllEmpleadosAsync();
+        try
+        {
+            operariosAsignados = await ServicioMaquina.ObtenerOperariosDeUnaMaquina(IdMaquina);
 
-        operariosAsignados = await ServicioMaquina.ObtenerOperariosDeUnaMaquina(IdMaquina);
+            await Task.Delay(50);
+
+            empleadosDisponibles = await ServicioMaquina.GetAllEmpleadosAsync();
+
+            StateHasChanged();
+        }catch(Exception ex)
+        {
+            Console.WriteLine($"Error en CargarDatos: {ex.Message}");
+        }
+
     }
 
     private async Task AsignarOperario()
@@ -107,7 +119,10 @@
         {
             await ServicioMaquina.AsignarEmpleadoAMaquinaAsync(IdMaquina, idEmpleadoSeleccionado);
             NotificationService.Notify(NotificationSeverity.Success, "Asignado", "Empleado autorizado correctamente");
+
             idEmpleadoSeleccionado = 0;
+
+            await Task.Delay(50);
             await CargarDatos();
         }
     }
@@ -122,8 +137,11 @@
         if (confirmar == true)
         {
             await ServicioMaquina.DesvincularEmpleadoDeMaquinaAsync(IdMaquina, emp.Id);
+
+            await Task.Delay(50);
             await CargarDatos();
-            NotificationService.Notify(NotificationSeverity.Info, "Actualizado", $"{emp.Nombre} eliminado de la maquina");
+
+            NotificationService.Notify(NotificationSeverity.Info, "Actualizado", $"{emp.Nombre} eliminado de la máquina");
         }
     }
 }

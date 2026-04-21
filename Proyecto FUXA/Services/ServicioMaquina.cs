@@ -16,9 +16,10 @@ namespace Proyecto_FUXA.Services
         public async Task<List<Maquina>> GetAllAsync()
         {
             return await _db.Maquinas
+                .AsNoTracking()
                 .Include(m => m.Seccion)
                 .Include(m => m.MaquinasEmpleados)
-                    .ThenInclude(me => me.Empleado)
+                .ThenInclude(me => me.Empleado)
                 .ToListAsync();
         }
 
@@ -246,6 +247,7 @@ namespace Proyecto_FUXA.Services
         public async Task<List<Material>> ObtenerTodosLosMaterialesAsync()
         {
             return await _db.Materiales
+                .AsNoTracking()
                 .OrderBy(n => n.Nombre)
                 .ToListAsync();
         }
@@ -253,6 +255,7 @@ namespace Proyecto_FUXA.Services
         public async Task<List<Material>> ObtenerMaterialesDeMaquinaAsync(int idMaquina)
         {
             var materiales = await _db.MaquinasMateriales
+                .AsNoTracking()
                 .Where(mm => mm.IdMaquina == idMaquina)
                 .Include(mm => mm.Material)
                 .Select(mm => mm.Material)
