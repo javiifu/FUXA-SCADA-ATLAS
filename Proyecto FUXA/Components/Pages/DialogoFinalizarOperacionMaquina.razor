@@ -401,7 +401,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService.Notify(NotificationSeverity.Error, "Error", "No se pudo finalizar la operación");
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"No se pudo finalizar la operación {ex.Message}");
         }
     }
 }
