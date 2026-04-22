@@ -3,123 +3,153 @@
 @using Proyecto_FUXA.Services
 @using Radzen
 @using Radzen.Blazor
+
 @inject ServicioMaquina ServicioMaquina
-@inject ImputacionService ImputacionService
 @inject NavigationManager NavManager
 
-<RadzenStack Gap="1.5rem" class="rz-p-6">
-    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
-            @if (seccionSeleccionada != null)
-            {
-                <RadzenButton Icon="arrow_back" Click="VolverASecciones" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Large" />
-            }
-            <RadzenText TextStyle="TextStyle.H4" Style="margin: 0;">
-                @(seccionSeleccionada == null ? "Seleccione Sección" : $"Máquinas en {seccionSeleccionada.Nombre}")
-            </RadzenText>
-        </RadzenStack>
+<div class="terminal-container">
+    <div class="topbar">
+        <div class="topbar-left">
+            <div class="machine-id">SELECCIÓN DE PUESTO</div>
+            <div class="machine-name">Planta Principal</div>
+        </div>
+        <div class="topbar-center">
+            <div class="clock-big">@DateTime.Now.ToString("HH:mm")</div>
+        </div>
+    </div>
 
-        @if (seccionSeleccionada != null)
-        {
-            <RadzenBadge BadgeStyle="BadgeStyle.Info" Text="@($"Prioridad: {seccionSeleccionada.Preferencia}")" Style="font-size: 1.1rem; padding: 10px;" />
-        }
-    </RadzenStack>
+    <div class="step-content">
+        <RadzenText TextStyle="TextStyle.H5" class="instruction" Style="text-align: center; margin-bottom: 2rem;">
+            Seleccione la máquina a la que desea conectarse
+        </RadzenText>
 
-    @if (listaSecciones == null)
-    {
-        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
-    }
-    else
-    {
-        @* PASO 1: Listar Secciones *@
-        @if (seccionSeleccionada == null)
+        @if (listaMaquinas == null)
         {
-            <RadzenDataList Data="@listaSecciones" TItem="Seccion" WrapItems="true">
-                <Template Context="s">
-                    <RadzenCard @onclick="@(() => SeleccionarSeccion(s))"
-                                class="rz-m-2 rz-shadow-6 selection-card section-style">
-                        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Gap="1rem">
-                            <RadzenIcon Icon="account_tree" Style="font-size: 4rem; color: #1F4E79;" />
-                            <RadzenText TextStyle="TextStyle.H5" Style="font-weight: bold; color: #1A2E3F;">@s.Nombre</RadzenText>
-                            <RadzenBadge BadgeStyle="BadgeStyle.Secondary" Text="@($"Preferencia: {s.Preferencia}")" />
-                        </RadzenStack>
-                    </RadzenCard>
-                </Template>
-            </RadzenDataList>
+            <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
         }
-        @* PASO 2: Listar Máquinas de la sección *@
+        else if (!listaMaquinas.Any())
+        {
+            <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat">
+                No hay máquinas registradas en el sistema.
+            </RadzenAlert>
+        }
         else
         {
-            @if (listaMaquinasFiltradas == null || !listaMaquinasFiltradas.Any())
-            {
-                <RadzenAlert AlertStyle="AlertStyle.Warning" Text="No hay máquinas registradas en esta sección." AllowClose="false" />
-            }
-            else
-            {
-                <RadzenDataList Data="@listaMaquinasFiltradas" TItem="Maquina" WrapItems="true">
-                    <Template Context="m">
-                        <RadzenCard @onclick="@(() => IrATerminal(m.Id))"
-                                    class="rz-m-2 rz-shadow-6 selection-card machine-style">
-                            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Gap="1rem">
-                                <RadzenIcon Icon="settings_suggest" Style="font-size: 4rem; color: #28a745;" />
-                                <RadzenText TextStyle="TextStyle.H5" Style="font-weight: bold; color: #1A2E3F;">@m.Nombre</RadzenText>
-                                <RadzenText TextStyle="TextStyle.Caption">ID Máquina: @m.Id</RadzenText>
-                            </RadzenStack>
-                        </RadzenCard>
-                    </Template>
-                </RadzenDataList>
-            }
+            <div class="operario-grid">
+                @foreach (var m in listaMaquinas)
+                {
+                    <div class="operario-card" @onclick="() => IrATerminal(m.Id)">
+                        <RadzenIcon Icon="settings_suggest" Style="font-size: 3rem; color: #1F4E79; margin-bottom: 10px;" />
+                        <div class="name">@m.Nombre</div>
+                        <div class="surname">@(m.Seccion?.Nombre ?? "General")</div>
+
+                        @if (m.Seccion != null)
+                        {
+                            <RadzenBadge BadgeStyle="BadgeStyle.Light" Text="@($"Prioridad: {m.Seccion.Preferencia}")" Style="margin-top: 10px;" />
+                        }
+                    </div>
+                }
+            </div>
         }
-    }
-</RadzenStack>
+    </div>
+</div>
 
 <style>
-    .selection-card {
-        width: 280px;
-        height: 200px;
+    .terminal-container {
+        background: #F0F4F8;
+        min-height: 100vh;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    }
+
+    .topbar {
+        background: #1F4E79;
+        color: white;
+        padding: 12px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #185FA5;
+    }
+
+    .machine-id {
+        color: #BDD7EE;
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+    }
+
+    .machine-name {
+        font-size: 20px;
+        font-weight: 500;
+        color: white;
+    }
+
+    .clock-big {
+        font-size: 28px;
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .step-content {
+        padding: 2rem;
+        max-width: 1000px;
+        margin: auto;
+    }
+
+    .instruction {
+        color: #1F4E79;
+        font-weight: bold;
+    }
+
+    .operario-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .operario-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        text-align: center;
         cursor: pointer;
-        transition: all 0.2s ease-in-out;
-        border-radius: 16px !important;
-        border: 2px solid transparent;
+        border: 1px solid #D5E3EF;
+        transition: all 0.2s;
     }
 
-    .section-style:hover {
-        transform: translateY(-5px);
-        border-color: #1F4E79 !important;
-        background-color: #f0f4f8;
+        .operario-card:hover {
+            border-color: #2E75B6;
+            transform: translateY(-5px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            background-color: #f8fafc;
+        }
+
+    .name {
+        font-weight: bold;
+        color: #1A2E3F;
+        font-size: 1.2rem;
     }
 
-    .machine-style:hover {
-        transform: translateY(-5px);
-        border-color: #28a745 !important;
-        background-color: #f0fdf4;
+    .surname {
+        color: #6B8FAD;
+        font-size: 0.9rem;
+        margin-top: 5px;
     }
 </style>
 
 @code {
-    private List<Seccion> listaSecciones;
-    private List<Maquina> listaMaquinasFiltradas;
-    private Seccion seccionSeleccionada = null;
+    private List<Maquina> listaMaquinas;
 
     protected override async Task OnInitializedAsync()
     {
-        listaSecciones = await ImputacionService.GetSeccionesAsync();
-    }
-
-    private async Task SeleccionarSeccion(Seccion seccion)
-    {
-        seccionSeleccionada = seccion;
-        listaMaquinasFiltradas = await ImputacionService.GetMaquinasBySeccionAsync(seccion.Id);
-    }
-
-    private void VolverASecciones()
-    {
-        seccionSeleccionada = null;
-        listaMaquinasFiltradas = null;
+        // cargamos la lista completa de máquinas
+        listaMaquinas = await ServicioMaquina.GetAllAsync();
     }
 
     private void IrATerminal(int id)
     {
+        // redirigimos al terminal enviando ID de la máquina
         NavManager.NavigateTo($"/terminal-operario/{id}");
     }
 }

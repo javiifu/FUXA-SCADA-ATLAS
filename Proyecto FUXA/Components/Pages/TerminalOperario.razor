@@ -8,7 +8,6 @@
 @implements IDisposable
 
 @inject ServicioMaquina ServicioMaquina
-@inject ServicioEmpleado ServicioEmpleado
 @inject NavigationManager NavManager
 @inject ImputacionService ImputacionService
 @inject NotificationService NotificationService
@@ -30,94 +29,87 @@
         </div>
         <div class="topbar-right">
             <RadzenButton Click="@(() => NavManager.NavigateTo("/terminal-operario-seleccion"))"
-                          Icon="arrow_back" Text="VOLVER" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" />
+                          Icon="arrow_back" Text="VOLVER AL MENÚ" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" />
         </div>
     </div>
 
     <div class="step-content">
+
+        @* PASO 1: SELECCIONAR OPERARIO *@
         @if (pasoActual == 1)
         {
-            <RadzenText TextStyle="TextStyle.H5" class="instruction">Seleccione Operario de @(maquinaActual?.Nombre ?? "...")</RadzenText>
+            <RadzenText TextStyle="TextStyle.H5" class="instruction">Paso 1: Seleccione Operario</RadzenText>
 
-            @if (operariosAsignados == null)
+            @if (listaEmpleados == null)
             {
                 <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
             }
-            else if (!operariosAsignados.Any())
+            else if (!listaEmpleados.Any())
             {
                 <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat" Shade="Shade.Lighter" AllowClose="false">
-                    No hay operarios asignados a esta máquina.
+                    No hay operarios en la base de datos.
                 </RadzenAlert>
             }
             else
             {
                 <div class="operario-grid">
-                    @foreach (var op in operariosAsignados)
+                    @foreach (var op in listaEmpleados)
                     {
                         <div class="operario-card" @onclick="() => SeleccionarOperario(op)">
                             <div class="avatar">@(string.IsNullOrEmpty(op.Nombre) ? "?" : op.Nombre.Substring(0, 1))</div>
                             <div class="name">@op.Nombre</div>
                             <div class="surname">@op.Apellidos</div>
+                            <div style="font-size:0.8rem; color:#8AAEC8; margin-top:5px;">@(op.CodigoEmpleado ?? "Sin código")</div>
                         </div>
                     }
                 </div>
             }
         }
+
+        @* PASO 2: SELECCIONAR ORDEN PADRE *@
         else if (pasoActual == 2)
         {
-            <RadzenText TextStyle="TextStyle.H5" class="instruction">Seleccione operación para @maquinaActual.Nombre</RadzenText>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" class="rz-mb-4">
+                <RadzenButton Icon="arrow_back" Click="() => pasoActual = 1" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" />
+                <RadzenText TextStyle="TextStyle.H5" class="instruction" Style="margin: 0 0 0 10px; border: none;">
+                    Paso 2: Seleccione Orden de Fabricación
+                </RadzenText>
+            </RadzenStack>
 
-            @if (ordenesDisponibles.Count == 0)
+            @if (!ordenesDisponibles.Any())
             {
                 <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat" Shade="Shade.Lighter" AllowClose="false">
-                    No hay operaciones activas o pendientes en esta máquina.
+                    No hay órdenes activas para esta máquina.
                 </RadzenAlert>
             }
             else
             {
                 <RadzenStack Gap="1.2rem" class="rz-p-2">
-                    @foreach (var orden in ordenesDisponibles)
+                    @foreach (var grupo in ordenesDisponibles.GroupBy(o => new { o.NombreOrden, o.Producto }))
                     {
-                        <RadzenCard @onclick="() => SeleccionarOrden(orden)"
-                                    class="order-card-modern"
-                                    Style="@(orden.Estado == "Activa" ? "border-left: 8px solid #28a745;" : "border-left: 8px solid #17a2b8;")">
-
+                        <RadzenCard @onclick="() => SeleccionarOrdenPadre(grupo.Key.NombreOrden)" class="order-card-modern" Style="border-left: 8px solid #1F4E79;">
                             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
-
                                 <RadzenStack Gap="0.5rem">
                                     <RadzenText TextStyle="TextStyle.H5" Style="margin:0; font-weight: 800; color:#1A2E3F; letter-spacing: 0.5px;">
-                                        @orden.CodigoOperacion
+                                        @grupo.Key.NombreOrden
                                     </RadzenText>
                                     <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
                                         <RadzenIcon Icon="inventory_2" Style="font-size: 1.1rem; color: #6B8FAD;" />
                                         <RadzenText TextStyle="TextStyle.Body1" Style="color: #4A5568; font-weight: 500;">
-                                            @orden.Producto
+                                            @grupo.Key.Producto
                                         </RadzenText>
                                     </RadzenStack>
-                                    <RadzenBadge BadgeStyle="BadgeStyle.Light" IsPill="true" Text="@($"Objetivo: {orden.CiclosObjetivo} pcs")" Style="width: fit-content; padding: 5px 12px;" />
+                                    <RadzenBadge BadgeStyle="BadgeStyle.Info" IsPill="true" Text="@($"{grupo.Count()} tareas disponibles")" Style="width: fit-content; padding: 5px 12px;" />
                                 </RadzenStack>
-
-                                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="2rem">
-                                    <div class="status-badge-container">
-                                        @if (orden.Estado.Equals("Activa"))
-                                        {
-                                            <RadzenBadge BadgeStyle="BadgeStyle.Success" class="badge-xl" Text="ACTIVA" />
-                                        }
-                                        else if (orden.Estado.Equals("Pendiente"))
-                                        {
-                                            <RadzenBadge BadgeStyle="BadgeStyle.Info" class="badge-xl" Text="PENDIENTE" />
-                                        }
-                                    </div>
-                                    <RadzenIcon Icon="@(orden.Estado == "Activa" ? "play_circle" : "pause_circle")"
-                                                Style="@($"font-size: 3.5rem; color: {(orden.Estado == "Activa" ? "#28a745" : "#cbd5e0")};")" />
-                                </RadzenStack>
+                                <RadzenIcon Icon="chevron_right" Style="font-size: 3rem; color: #cbd5e0;" />
                             </RadzenStack>
                         </RadzenCard>
                     }
                 </RadzenStack>
             }
+
             <div style="margin-top: 3rem;">
-                <RadzenButton Text="NUEVA OPERACIÓN"
+                <RadzenButton Text="CREAR NUEVA OPERACIÓN"
                               Icon="add_circle"
                               ButtonStyle="ButtonStyle.Success"
                               Size="ButtonSize.Large"
@@ -125,7 +117,54 @@
                               Style="height: 70px; font-weight: bold; border-radius: 12px; width: 100%; font-size: 1.2rem;" />
             </div>
         }
+
+        @* PASO 3: SELECCIONAR OPERACIÓN (TAREA) *@
         else if (pasoActual == 3)
+        {
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" class="rz-mb-4">
+                <RadzenButton Icon="arrow_back" Click="() => pasoActual = 2" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" />
+                <RadzenText TextStyle="TextStyle.H5" class="instruction" Style="margin: 0 0 0 10px; border: none;">
+                    Paso 3: Seleccione tarea para @ordenPadreSeleccionada
+                </RadzenText>
+            </RadzenStack>
+
+            <RadzenStack Gap="1.2rem" class="rz-p-2">
+                @foreach (var orden in ordenesDisponibles.Where(o => o.NombreOrden == ordenPadreSeleccionada))
+                {
+                    <RadzenCard @onclick="() => SeleccionarOperacion(orden)"
+                                class="order-card-modern"
+                                Style="@(orden.Estado == "Activa" ? "border-left: 8px solid #28a745;" : "border-left: 8px solid #17a2b8;")">
+
+                        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                            <RadzenStack Gap="0.5rem">
+                                <RadzenText TextStyle="TextStyle.H5" Style="margin:0; font-weight: 800; color:#1A2E3F; letter-spacing: 0.5px;">
+                                    @orden.CodigoOperacion
+                                </RadzenText>
+                                <RadzenBadge BadgeStyle="BadgeStyle.Light" IsPill="true" Text="@($"Objetivo: {orden.CiclosObjetivo} pcs")" Style="width: fit-content; padding: 5px 12px;" />
+                            </RadzenStack>
+
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="2rem">
+                                <div class="status-badge-container">
+                                    @if (orden.Estado.Equals("Activa"))
+                                    {
+                                        <RadzenBadge BadgeStyle="BadgeStyle.Success" class="badge-xl" Text="ACTIVA" />
+                                    }
+                                    else if (orden.Estado.Equals("Pendiente"))
+                                    {
+                                        <RadzenBadge BadgeStyle="BadgeStyle.Info" class="badge-xl" Text="PENDIENTE" />
+                                    }
+                                </div>
+                                <RadzenIcon Icon="@(orden.Estado == "Activa" ? "play_circle" : "pause_circle")"
+                                            Style="@($"font-size: 3.5rem; color: {(orden.Estado == "Activa" ? "#28a745" : "#cbd5e0")};")" />
+                            </RadzenStack>
+                        </RadzenStack>
+                    </RadzenCard>
+                }
+            </RadzenStack>
+        }
+
+        @* PASO 4: PANEL DE CONTROL *@
+        else if (pasoActual == 4)
         {
             <RadzenStack Gap="1.5rem">
                 <RadzenCard Variant="Variant.Flat" Style="background: #fff; border: 1px solid #D5E3EF;" class="rz-mb-4">
@@ -170,13 +209,6 @@
                         <RadzenText Style="color:#BDD7EE; margin:0;">@tipoActividad.ToUpper()</RadzenText>
                     </div>
                 </div>
-
-                @* <div class="act-grid-terminal">
-                    <button class="act-btn-fuxa @(tipoActividad == "Setup" ? "active" : "")" @onclick='() => tipoActividad = "Setup"'>Setup</button>
-                    <button class="act-btn-fuxa @(tipoActividad == "Producción" ? "active" : "")" @onclick='() => tipoActividad = "Producción"'>Producción</button>
-                    <button class="act-btn-fuxa @(tipoActividad == "Avería" ? "active" : "")" @onclick='() => tipoActividad = "Avería"'>Avería</button>
-                    <button class="act-btn-fuxa @(tipoActividad == "Parada" ? "active" : "")" @onclick='() => tipoActividad = "Parada"'>Parada</button>
-                </div> *@
 
                 @* Piezas fabricadas y rotas *@
                 <RadzenRow Gap="1rem">
@@ -223,7 +255,6 @@
                     </RadzenColumn>
                 </RadzenRow>
 
-                @* botones de guardar y pausar *@
                 <RadzenRow Gap="1rem" class="rz-mb-4">
                     <RadzenColumn Size="12" SizeMD="6">
                         <RadzenButton Text="@(estaPausado ? "REANUDAR MÁQUINA" : "PAUSAR MÁQUINA")"
@@ -287,10 +318,12 @@
     }
 
     .instruction {
-        text-align: center;
+        text-align: left;
         margin-bottom: 2rem;
         color: #1F4E79;
         font-weight: bold;
+        border-bottom: 2px solid #D5E3EF;
+        padding-bottom: 10px;
     }
 
     .operario-grid {
@@ -423,6 +456,7 @@
         transition: all 0.2s ease-in-out;
         padding: 1.5rem !important;
         margin-bottom: 0.5rem;
+        cursor: pointer;
     }
 
         .order-card-modern:hover {
@@ -451,7 +485,9 @@
     [Parameter] public int IdMaquina { get; set; }
 
     private Maquina maquinaActual;
-    private List<Empleado> operariosAsignados;
+
+    // Lista con todos los empleados de la base de datos
+    private List<Empleado> listaEmpleados;
     private List<OperacionResumenDTO> ordenesDisponibles;
 
     private string currentTime = DateTime.Now.ToString("HH:mm:ss");
@@ -459,7 +495,9 @@
     private Timer timer;
 
     private Empleado operarioSeleccionado;
+    private string ordenPadreSeleccionada;
     private OperacionResumenDTO ordenSeleccionada;
+
     private int segundosTrabajo = 0;
     private bool estaPausado = false;
     private string tipoActividad = "Produccion";
@@ -476,14 +514,17 @@
         try
         {
             maquinaActual = await ServicioMaquina.GetByIdAsync(IdMaquina);
-            operariosAsignados = await ServicioEmpleado.ObtenerOperariosPorMaquinaAsync(IdMaquina);
             preferenciaActual = await ServicioMaquina.PreferenciaPorMaquinaId(IdMaquina);
+
+            // Cargamos todos los empleados de la BD para el Paso 1
+            listaEmpleados = await ImputacionService.GetEmpleadosAsync();
+
             await CargarDatos();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error cargando datos: {ex.Message}");
-            operariosAsignados = new List<Empleado>();
+            listaEmpleados = new List<Empleado>();
         }
 
         timer = new Timer(1000);
@@ -498,8 +539,7 @@
 
         currentTime = DateTime.Now.ToString("HH:mm:ss");
 
-        // El timer avanza si estamos en el paso 3 y NO está pausado
-        if (pasoActual == 3 && !estaPausado)
+        if (pasoActual == 4 && !estaPausado)
         {
             segundosTrabajo++;
         }
@@ -512,13 +552,22 @@
         catch { }
     }
 
+    // PASO 1 -> PASO 2
     private void SeleccionarOperario(Empleado emp)
     {
         operarioSeleccionado = emp;
         pasoActual = 2;
     }
 
-    private async Task SeleccionarOrden(OperacionResumenDTO orden)
+    // PASO 2 -> PASO 3
+    private void SeleccionarOrdenPadre(string codigoOrden)
+    {
+        ordenPadreSeleccionada = codigoOrden;
+        pasoActual = 3;
+    }
+
+    // PASO 3 -> PASO 4 (VALIDACIÓN FINAL)
+    private async Task SeleccionarOperacion(OperacionResumenDTO orden)
     {
         var ordenPadre = await ImputacionService.GetOrdenById(orden.NombreOrden);
         if (ordenPadre == null) return;
@@ -540,8 +589,8 @@
         ordenSeleccionada = orden;
         piezasFabricadas = 0;
         piezasRotas = 0;
-        ciclosReales = 0; // Reiniciamos también los ciclos
-        estaPausado = false; // Nos aseguramos de que no empiece pausado
+        ciclosReales = 0;
+        estaPausado = false;
         horaInicioProceso = DateTime.Now;
 
         if (orden.Estado == "Pendiente")
@@ -549,14 +598,12 @@
             await ImputacionService.IniciarFichajeAsync(orden.Id, operarioSeleccionado.Id);
         }
 
-        pasoActual = 3;
+        pasoActual = 4;
         StateHasChanged();
     }
 
     private void ModificarPiezasFabricadas(int valor) => piezasFabricadas = Math.Max(0, piezasFabricadas + valor);
     private void ModificarPiezasRotas(int valor) => piezasRotas = Math.Max(0, piezasRotas + valor);
-
-    // Método para el botón de pausa
     private void PausarImputacion() => estaPausado = !estaPausado;
 
     private async Task FinalizarImputacion()
@@ -565,13 +612,8 @@
         decimal horas = (decimal)segundosTrabajo / 3600;
 
         bool exito = await ImputacionService.ImputarTrabajoDesdeTerminalAsync(
-            ordenSeleccionada.Id,
-            IdMaquina,
-            operarioSeleccionado.Id,
-            horaInicioProceso,
-            DateTime.Now,
-            piezasFabricadas,
-            piezasRotas
+            ordenSeleccionada.Id, IdMaquina, operarioSeleccionado.Id,
+            horaInicioProceso, DateTime.Now, piezasFabricadas, piezasRotas
         );
 
         if (exito)
@@ -585,11 +627,8 @@
                 NotificationService.Notify(NotificationSeverity.Success, "Éxito", "Turno guardado correctamente.");
             }
 
-            // Si quieres guardar los ciclos, deberías enviarlos al servicio aquí también.
-
             isDisposed = true;
             if (timer != null) timer.Stop();
-
             await Task.Delay(1000);
             NavManager.NavigateTo("/terminal-operario-seleccion");
         }
