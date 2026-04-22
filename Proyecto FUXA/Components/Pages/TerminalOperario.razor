@@ -19,6 +19,7 @@
         <div class="topbar-left">
             <div class="machine-id">MÁQUINA @IdMaquina</div>
             <div class="machine-name">@(maquinaActual?.Nombre ?? "Cargando...")</div>
+            <div class="machine-name">Preferencia: @preferenciaActual</div>
         </div>
         <div class="topbar-center">
             <div class="clock-big">@currentTime</div>
@@ -487,6 +488,7 @@
     private int piezasAlEmpezarTurno;
     private bool isDisposed = false;
     private bool dialogoAbierto = false;
+    private int? preferenciaActual;
 
     protected override async Task OnInitializedAsync()
     {
@@ -498,6 +500,8 @@
 
             ordenesDisponibles = await ImputacionService.ObtenerOperacionesActivasAsync();
             ordenesDisponibles = ordenesDisponibles.Where(o => o.IdMaquina == IdMaquina).ToList();
+            preferenciaActual = await ServicioMaquina.PreferenciaPorMaquinaId(IdMaquina);
+
         }
         catch (Exception ex)
         {

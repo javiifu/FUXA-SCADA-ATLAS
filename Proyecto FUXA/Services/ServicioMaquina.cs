@@ -22,6 +22,12 @@ namespace Proyecto_FUXA.Services
                 .ThenInclude(me => me.Empleado)
                 .ToListAsync();
         }
+        public async Task<List<Maquina>> GetAllBySeccionAsync()
+        {
+            return await _db.Maquinas
+                .Include(m => m.Seccion)
+                .ToListAsync();
+        }
 
         public async Task<Maquina?> GetByIdAsync(int id)
         {
@@ -321,6 +327,19 @@ namespace Proyecto_FUXA.Services
                 _db.EmpleadoMaquinas.Remove(relacion);
                 await _db.SaveChangesAsync();
             }
+        }
+
+        public async Task <int?> PreferenciaPorMaquinaId(int idMaquina)
+        {
+            var maquina = await _db.Maquinas
+                .FirstOrDefaultAsync(m => m.Id == idMaquina);
+
+            if (maquina == null) return null;
+
+            var seccion = await _db.Secciones
+                .FirstOrDefaultAsync(s => s.Id == maquina.IdSeccion);
+
+            return seccion?.Preferencia;
         }
     }
 }
