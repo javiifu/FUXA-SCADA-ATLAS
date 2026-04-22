@@ -76,11 +76,11 @@ else
                                     SelectionMode="DataGridSelectionMode.Single" Responsive="true">
 
                         <Columns>
-                            <RadzenDataGridColumn TItem="Maquina" Title="Nº" Width="60px" TextAlign="TextAlign.Center">
+                            @* <RadzenDataGridColumn TItem="Maquina" Title="Nº" Width="60px" TextAlign="TextAlign.Center">
                                 <Template Context="item">
                                     @(maquinasFiltradas.IndexOf(item) + 1)
                                 </Template>
-                            </RadzenDataGridColumn>
+                            </RadzenDataGridColumn> *@
                             <RadzenDataGridColumn TItem="Maquina" Property="Nombre" Title="Nombre Máquina" Width="150px"/>
                             <RadzenDataGridColumn TItem="Maquina" Property="Seccion.Nombre" Title="Sección" Width="130px"/>
                             <RadzenDataGridColumn TItem="Maquina" Property="CodigoOperacionActiva" Title="Operación Actual" Width="170px">

@@ -113,7 +113,6 @@ public class ImputacionService
         {
             var ordenPadre = await _context.Ordenes.FindAsync(idOrden);
 
-            //cuenta cuántas operaciones tiene ya esta orden para calcular el sufijo (-1, -2...)
             var totalOperaciones = await _context.OperacionesOrden.CountAsync(op => op.IdOrden == idOrden);
             string nuevoCodigo = $"{ordenPadre.CodigoOrden}-{totalOperaciones + 1}";
 
@@ -128,6 +127,14 @@ public class ImputacionService
             };
 
             _context.OperacionesOrden.Add(nuevaOp);
+
+            //para cambiar el estado de la maquina
+            var maquina = await _context.Maquinas.FindAsync(idMaquina);
+            if (maquina != null)
+            {
+                maquina.EstadoActualId = 1;
+            }
+
             await _context.SaveChangesAsync();
             return true;
         }
@@ -179,6 +186,13 @@ public class ImputacionService
         };
 
         _context.OperacionesOrden.Add(nuevaOp);
+
+        var maquina = await _context.Maquinas.FindAsync(idMaquina);
+        if (maquina != null)
+        {
+            maquina.EstadoActualId = 1;
+        }
+
         return await _context.SaveChangesAsync() > 0;
     }
     public async Task<List<Orden>> ObtenerOrdenesActivasAsync()
@@ -747,6 +761,12 @@ public class ImputacionService
         if (operacion != null)
         {
             operacion.Estado = "Activa";
+
+            var maquina = await _context.Maquinas.FindAsync(operacion.IdMaquina);
+            if(maquina != null)
+            {
+                maquina.EstadoActualId = 1;
+            }
 
             var nuevaImputacion = new ImputacionOperario
             {

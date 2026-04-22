@@ -29,7 +29,7 @@
             <div class="clock-big">@currentTime</div>
         </div>
         <div class="topbar-right">
-            <RadzenButton Click="@(() => NavManager.NavigateTo($"/terminal-seleccion-maquina/{maquinaActual?.IdSeccion ?? 0}"))"
+            <RadzenButton Click="@(() => NavManager.NavigateTo("/terminal-operario-seleccion"))"
                           Icon="arrow_back" Text="VOLVER" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" />
         </div>
     </div>
@@ -166,17 +166,17 @@
                 <div class="timer-strip-fuxa">
                     <div class="timer-val-big">@TimeSpan.FromSeconds(segundosTrabajo).ToString(@"hh\:mm\:ss")</div>
                     <div class="timer-status">
-                        <div class="status-dot running"></div>
+                        <div class="status-dot @(estaPausado ? "paused" : "running")"></div>
                         <RadzenText Style="color:#BDD7EE; margin:0;">@tipoActividad.ToUpper()</RadzenText>
                     </div>
                 </div>
 
-                <div class="act-grid-terminal">
+                @* <div class="act-grid-terminal">
                     <button class="act-btn-fuxa @(tipoActividad == "Setup" ? "active" : "")" @onclick='() => tipoActividad = "Setup"'>Setup</button>
                     <button class="act-btn-fuxa @(tipoActividad == "Producción" ? "active" : "")" @onclick='() => tipoActividad = "Producción"'>Producción</button>
                     <button class="act-btn-fuxa @(tipoActividad == "Avería" ? "active" : "")" @onclick='() => tipoActividad = "Avería"'>Avería</button>
                     <button class="act-btn-fuxa @(tipoActividad == "Parada" ? "active" : "")" @onclick='() => tipoActividad = "Parada"'>Parada</button>
-                </div>
+                </div> *@
 
                 @* Piezas fabricadas y rotas *@
                 <RadzenRow Gap="1rem">
@@ -207,7 +207,7 @@
                 <RadzenRow Gap="1rem" class="rz-mb-4 rz-mt-2">
                     <RadzenColumn Size="12">
                         <div class="pcs-card-fuxa" style="background-color: #E6F2FF; border: 2px solid #7BB3D4;">
-                            <RadzenText TextStyle="TextStyle.H5" Style="color: #1F4E79;"><b>Ciclos reales (Turno Actual)</b></RadzenText>
+                            <RadzenText TextStyle="TextStyle.H5" Style="color: #1F4E79;"><b>Ciclos reales</b></RadzenText>
                             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Gap="3rem">
                                 <RadzenButton Icon="remove" ButtonStyle="ButtonStyle.Info" Click="() => ciclosReales = Math.Max(0, ciclosReales - 1)" Size="ButtonSize.Large" />
                                 <RadzenNumeric TValue="int" @bind-Value="ciclosReales" ShowUpDown="false" TextAlign="TextAlign.Center" Variant="Variant.Flat" Style="font-size: 2.5rem !important; font-weight: bold !important; width: 150px; background: transparent; border: none; box-shadow: none; color: #1F4E79;" />
@@ -223,10 +223,23 @@
                     </RadzenColumn>
                 </RadzenRow>
 
-                @* Botón Guardar Full Width *@
-                <RadzenRow class="rz-mb-4">
-                    <RadzenColumn Size="12">
-                        <RadzenButton Text="GUARDAR TURNO (IMPUTAR)" Icon="save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Large" Click="FinalizarImputacion" Style="height: 75px; font-weight: bold; border-radius: 12px; width: 100%; font-size: 1.2rem;" />
+                @* botones de guardar y pausar *@
+                <RadzenRow Gap="1rem" class="rz-mb-4">
+                    <RadzenColumn Size="12" SizeMD="6">
+                        <RadzenButton Text="@(estaPausado ? "REANUDAR MÁQUINA" : "PAUSAR MÁQUINA")"
+                                      Icon="@(estaPausado ? "play_arrow" : "pause")"
+                                      ButtonStyle="ButtonStyle.Warning"
+                                      Size="ButtonSize.Large"
+                                      Click="PausarImputacion"
+                                      Style="height: 75px; font-weight: bold; border-radius: 12px; width: 100%; font-size: 1.2rem;" />
+                    </RadzenColumn>
+                    <RadzenColumn Size="12" SizeMD="6">
+                        <RadzenButton Text="GUARDAR TURNO (IMPUTAR)"
+                                      Icon="save"
+                                      ButtonStyle="ButtonStyle.Success"
+                                      Size="ButtonSize.Large"
+                                      Click="FinalizarImputacion"
+                                      Style="height: 75px; font-weight: bold; border-radius: 12px; width: 100%; font-size: 1.2rem;" />
                     </RadzenColumn>
                 </RadzenRow>
 
@@ -357,6 +370,10 @@
             box-shadow: 0 0 10px #1D9E75;
         }
 
+        .status-dot.paused {
+            background: #EF9F27;
+        }
+
     .act-grid-terminal {
         display: grid;
         grid-template-columns: 1fr 1fr 1fr 1fr;
@@ -444,6 +461,7 @@
     private Empleado operarioSeleccionado;
     private OperacionResumenDTO ordenSeleccionada;
     private int segundosTrabajo = 0;
+    private bool estaPausado = false;
     private string tipoActividad = "Produccion";
     private int piezasFabricadas = 0;
     private int piezasRotas = 0;
@@ -480,8 +498,8 @@
 
         currentTime = DateTime.Now.ToString("HH:mm:ss");
 
-        // El timer avanza siempre que estemos en el paso 3 (sin pausa)
-        if (pasoActual == 3)
+        // El timer avanza si estamos en el paso 3 y NO está pausado
+        if (pasoActual == 3 && !estaPausado)
         {
             segundosTrabajo++;
         }
@@ -523,6 +541,7 @@
         piezasFabricadas = 0;
         piezasRotas = 0;
         ciclosReales = 0; // Reiniciamos también los ciclos
+        estaPausado = false; // Nos aseguramos de que no empiece pausado
         horaInicioProceso = DateTime.Now;
 
         if (orden.Estado == "Pendiente")
@@ -536,6 +555,9 @@
 
     private void ModificarPiezasFabricadas(int valor) => piezasFabricadas = Math.Max(0, piezasFabricadas + valor);
     private void ModificarPiezasRotas(int valor) => piezasRotas = Math.Max(0, piezasRotas + valor);
+
+    // Método para el botón de pausa
+    private void PausarImputacion() => estaPausado = !estaPausado;
 
     private async Task FinalizarImputacion()
     {
@@ -569,7 +591,7 @@
             if (timer != null) timer.Stop();
 
             await Task.Delay(1000);
-            NavManager.NavigateTo($"/terminal-seleccion-maquina/{maquinaActual?.IdSeccion ?? 0}");
+            NavManager.NavigateTo("/terminal-operario-seleccion");
         }
     }
 
@@ -615,7 +637,7 @@
             isDisposed = true;
             if (timer != null) timer.Stop();
             await Task.Delay(1500);
-            NavManager.NavigateTo($"/terminal-seleccion-maquina/{maquinaActual?.IdSeccion ?? 0}");
+            NavManager.NavigateTo("/terminal-operario-seleccion");
         }
     }
 
