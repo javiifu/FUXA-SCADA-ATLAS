@@ -313,13 +313,24 @@ public class ImputacionService
                 op.PiezasFabricadas = (int)operacion.PiezasFabricadas;
                 op.PiezasRotas = (int)operacion.PiezasRotas;
 
+                bool quedanPendientes = await _context.OperacionesOrden
+                    .AnyAsync(o => o.IdOrden == op.IdOrden && o.Estado != "Finalizado");
+
+                if (!quedanPendientes)
+                {
+                    var ordenMadre = await _context.Ordenes.FindAsync(op.IdOrden);
+                    if (ordenMadre != null)
+                    {
+                        ordenMadre.Estado = "Finalizado";
+                    }
+                }
                 await _context.SaveChangesAsync();
             }
 
             var maquina = await _context.Maquinas.FindAsync(idMaquina);
-            if(maquina != null)
+            if (maquina != null)
             {
-                if(maquina.EstadoActualId != 4)
+                if (maquina.EstadoActualId != 4)
                 {
                     maquina.EstadoActualId = 3;
                 }
@@ -491,18 +502,28 @@ public class ImputacionService
         {
             var operacion = await _context.OperacionesOrden.FindAsync(idOperacion);
 
-            if(operacion != null)
-            {
-                operacion.Estado = "Finalizada";
+            if (operacion == null) return false;
 
-                await _context.SaveChangesAsync();
-                return true;
+            operacion.Estado = "Finalizado";
+            await _context.SaveChangesAsync();
+
+            bool quedanOperacionesPendientes = await _context.OperacionesOrden
+                .AnyAsync(op => op.IdOrden == operacion.IdOrden && op.Estado != "Finalizado");
+
+            if (!quedanOperacionesPendientes)
+            {
+                var ordenMadre = await _context.Ordenes.FindAsync(operacion.IdOrden);
+                if (ordenMadre != null)
+                {
+                    ordenMadre.Estado = "Finalizado";
+                    await _context.SaveChangesAsync();
+                }
             }
-            return false;
-        }catch(Exception ex)
+            return true;
+        }
+        catch (Exception ex)
         {
-            
-            Console.WriteLine($"Error: { ex.Message}");
+            Console.WriteLine($"Error al cerrar operación y comprobar orden: {ex.Message}");
             return false;
         }
     }

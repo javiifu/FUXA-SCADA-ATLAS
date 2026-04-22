@@ -8,7 +8,6 @@
 @inject NavigationManager NavManager
 
 <RadzenStack Gap="1.5rem" class="rz-p-6">
-    @* Cabecera Dinámica *@
     <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
             @if (seccionSeleccionada != null)
@@ -104,14 +103,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Cargamos todas las secciones al inicio
         listaSecciones = await ImputacionService.GetSeccionesAsync();
     }
 
     private async Task SeleccionarSeccion(Seccion seccion)
     {
         seccionSeleccionada = seccion;
-        // Al seleccionar sección, cargamos sus máquinas
         listaMaquinasFiltradas = await ImputacionService.GetMaquinasBySeccionAsync(seccion.Id);
     }
 

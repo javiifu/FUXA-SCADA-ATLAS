@@ -72,48 +72,48 @@
             else
             {
                 <RadzenStack Gap="1.2rem" class="rz-p-2">
-    @foreach (var orden in ordenesDisponibles)
-    {
-        <RadzenCard @onclick="() => SeleccionarOrden(orden)" 
-                    class="order-card-modern" 
-                    Style="@(orden.Estado == "Activa" ? "border-left: 8px solid #28a745;" : "border-left: 8px solid #17a2b8;")">
+                    @foreach (var orden in ordenesDisponibles)
+                    {
+                        <RadzenCard @onclick="() => SeleccionarOrden(orden)" 
+                                    class="order-card-modern" 
+                                    Style="@(orden.Estado == "Activa" ? "border-left: 8px solid #28a745;" : "border-left: 8px solid #17a2b8;")">
             
-            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
                 
-                <RadzenStack Gap="0.5rem">
-                    <RadzenText TextStyle="TextStyle.H5" Style="margin:0; font-weight: 800; color:#1A2E3F; letter-spacing: 0.5px;">
-                        @orden.CodigoOperacion
-                    </RadzenText>
-                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-                        <RadzenIcon Icon="inventory_2" Style="font-size: 1.1rem; color: #6B8FAD;" />
-                        <RadzenText TextStyle="TextStyle.Body1" Style="color: #4A5568; font-weight: 500;">
-                            @orden.Producto
-                        </RadzenText>
-                    </RadzenStack>
-                    <RadzenBadge BadgeStyle="BadgeStyle.Light" IsPill="true" Text="@($"Objetivo: {orden.CiclosObjetivo} pcs")" Style="width: fit-content; padding: 5px 12px;" />
-                </RadzenStack>
+                                <RadzenStack Gap="0.5rem">
+                                    <RadzenText TextStyle="TextStyle.H5" Style="margin:0; font-weight: 800; color:#1A2E3F; letter-spacing: 0.5px;">
+                                        @orden.CodigoOperacion
+                                    </RadzenText>
+                                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                        <RadzenIcon Icon="inventory_2" Style="font-size: 1.1rem; color: #6B8FAD;" />
+                                        <RadzenText TextStyle="TextStyle.Body1" Style="color: #4A5568; font-weight: 500;">
+                                            @orden.Producto
+                                        </RadzenText>
+                                    </RadzenStack>
+                                    <RadzenBadge BadgeStyle="BadgeStyle.Light" IsPill="true" Text="@($"Objetivo: {orden.CiclosObjetivo} pcs")" Style="width: fit-content; padding: 5px 12px;" />
+                                </RadzenStack>
 
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="2rem">
+                                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="2rem">
                     
-                    <div class="status-badge-container">
-                        @if (orden.Estado.Equals("Activa"))
-                        {
-                            <RadzenBadge BadgeStyle="BadgeStyle.Success" class="badge-xl" Text="ACTIVA" />
-                        }
-                        else if (orden.Estado.Equals("Pendiente"))
-                        {
-                            <RadzenBadge BadgeStyle="BadgeStyle.Info" class="badge-xl" Text="PENDIENTE" />
-                        }
-                    </div>
+                                    <div class="status-badge-container">
+                                        @if (orden.Estado.Equals("Activa"))
+                                        {
+                                            <RadzenBadge BadgeStyle="BadgeStyle.Success" class="badge-xl" Text="ACTIVA" />
+                                        }
+                                        else if (orden.Estado.Equals("Pendiente"))
+                                        {
+                                            <RadzenBadge BadgeStyle="BadgeStyle.Info" class="badge-xl" Text="PENDIENTE" />
+                                        }
+                                    </div>
 
-                    <RadzenIcon Icon="@(orden.Estado == "Activa" ? "play_circle" : "pause_circle")" 
-                                Style="@($"font-size: 3.5rem; color: {(orden.Estado == "Activa" ? "#28a745" : "#cbd5e0")};")" />
+                                    <RadzenIcon Icon="@(orden.Estado == "Activa" ? "play_circle" : "pause_circle")" 
+                                                Style="@($"font-size: 3.5rem; color: {(orden.Estado == "Activa" ? "#28a745" : "#cbd5e0")};")" />
+                                </RadzenStack>
+
+                            </RadzenStack>
+                        </RadzenCard>
+                    }
                 </RadzenStack>
-
-            </RadzenStack>
-        </RadzenCard>
-    }
-</RadzenStack>
             }
             <div style="margin-top: 3rem;">
                 <RadzenButton Text="NUEVA OPERACIÓN"
@@ -545,12 +545,34 @@
         pasoActual = 2;
     }
 
-    private void SeleccionarOrden(OperacionResumenDTO orden)
+    private async Task SeleccionarOrden(OperacionResumenDTO orden)
     {
+        var ordenPadre = await ImputacionService.GetOrdenById(orden.NombreOrden);
+        if(ordenPadre == null) return;
+
+        bool puedeEmpezar = await ImputacionService.PuedeIniciarOperacionAsync(orden.Id, ordenPadre.Id);
+
+        if (!puedeEmpezar){
+
+            NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "BLOQUEO DE PROCESO",
+                    Detail = "No puedes iniciar la operacion. Hay procesos anteriores pendiente.",
+                    Duration = 5000
+                });
+            return;
+        }
+
         ordenSeleccionada = orden;
         piezasFabricadas = 0;
         piezasRotas = 0;
         horaInicioProceso = DateTime.Now;
+
+        if(orden.Estado == "Pendiente")
+        {
+            await ImputacionService.IniciarFichajeAsync(orden.Id, operarioSeleccionado.Id);
+        }
         pasoActual = 3;
         StateHasChanged();
     }
