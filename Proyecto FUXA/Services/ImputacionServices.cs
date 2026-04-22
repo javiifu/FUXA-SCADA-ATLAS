@@ -430,7 +430,7 @@ public class ImputacionService
             .ToListAsync();
     }
 
-    private async Task<string> GenerarCodigoMaterial(string nombreMaterial)
+    public async Task<string> GenerarCodigoMaterial(string nombreMaterial)
     {
 
         string limpio = new string((nombreMaterial ?? "MAT")

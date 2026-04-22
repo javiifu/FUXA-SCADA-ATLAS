@@ -65,10 +65,15 @@
     {
         //var materiales = ImputacionServices.ObtenerMaterialesAsync();
 
-        if (string.IsNullOrWhiteSpace(MaterialParaEditar.Nombre) || string.IsNullOrWhiteSpace(MaterialParaEditar.CodigoMaterial))
+        if (string.IsNullOrWhiteSpace(MaterialParaEditar.Nombre))
         {
-            NotificationService.Notify(NotificationSeverity.Warning, "Atención", "El Nombre y el Código son obligatorios");
+            NotificationService.Notify(NotificationSeverity.Warning, "Atención", "El Nombre no puede quedar vacío");
             return;
+        }
+
+        if (string.IsNullOrWhiteSpace(MaterialParaEditar.CodigoMaterial))
+        {
+            MaterialParaEditar.CodigoMaterial = await ImputacionService.GenerarCodigoMaterial(MaterialParaEditar.Nombre);
         }
 
 
