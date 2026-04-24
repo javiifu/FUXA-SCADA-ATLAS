@@ -7,6 +7,7 @@ namespace Proyecto_FUXA.Models
     public class Orden
     {
         [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
         [Required]

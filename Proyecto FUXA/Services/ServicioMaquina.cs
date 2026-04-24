@@ -329,17 +329,17 @@ namespace Proyecto_FUXA.Services
             }
         }
 
-        public async Task <int?> PreferenciaPorMaquinaId(int idMaquina)
-        {
-            var maquina = await _db.Maquinas
-                .FirstOrDefaultAsync(m => m.Id == idMaquina);
+        //public async Task <int?> PreferenciaPorMaquinaId(int idMaquina)
+        //{
+        //    var maquina = await _db.Maquinas
+        //        .FirstOrDefaultAsync(m => m.Id == idMaquina);
 
-            if (maquina == null) return null;
+        //    if (maquina == null) return null;
 
-            var seccion = await _db.Secciones
-                .FirstOrDefaultAsync(s => s.Id == maquina.IdSeccion);
+        //    var seccion = await _db.Secciones
+        //        .FirstOrDefaultAsync(s => s.Id == maquina.IdSeccion);
 
-            return seccion?.Preferencia;
-        }
+        //    return seccion?.Preferencia;
+        //}
     }
 }

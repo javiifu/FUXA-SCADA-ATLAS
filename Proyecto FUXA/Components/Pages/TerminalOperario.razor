@@ -8,6 +8,7 @@
 @implements IDisposable
 
 @inject ServicioMaquina ServicioMaquina
+@inject ServicioEmpleado ServicioEmpleado
 @inject NavigationManager NavManager
 @inject ImputacionService ImputacionService
 @inject NotificationService NotificationService
@@ -35,7 +36,7 @@
 
     <div class="step-content">
 
-        @* PASO 1: SELECCIONAR OPERARIO *@
+        @* seleccionar operario *@
         @if (pasoActual == 1)
         {
             <RadzenText TextStyle="TextStyle.H5" class="instruction">Paso 1: Seleccione Operario</RadzenText>
@@ -47,7 +48,7 @@
             else if (!listaEmpleados.Any())
             {
                 <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat" Shade="Shade.Lighter" AllowClose="false">
-                    No hay operarios en la base de datos.
+                    No hay operarios asignados a esta máquina.
                 </RadzenAlert>
             }
             else
@@ -66,7 +67,7 @@
             }
         }
 
-        @* PASO 2: SELECCIONAR ORDEN PADRE *@
+        @* seleccionar orden *@
         else if (pasoActual == 2)
         {
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" class="rz-mb-4">
@@ -118,7 +119,7 @@
             </div>
         }
 
-        @* PASO 3: SELECCIONAR OPERACIÓN (TAREA) *@
+        @* seleccionar operacion *@
         else if (pasoActual == 3)
         {
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" class="rz-mb-4">
@@ -129,33 +130,45 @@
             </RadzenStack>
 
             <RadzenStack Gap="1.2rem" class="rz-p-2">
-                @foreach (var orden in ordenesDisponibles.Where(o => o.NombreOrden == ordenPadreSeleccionada))
+                @foreach (var opMaestra in @listaOperaciones)
                 {
-                    <RadzenCard @onclick="() => SeleccionarOperacion(orden)"
-                                class="order-card-modern"
-                                Style="@(orden.Estado == "Activa" ? "border-left: 8px solid #28a745;" : "border-left: 8px solid #17a2b8;")">
+                    var ordenReal = ordenesDisponibles.FirstOrDefault(o => o.NombreOrden == ordenPadreSeleccionada && o.CodigoOperacion == opMaestra.Nombre);
+                    
+                    //para definir el estado
+                    string estadoActual = ordenReal != null ? ordenReal.Estado : "Pendiente";
+                    
+                    string borde = estadoActual == "Activa" ? "border-left: 8px solid #28a745;" :
+                                   estadoActual == "Finalizado" ? "border-left: 8px solid #6c757d; opacity: 0.6;" :
+                                   "border-left: 8px solid #17a2b8;";
+
+                    <RadzenCard @onclick="() => SeleccionarOperacionBloqueo(opMaestra, ordenReal)"
+                                class="order-card-modern" Style="@borde">
 
                         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
                             <RadzenStack Gap="0.5rem">
                                 <RadzenText TextStyle="TextStyle.H5" Style="margin:0; font-weight: 800; color:#1A2E3F; letter-spacing: 0.5px;">
-                                    @orden.CodigoOperacion
+                                    @opMaestra.Nombre
                                 </RadzenText>
-                                <RadzenBadge BadgeStyle="BadgeStyle.Light" IsPill="true" Text="@($"Objetivo: {orden.CiclosObjetivo} pcs")" Style="width: fit-content; padding: 5px 12px;" />
+                                <RadzenBadge BadgeStyle="BadgeStyle.Light" IsPill="true" Text="@($"Preferencia: {opMaestra.Preferencia}")" Style="width: fit-content; padding: 5px 12px;" />
                             </RadzenStack>
 
                             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="2rem">
                                 <div class="status-badge-container">
-                                    @if (orden.Estado.Equals("Activa"))
+                                    @if (estadoActual == "Activa")
                                     {
                                         <RadzenBadge BadgeStyle="BadgeStyle.Success" class="badge-xl" Text="ACTIVA" />
                                     }
-                                    else if (orden.Estado.Equals("Pendiente"))
+                                    else if (estadoActual == "Finalizado")
+                                    {
+                                        <RadzenBadge BadgeStyle="BadgeStyle.Base" class="badge-xl" Text="FINALIZADA" />
+                                    }
+                                    else
                                     {
                                         <RadzenBadge BadgeStyle="BadgeStyle.Info" class="badge-xl" Text="PENDIENTE" />
                                     }
                                 </div>
-                                <RadzenIcon Icon="@(orden.Estado == "Activa" ? "play_circle" : "pause_circle")"
-                                            Style="@($"font-size: 3.5rem; color: {(orden.Estado == "Activa" ? "#28a745" : "#cbd5e0")};")" />
+                                <RadzenIcon Icon="@(estadoActual == "Finalizado" ? "check_circle" : estadoActual == "Activa" ? "play_circle" : "pause_circle")"
+                                            Style="@($"font-size: 3.5rem; color: {(estadoActual == "Finalizado" ? "#6c757d" : estadoActual == "Activa" ? "#28a745" : "#cbd5e0")};")" />
                             </RadzenStack>
                         </RadzenStack>
                     </RadzenCard>
@@ -163,7 +176,7 @@
             </RadzenStack>
         }
 
-        @* PASO 4: PANEL DE CONTROL *@
+        @* panel de control *@
         else if (pasoActual == 4)
         {
             <RadzenStack Gap="1.5rem">
@@ -486,9 +499,9 @@
 
     private Maquina maquinaActual;
 
-    // Lista con todos los empleados de la base de datos
     private List<Empleado> listaEmpleados;
     private List<OperacionResumenDTO> ordenesDisponibles;
+    private List<TipoOperacion> listaOperaciones;
 
     private string currentTime = DateTime.Now.ToString("HH:mm:ss");
     private int pasoActual = 1;
@@ -514,11 +527,10 @@
         try
         {
             maquinaActual = await ServicioMaquina.GetByIdAsync(IdMaquina);
-            preferenciaActual = await ServicioMaquina.PreferenciaPorMaquinaId(IdMaquina);
+            //preferenciaActual = await ServicioMaquina.PreferenciaPorMaquinaId(IdMaquina);
 
-            // Cargamos todos los empleados de la BD para el Paso 1
-            listaEmpleados = await ImputacionService.GetEmpleadosAsync();
-
+            listaEmpleados = await ServicioEmpleado.ObtenerOperariosPorMaquinaAsync(IdMaquina);
+            listaOperaciones = await ImputacionService.ObtenerOperacionesActivas();
             await CargarDatos();
         }
         catch (Exception ex)
@@ -552,21 +564,18 @@
         catch { }
     }
 
-    // PASO 1 -> PASO 2
     private void SeleccionarOperario(Empleado emp)
     {
         operarioSeleccionado = emp;
         pasoActual = 2;
     }
 
-    // PASO 2 -> PASO 3
     private void SeleccionarOrdenPadre(string codigoOrden)
     {
         ordenPadreSeleccionada = codigoOrden;
         pasoActual = 3;
     }
 
-    // PASO 3 -> PASO 4 (VALIDACIÓN FINAL)
     private async Task SeleccionarOperacion(OperacionResumenDTO orden)
     {
         var ordenPadre = await ImputacionService.GetOrdenById(orden.NombreOrden);
@@ -715,7 +724,7 @@
     private async Task CargarDatos()
     {
         ordenesDisponibles = await ImputacionService.ObtenerOperacionesActivasAsync();
-        ordenesDisponibles = ordenesDisponibles.Where(o => o.IdMaquina == IdMaquina).ToList();
+        ordenesDisponibles = ordenesDisponibles.Where(o => o.IdMaquina == IdMaquina || o.IdMaquina == null).ToList();
         StateHasChanged();
     }
 
@@ -727,6 +736,48 @@
             timer.Stop();
             timer.Dispose();
             timer = null;
+        }
+    }
+    private async Task SeleccionarOperacionBloqueo(TipoOperacion operacion, OperacionResumenDTO orden)
+    {
+        if(orden != null && orden.Estado == "Finalizado")
+        {
+            NotificationService.Notify(NotificationSeverity.Info, "Aviso", "Esta operación ya esta finalizada");
+            return;
+        }
+        bool hayAnterioresSinTerminar = false;
+
+        foreach(var op in listaOperaciones)
+        {
+            if(op.Preferencia > operacion.Preferencia)
+            {
+                var ordenAnterior = ordenesDisponibles.FirstOrDefault(o => o.NombreOrden == ordenPadreSeleccionada && o.CodigoOperacion == op.Nombre);
+                if(ordenAnterior == null || ordenAnterior.Estado != "Finalizado")
+                {
+                    hayAnterioresSinTerminar = true;
+                    break;
+                }
+            }
+        }
+        if (hayAnterioresSinTerminar)
+        {
+            NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Error,
+                Summary = "Operacion bloqueada",
+                Detail = "Debes finalizar primero operaciones anteriores",
+                Duration = 5000
+            });
+            return;
+        }
+
+        if(orden != null)
+        {
+            await SeleccionarOperacion(orden);
+        }
+        else
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "Aviso", "Esta tarea aún no ha sido creada o iniciada en el sistema.");
         }
     }
 }

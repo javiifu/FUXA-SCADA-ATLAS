@@ -15,11 +15,6 @@
         <RadzenTextBox @bind-Value="NuevaSeccion.Nombre" Placeholder="Ej: Ensamblado, Pintura..." class="w-100" />
     </RadzenStack>
 
-    <RadzenStack Gap="0.5">
-        <RadzenText TextStyle="TextStyle.Subtitle2">Preferencia de la sección</RadzenText>
-        <RadzenNumeric @bind-Value="NuevaSeccion.Preferencia" class="w-100" />
-    </RadzenStack>
-
     <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="1rem" class="rz-mt-4">
         <RadzenButton Text="Cancelar" Click="() => DialogService.Close(false)" ButtonStyle="ButtonStyle.Light" />
         <RadzenButton Text="Guardar Sección" Icon="save" Click="Guardar" ButtonStyle="ButtonStyle.Primary" />

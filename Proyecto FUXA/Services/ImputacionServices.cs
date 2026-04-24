@@ -66,10 +66,12 @@ public class ImputacionService
         {
             _context.Ordenes.Add(orden);
             await _context.SaveChangesAsync();
+            await GenerarHojaRutaAsync(orden.Id);
             return true;
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"Error creando orden: {ex.Message}");
             return false;
         }
     }
@@ -144,7 +146,7 @@ public class ImputacionService
     public class OperacionResumenDTO
     {
         public int Id { get; set; }
-        public int IdMaquina { get; set; }
+        public int? IdMaquina { get; set; }
         public string CodigoOperacion { get; set; } = "";
         public string NombreOrden { get; set; } = "";   
         public string NombreMaquina { get; set; } = "";
@@ -781,46 +783,43 @@ public class ImputacionService
     }
     public async Task GenerarHojaRutaAsync(int idOrden)
     {
-        var ordenPadre = await _context.Ordenes.FindAsync(idOrden);
-        if (ordenPadre == null) return;
+        var orden = await _context.Ordenes.FindAsync(idOrden);
+        if (orden == null) return;
 
-        var secciones = await _context.Secciones.ToListAsync();
+        var operaciones = await _context.TiposOperaciones
+            .OrderByDescending(o => o.Preferencia)
+            .ToListAsync();
 
-        var opMaestra = await _context.Operaciones.FirstOrDefaultAsync();
+        int contador = 1;
 
-        int contadorSufijo = 1;
-
-        foreach (var seccion in secciones)
+        foreach(var op in operaciones)
         {
-            var maquinas = await _context.Maquinas
-                .Where(m => m.IdSeccion == seccion.Id)
-                .ToListAsync();
-
-            foreach (var maquina in maquinas)
+            var nuevaOperacion = new OperacionesOrden
             {
-                var nuevaOperacion = new OperacionesOrden
-                {
-                    IdOrden = idOrden,
-                    IdSeccion = seccion.Id,
-                    IdMaquina = maquina.Id,
-                    Preferencia = seccion.Preferencia,
-                    Estado = "Pendiente",
-                    FechaCreacion = DateTime.Now,
 
-                    CodigoOperacion = $"{ordenPadre.CodigoOrden}-{contadorSufijo}",
+                IdOrden = idOrden,
+                IdOperacionMaestra = op.Id,
+                Preferencia = op.Preferencia,
+                Estado = "Pendiente",
+                FechaCreacion = DateTime.Now,
+                CodigoOperacion = op.Nombre,
+                CiclosObjetivo = 0,
+                PiezasRotas = 0,
+                PiezasFabricadas = 0,
+                IdSeccion = null,
+                IdMaquina = null
+            };
 
-                    IdOperacionMaestra = opMaestra?.Id ?? 1,
-
-                    CiclosObjetivo = 0 
-                };
-
-                _context.OperacionesOrden.Add(nuevaOperacion);
-                contadorSufijo++; 
-            }
+            _context.OperacionesOrden.Add(nuevaOperacion);
+            contador++;
         }
-
         await _context.SaveChangesAsync();
     }
 
-
+    public async Task<List<TipoOperacion>> ObtenerOperacionesActivas()
+    {
+        return await _context.TiposOperaciones
+        .OrderByDescending(o => o.Preferencia)
+        .ToListAsync();
+    }
 }

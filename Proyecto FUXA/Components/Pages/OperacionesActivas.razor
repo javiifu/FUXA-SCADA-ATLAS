@@ -178,7 +178,7 @@
     private async Task AbrirDialogoImputarAposteriori(OperacionResumenDTO operacionSeleccionada)
     {
 
-        var operarios = await ServicioMaquina.ObtenerOperariosDeUnaMaquina(operacionSeleccionada.IdMaquina);
+        var operarios = await ServicioMaquina.ObtenerOperariosDeUnaMaquina(operacionSeleccionada.IdMaquina ?? 0);
 
         var parametros = new Dictionary<string, object>
     {

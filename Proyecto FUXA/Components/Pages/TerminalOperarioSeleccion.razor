@@ -42,11 +42,6 @@
                         <RadzenIcon Icon="settings_suggest" Style="font-size: 3rem; color: #1F4E79; margin-bottom: 10px;" />
                         <div class="name">@m.Nombre</div>
                         <div class="surname">@(m.Seccion?.Nombre ?? "General")</div>
-
-                        @if (m.Seccion != null)
-                        {
-                            <RadzenBadge BadgeStyle="BadgeStyle.Light" Text="@($"Prioridad: {m.Seccion.Preferencia}")" Style="margin-top: 10px;" />
-                        }
                     </div>
                 }
             </div>
