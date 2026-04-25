@@ -223,7 +223,7 @@ public class ImputacionService
             return await _context.OperacionesOrden
                 .Include(o => o.Orden)
                 .Include(o => o.Maquina)
-                .Where(o => o.Estado == "Activa" || o.Estado == "Pendiente")
+                .Where(o => (o.Estado == "Activa" || o.Estado == "Pendiente" || o.Estado == "Finalizado") && o.Orden.Estado != "Finalizado")
                 .Select(o => new OperacionResumenDTO
                 {
                     Id = o.Id,
@@ -512,7 +512,7 @@ public class ImputacionService
         }
     }
 
-    public async Task<bool> CerrarOperacionAsync(int idOperacion)
+    public async Task<bool> CerrarOperacionAsync(int idOperacion, int idMaquina, int? idSeccion)
     {
         try
         {
@@ -521,6 +521,9 @@ public class ImputacionService
             if (operacion == null) return false;
 
             operacion.Estado = "Finalizado";
+            operacion.IdMaquina = idMaquina;
+            operacion.IdSeccion = idSeccion;
+            operacion.FechaFin = DateTime.Now;
             await _context.SaveChangesAsync();
 
             bool quedanOperacionesPendientes = await _context.OperacionesOrden
@@ -532,6 +535,7 @@ public class ImputacionService
                 if (ordenMadre != null)
                 {
                     ordenMadre.Estado = "Finalizado";
+                    ordenMadre.FechaFin = DateTime.Now;
                     await _context.SaveChangesAsync();
                 }
             }
@@ -763,6 +767,12 @@ public class ImputacionService
         if (operacion != null)
         {
             operacion.Estado = "Activa";
+
+            var ordenMadre = await _context.Ordenes.FindAsync(operacion.IdOrden);
+            if (ordenMadre != null && ordenMadre.Estado == "Pendiente")
+            {
+                ordenMadre.Estado = "Activa";
+            }
 
             var maquina = await _context.Maquinas.FindAsync(operacion.IdMaquina);
             if(maquina != null)
