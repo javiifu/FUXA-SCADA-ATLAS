@@ -47,25 +47,36 @@ else
         @* fila de arriba*@
         <RadzenRow>
             <RadzenColumn Size="12">
-                <RadzenCard Variant="Radzen.Variant.Outlined">
-                    <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">Lista de máquinas en planta</RadzenText>
-                    <RadzenDataGrid AllowFiltering="true" Density="@Density" AllowPaging="true" PageSize="10" AllowSorting="true"
-                                    Data="@maquinasFiltradas" TItem="MaquinaHMI" @bind-Value="@SelectedMaquinas"
+                <RadzenCard Variant="Variant.Outlined">
+                    
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" class="rz-mb-4">
+                        <RadzenText TextStyle="TextStyle.H5" class="rz-m-0">Lista de máquinas en planta</RadzenText>
+
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.8rem" Wrap="FlexWrap.Wrap">
+                            <RadzenButton Click=@(args => AbrirDialogoPlanificar()) Text="NUEVA ORDEN" Icon="assignment" class="ent-btn-solid" />
+                            <RadzenButton Click=@(args => AbrirDialogoNuevaSeccion()) Text="NUEVA SECCIÓN" Icon="domain" class="ent-btn-solid" />
+                            <RadzenButton Click=@(args => AbrirDialogoNuevoMaterial()) Text="NUEVO MATERIAL" Icon="category" class="ent-btn-solid" />
+                            <RadzenButton Click=@(args => AbrirNuevaMaquina()) Text="NUEVA MÁQUINA" Icon="precision_manufacturing" class="ent-btn-solid" />
+                        </RadzenStack>
+
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                            <RadzenIcon Icon="search" />
+                            <RadzenTextBox Placeholder="Buscar máquina..."
+                                           @oninput="@(args => AlEscribirNombre(args.Value.ToString()))"
+                                           Style="width: 400px; height: 40px; font-size: 1.1rem;" />
+                        </RadzenStack>
+                    </RadzenStack>
+
+                    <RadzenDataGrid AllowFiltering="true" AllowPaging="true" PageSize="10" AllowSorting="true"
+                                    Data="@maquinasFiltradas" TItem="Maquina" @bind-Value="@SelectedMaquinas"
                                     SelectionMode="DataGridSelectionMode.Single" Responsive="true">
 
                         <Columns>
-                            <RadzenDataGridColumn TItem="Maquina" Title="Nº" Width="60px" TextAlign="TextAlign.Center">
-                                <Template Context="item">
-                                    @(maquinasFiltradas.IndexOf(item) + 1)
-                                </Template>
-                            </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="Nombre" Title="Nombre Máquina" />
-                            <RadzenDataGridColumn TItem="MaquinaHMI" Property="Seccion" Title="Sección" />
-                            <RadzenDataGridColumn TItem="MaquinaHMI"
-                                                  Title="Incidencias abiertas"
-                                                  Width="220px">
-                                <Template Context="maquina">
-                                    @if (maquina.IncidenciasActivas == 0)
+                            <RadzenDataGridColumn TItem="Maquina" Property="Nombre" Title="Nombre Máquina" Width="150px" />
+                            <RadzenDataGridColumn TItem="Maquina" Property="Seccion.Nombre" Title="Sección" Width="130px" />
+                            <RadzenDataGridColumn TItem="Maquina" Property="CodigoOperacionActiva" Title="Operación Actual" Width="170px">
+                                <Template Context="m">
+                                    @if (m.CodigoOperacionActiva != "Sin operacion")
                                     {
                                         <RadzenText class="text-muted">No hay incidencias</RadzenText>
                                         
@@ -96,17 +107,22 @@ else
                                     }
                                 </Template>
                             </RadzenDataGridColumn>
-
-                            <RadzenDataGridColumn TItem="MaquinaHMI" Title="Próximo mantenimiento" Width="220px">
-                                <Template Context="maquina">
-                                    <RadzenDatePicker TValue="DateTime?"
-                                                      AllowInput="false"
-                                                      Min="@DateTime.Today"
-                                                      DateFormat="dd/MM/yyyy"
-                                                      ShowTime="false"
-                                                      Style="width: 100%;"
-                                                      @bind-Value="maquina.ProximoMantenimiento"
-                                                      Change="@(async (DateTime? fecha) => await AlCambiarProximoMantenimiento(maquina, fecha))" />
+                            @* empleado *@
+                            <RadzenDataGridColumn TItem="Maquina" Title="Empleado" Width="150px">
+                                <Template Context="m">
+                                    <div style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;"
+                                         @onclick="@(args => AbrirAsignarTrabajador(m))">
+                                        <div style="display: flex; flex-direction: column;">
+                                            <span style="font-weight: bold; color: #1F4E79;">
+                                                @m.NombreOperario
+                                            </span>
+                                            <span style="font-size: 0.75rem; color: #64748B;">
+                                                @m.CargoOperario
+                                            </span>
+                                        </div>
+                                        @* Un pequeño icono para que el usuario sepa que puede hacer clic *@
+                                        <RadzenIcon Icon="swap_horiz" Style="font-size: 1.2rem; color: #CBD5E1;" />
+                                    </div>
                                 </Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MaquinaHMI" Title="Estado" Width="150px" TextAlign="TextAlign.Center">
@@ -155,8 +171,48 @@ else
                             @* editar *@
                             <RadzenDataGridColumn TItem="Maquina" Title="Editar" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
                                 <Template Context="maquina">
-                                    <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Radzen.Variant.Flat"
-                                                  Size="ButtonSize.Medium" Click="@(args => IrAEditar(maquina.Id))" />
+                                    <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat"
+                                                  Size="ButtonSize.Medium" Click="@(args => AbrirDialogoEdicion(maquina))" />
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            @* materiales *@
+                            <RadzenDataGridColumn TItem="Maquina" Title="Materiales" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
+                                <Template context="maquina">
+                                    <RadzenButton Icon="category" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Flat"
+                                                  Size="ButtonSize.Medium" Click="@(args => AbrirAsignarMateriales(maquina))" />
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            @* operacion *@
+                            <RadzenDataGridColumn TItem="Maquina" Title="Operacion" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
+                                <Template Context="maquina">
+                                    <RadzenButton Icon="add"
+                                                  ButtonStyle="ButtonStyle.Primary"
+                                                  Size="ButtonSize.Medium"
+                                                  Class="rz-border-radius-10 rz-shadow-2"
+                                                  Click="@(args => AbrirAsignarOrden(maquina))" />
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            @* imputacion *@
+                            <RadzenDataGridColumn TItem="Maquina" Title="Imputar" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
+                                <Template Context="maquina">
+                                    <RadzenButton Icon="add"
+                                                  ButtonStyle="ButtonStyle.Primary"
+                                                  Size="ButtonSize.Medium"
+                                                  class="rz-border-radius-10 rz-shadow-2"
+                                                  Click="@(args => AbrirAsignarImputacion(maquina))" />
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            @* finalizar *@
+                            <RadzenDataGridColumn TItem="Maquina" Title="Finalizar" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
+                                <Template Context="maquina">
+                                    <RadzenButton Icon="done_all"
+                                                  Disabled="@(!listaOperacionesActivas.Any(o => o.IdMaquina == maquina.Id))"
+                                                  ButtonStyle="ButtonStyle.Success"
+                                                  Click="@(args => AbrirFinalizarOperacion(maquina))" />
                                 </Template>
                             </RadzenDataGridColumn>
                         </Columns>
@@ -205,6 +261,35 @@ else
         </Tabs>
     </RadzenTabs>
 }
+
+<style>
+    .ent-btn-solid {
+        background-color: #1F4E79 !important;
+        border-radius: 4px !important;
+        font-weight: 700 !important;
+        padding: 0 20px !important;
+        box-shadow: none !important;
+        height: 40px !important;
+    }
+
+        .ent-btn-solid:hover {
+            background-color: #163857 !important;
+        }
+
+    .ent-btn-outline {
+        border: 1px solid #1F4E79 !important;
+        color: #1F4E79 !important;
+        border-radius: 4px !important;
+        font-weight: 700 !important;
+        padding: 0 15px !important;
+        background-color: transparent !important;
+        height: 40px !important;
+    }
+
+        .ent-btn-outline:hover {
+            background-color: #F0F4F8 !important;
+        }
+</style>
 
 @code {
 
@@ -265,8 +350,8 @@ else
     {
         try
         {
-            cargando = true;
-            errorCarga = null;
+            var resultado = await ServicioMaquina.GetAllAsync();
+            var listaDeTodasLasOperaciones = await ImputacionService.ObtenerOperacionesActivasAsync();
 
             var maquinasEnSql = await ServicioMaquina.GetMaquinasGridAsync();
             maquinasHMI.Clear();
@@ -281,7 +366,6 @@ else
                 {
                     m.CiclosObjetivo = operacionActiva.CiclosObjetivo;
                     m.CodigoOperacionActiva = operacionActiva.CodigoOperacion;
-
                 }
                 else
                 {
@@ -289,13 +373,13 @@ else
                     m.CodigoOperacionActiva = "Sin operacion";
                     m.CiclosObjetivo = 0;
                     m.CiclosReales = 0;
-                    if(m.EstadoActualId != 4)
+                    if (m.EstadoActualId != 4)
                     {
                         m.EstadoActualId = 3;
                     }
                 }
 
-                if (m.CiclosObjetivo > 0 && (m.EstadoActualId == 1 || m.EstadoActualId == 2 ))
+                if (m.CiclosObjetivo > 0 && (m.EstadoActualId == 1 || m.EstadoActualId == 2))
                 {
                     m.PorcentajeCiclos = (float)((double)m.CiclosReales / m.CiclosObjetivo * 100);
 
@@ -304,17 +388,34 @@ else
                     {
                         m.EstadoActualId = 2;
                     }
-                    if(m.PorcentajeCiclos >= 50)
+                    if (m.PorcentajeCiclos >= 50)
                     {
                         m.EstadoActualId = 1;
                     }
                 }
 
-                var emp = todosLosEmpleados.FirstOrDefault(e => e.Id == m.EmpleadoId);
-                if (emp != null)
+                if (m.MaquinasEmpleados != null && m.MaquinasEmpleados.Any())
                 {
-                    m.NombreOperario = $"{emp.Nombre} {emp.Apellidos}";
-                    m.CargoOperario = emp.Cargo;
+                    var encargado = m.MaquinasEmpleados
+                        .Select(me => me.Empleado)
+                        .FirstOrDefault(e => e.Cargo == "Encargado");
+
+                    if (encargado != null)
+                    {
+                        m.NombreOperario = $"{encargado.Nombre} {encargado.Apellidos}";
+                        m.CargoOperario = "Encargado";
+                    }
+                    else
+                    {
+                        var operario = m.MaquinasEmpleados.Select(me => me.Empleado).First();
+                        m.NombreOperario = $"{operario.Nombre} {operario.Apellidos}";
+                        m.CargoOperario = "Operario";
+                    }
+                }
+                else
+                {
+                    m.NombreOperario = "Sin asignar";
+                    m.CargoOperario = "-";
                 }
             }
             maquinasFiltradas = maquinasHMI.ToList();
@@ -547,7 +648,7 @@ else
     public void AlEscribirNombre(string? escrito)
     {
 
-        if(string.IsNullOrWhiteSpace(escrito))
+        if (string.IsNullOrWhiteSpace(escrito))
         {
             maquinasFiltradas = maquinasDB.ToList();
         }
@@ -562,15 +663,30 @@ else
 
     public int MaquinasActivas(int idEstado)
     {
-        return maquinasHMI.Count(m => m.EstadoActualId == idEstado);
+        int maquinas = 0;
+        foreach (var m in maquinasFiltradas)
+        {
+            if (m.EstadoActualId == idEstado)
+            {
+                maquinas++;
+            }
+        }
+        return maquinas;
     }
 
     public double ProduccionTotalFabricaPorcentaje()
     {
-        var maquinasDisponibles = maquinasHMI.Where(m => m.EstadoActualId != 4).ToList();
-        if (!maquinasDisponibles.Any())
+        int contador = 0;
+        double porcentajeMaquinasTotal = 0;
+        double totalProcentaje = 0;
+
+        foreach (var m in maquinasFiltradas)
         {
-            return 0;
+            if (m.EstadoActualId != 4)
+            {
+                contador++;
+                porcentajeMaquinasTotal += m.PorcentajeCiclos;
+            }
         }
         return Math.Round(maquinasDisponibles.Average(m => m.PorcentajeCiclos), 2);
     }
@@ -664,7 +780,24 @@ else
 
             await InvokeAsync(StateHasChanged);
         }
-        catch (Exception ex)
+        return nombreSecciones;
+    }
+
+    private async Task AbrirAsignarTrabajador(Maquina maquina)
+    {
+
+        var parametros = new Dictionary<string, object> {
+        { "IdMaquina", maquina.Id },
+        { "NombreMaquina", maquina.Nombre }
+    };
+
+        var resultado = await DialogService.OpenAsync<DialogoGestionOperariosMaquina>(
+            "Personal de la Máquina",
+            parametros,
+            new DialogOptions() { Width = "750px", Resizable = true, Draggable = true }
+        );
+
+        if (resultado == true)
         {
             NotificationService.Notify(NotificationSeverity.Error, "Error", $"No se pudo actualizar el estado: {ex.Message}");
         }
@@ -777,7 +910,7 @@ else
 
         var res = await DialogService.OpenAsync<DialogoNuevaSeccion>("Nueva seccion", parametros);
 
-        if(res == true)
+        if (res == true)
         {
             await CargarMaquinasDesdeSQL();
             StateHasChanged();
@@ -795,7 +928,7 @@ else
 
         var res = await DialogService.OpenAsync<DialogoNuevoMaterial>("Nuevo material", parametros);
 
-        if(res == true)
+        if (res == true)
         {
             await CargarMaquinasDesdeSQL();
             StateHasChanged();
@@ -806,7 +939,7 @@ else
     {
         var opActiva = listaOperacionesActivas.FirstOrDefault(o => o.IdMaquina == maquinaSeleccionada.Id);
 
-        if(opActiva != null)
+        if (opActiva != null)
         {
             maquinaSeleccionada.PiezasFabricadas = opActiva.PiezasFabricadas;
             maquinaSeleccionada.PiezasRotas = opActiva.PiezasRotas;
@@ -823,10 +956,37 @@ else
         };
         var res = await DialogService.OpenAsync<DialogoNuevaMaquina>("Editar máquina", parametros);
 
-        if(res == true)
+        if (res == true)
         {
             await CargarMaquinasDesdeSQL();
             listaOperacionesActivas = await ImputacionService.ObtenerOperacionesActivasAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task AbrirAsignarMateriales(Maquina maquinaSeleccionada)
+    {
+        var parametros = new Dictionary<string, object>
+        {
+            {"IdMaquina", maquinaSeleccionada.Id}
+        };
+
+        var opciones = new DialogOptions
+        {
+            Width = "750px",
+            Resizable = true,
+            Draggable = true,
+            Style = "border-radius: 12px;"
+        };
+        var resultado = await DialogService.OpenAsync<DialogoGestionMaterialesMaquina>(
+            $"Materiales - {maquinaSeleccionada.Nombre}",
+            parametros,
+            opciones
+        );
+
+        if (resultado == true)
+        {
+            await CargarMaquinasDesdeSQL();
             StateHasChanged();
         }
     }
@@ -843,7 +1003,7 @@ else
 
         var res = await DialogService.OpenAsync<DialogoFinalizarOperacionMaquina>($"Finalizar: {maquina.Nombre}", parametros);
 
-        if(res == true)
+        if (res == true)
         {
 
             await CargarMaquinasDesdeSQL();

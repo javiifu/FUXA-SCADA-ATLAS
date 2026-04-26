@@ -8,91 +8,238 @@
 @inject DialogService DialogService
 @inject ServicioMaquina ServicioMaquina
 
-<RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" class="rz-mb-4">
-    <RadzenText TextStyle="TextStyle.H4" class="rz-m-0">Monitor de operaciones</RadzenText>
+<div class="fuxa-enterprise-container">
+    <RadzenStack Gap="1.5rem">
 
-    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+        @* cabeceras *@
+        <RadzenRow AlignItems="AlignItems.Center">
+            <RadzenColumn Size="12" SizeMD="6">
+                <RadzenStack Gap="0">
+                    <RadzenText TextStyle="TextStyle.H4" TagName="TagName.H1" class="ent-title">
+                        Monitor de operaciones
+                    </RadzenText>
+                    <div class="ent-title-underline"></div>
+                </RadzenStack>
+            </RadzenColumn>
 
-        <RadzenButton Icon="clear" Click="LimpiarBusqueda" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" />
+            <RadzenColumn Size="12" SizeMD="6">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" Gap="1rem">
+                    <RadzenButton Icon="clear"
+                                  Text="LIMPIAR FILTROS"
+                                  Click="LimpiarBusqueda"
+                                  class="ent-btn-outline" />
+                </RadzenStack>
+            </RadzenColumn>
+        </RadzenRow>
+
+        @* tabla *@
+        <div class="ent-grid-wrapper">
+            <RadzenDataGrid Data="@listaOperaciones" TItem="OperacionResumenDTO" AllowPaging="true" PageSize="10"
+                            AllowFiltering="true" FilterMode="FilterMode.Simple" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                            class="ent-datagrid">
+                <Columns>
+                    <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="CodigoOperacion" Title="CÓD. OPERACIÓN" Width="150px">
+                        <Template Context="o">
+                            <a href="javascript:void(0)"
+                                   @onclick="() => AbrirInfoOperacion(o)"
+                                   class="ent-link">
+                                <strong>@o.CodigoOperacion</strong>
+                            </a>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="NombreOrden" Title="ORDEN" Width="140px" />
+
+                    <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="Producto" Title="PRODUCTO / DESCRIPCIÓN" Width="200px" />
+
+                    <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="NombreMaquina" Title="MÁQUINA" Width="150px" />
+
+                    <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="CiclosObjetivo" Title="OBJETIVO" Width="100px" TextAlign="TextAlign.Center" Filterable="false" />
+
+                    <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="PiezasFabricadas" Title="FABRICADAS" Width="110px" TextAlign="TextAlign.Center" Filterable="false">
+                        <Template Context="o">
+                            <span style="color: #1F4E79; font-weight: bold;">@o.PiezasFabricadas</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="PiezasRotas" Title="ROTAS" Width="100px" TextAlign="TextAlign.Center" Filterable="false">
+                        <Template Context="o">
+                            <span style="color: #DC2626; font-weight: bold;">@o.PiezasRotas</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="Estado" Title="ESTADO" Width="130px" TextAlign="TextAlign.Center" SortOrder="SortOrder.Ascending">
+                        <FilterTemplate>
+                            <RadzenDropDown @bind-Value="estadoSeleccionado"
+                                            Data="@opcionesEstado"
+                                            Change="@AplicarFiltros"
+                                            class="ent-input w-100" />
+                        </FilterTemplate>
+
+                        <Template Context="o">
+                            @if (o.Estado.Equals("Activa"))
+                            {
+                                <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="ACTIVA" class="ent-badge" />
+                            }
+                            else if (o.Estado.Equals("Pendiente"))
+                            {
+                                <RadzenBadge BadgeStyle="BadgeStyle.Info" Text="PENDIENTE" class="ent-badge" />
+                            }
+                            else if (o.Estado.Equals("Finalizado"))
+                            {
+                                <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text="FINALIZADO" class="ent-badge" />
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="FechaInicio" Title="INICIO" FormatString="{0:dd/MM HH:mm}" Width="120px" />
+
+                    <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="FechaFin" Title="FIN" Width="120px">
+                        <Template Context="o">
+                            @if (o.Estado == "Finalizado")
+                            {
+                                @o.FechaFin?.ToString("dd/MM HH:mm")
+                            }
+                            else
+                            {
+                                <span style="color: #A0AEC0; font-weight: bold;">--</span>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="OperacionResumenDTO" Title="IMPUTAR" Width="100px" TextAlign="TextAlign.Center" Filterable="false" Sortable="false">
+                        <Template Context="maquina">
+                            <RadzenButton Icon="add_circle_outline" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Text"
+                                          Size="ButtonSize.Medium" Click="@(args => AbrirDialogoImputarAposteriori(maquina))" class="ent-action-btn" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </div>
     </RadzenStack>
-</RadzenStack>
+</div>
 
-<RadzenDataGrid Data="@listaOperaciones" TItem="OperacionResumenDTO" AllowPaging="true" PageSize="10"
-                AllowFiltering="true" FilterMode="FilterMode.Simple" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive">
-    <Columns>
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="CodigoOperacion" Title="Cód. Operación" Width="140px">
-            <Template Context="o">
-                <a href="javascript:void(0)"
-                   @onclick="() => AbrirInfoOperacion(o)"
-                   style="font-weight: bold; color: var(--rz-primary); text-decoration: underline; cursor: pointer;">
-                    @o.CodigoOperacion
-                </a>
-            </Template>
-        </RadzenDataGridColumn>
+<style>
+    /*fondo */
+    .fuxa-enterprise-container {
+        background-color: #FAFAFA;
+        min-height: 100vh;
+        padding: 2rem;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
 
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="NombreOrden" Title="Orden" Width="140px" />
+    /* titulos */
+    .ent-title {
+        color: #1A2E3F;
+        font-weight: 800 !important;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin: 0;
+    }
 
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="Producto" Title="Producto / Descripción" Width="200px" />
+    .ent-title-underline {
+        height: 4px;
+        width: 60px;
+        background-color: #1F4E79;
+        margin-top: 5px;
+    }
 
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="NombreMaquina" Title="Máquina" Width="150px" />
+    .ent-grid-wrapper {
+        border: 1px solid #D5E3EF;
+        background: white;
+        border-radius: 4px;
+        overflow: hidden;
+    }
 
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="CiclosObjetivo" Title="Objetivo" Width="100px" TextAlign="TextAlign.Center" Filterable="false" />
+    /* tabla */
+    .ent-datagrid {
+        border: none !important;
+    }
 
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" property="PiezasFabricadas" Title="P.fabricadas" Width="100px" TextAlign="TextAlign.Center" Filterable="false" />
+        /* cabecera */
+        .ent-datagrid .rz-datagrid-header-cell {
+            background-color: #1A2E3F !important;
+            color: #FFFFFF !important;
+            font-weight: 600 !important;
+            font-size: 0.85rem !important;
+            letter-spacing: 0.5px;
+            border-bottom: 3px solid #1F4E79 !important;
+            padding: 12px 15px !important;
+            text-transform: uppercase;
+        }
 
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="PiezasRotas" Title="P.rotas" Width="100px" TextAlign="TextAlign.Center" Filterable="false" />
+            .ent-datagrid .rz-datagrid-header-cell .rz-sortable-column-icon {
+                color: #7BB3D4 !important;
+            }
 
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="Estado" Title="Estado" Width="80px" TextAlign="TextAlign.Center" SortOrder="SortOrder.Ascending">
+        /* filas tabla */
+        .ent-datagrid .rz-datagrid-row td {
+            border-bottom: 1px solid #EEEEEE !important;
+            padding: 12px 15px !important;
+            color: #333333 !important;
+            font-size: 0.95rem;
+        }
 
-            <FilterTemplate>
-                <RadzenDropDown @bind-Value="estadoSeleccionado"
-                                Data="@opcionesEstado"
-                                Change="@AplicarFiltros"
-                                class="w-100" />
-            </FilterTemplate>
+        .ent-datagrid .rz-datagrid-row:nth-child(even) > td {
+            background-color: #F8F9FA !important;
+        }
 
-            <Template Context="o">
-                @if (o.Estado.Equals("Activa"))
-                {
-                    <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="Activa" />
-                }
-                else if (o.Estado.Equals("Finalizado"))
-                {
-                    <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text="Finalizado" />
-                }
-            </Template>
-        </RadzenDataGridColumn>
+        .ent-datagrid .rz-datagrid-row:hover td {
+            background-color: #E6F2FF !important;
+        }
 
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="FechaInicio" Title="Fecha inicio" FormatString="{0:dd/MM HH:mm}" Width="120px" />
+    .ent-badge {
+        border-radius: 4px !important;
+        padding: 6px 12px !important;
+        font-weight: bold !important;
+        letter-spacing: 0.5px;
+        font-size: 0.8rem;
+    }
 
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" Property="FechaFin" Title="Fecha fin" Width="120px">
-            <Template Context="o">
-                @if (o.Estado == "Finalizado")
-                {
-                    @o.FechaFin?.ToString("dd/MM HH:mm")
-                }
-                else
-                {
-                    <span style="color: gray;">-</span>
-                }
-            </Template>
-        </RadzenDataGridColumn>
+    .ent-input {
+        border-radius: 4px !important;
+        border: 1px solid #CCCCCC !important;
+    }
 
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" Title="Imputacion posteriori" Width="120px" TextAlign="TextAlign.Center">
-            <Template Context="maquina">
-                <RadzenButton Icon="add" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Flat"
-                              Size="ButtonSize.Medium" Click="@(args => AbrirDialogoImputarAposteriori(maquina))" />
-            </Template>
-        </RadzenDataGridColumn>
+        .ent-input:focus {
+            border-color: #1F4E79 !important;
+            box-shadow: 0 0 0 2px rgba(31,78,121,0.2) !important;
+        }
 
-        <RadzenDataGridColumn TItem="OperacionResumenDTO" Title="Editar" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
-            <Template Context="operacion">
-                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat"
-                              Size="ButtonSize.Medium" Click="@(args => AbrirDialogoEdicion(operacion))" />
-            </Template>
-        </RadzenDataGridColumn>
-    </Columns>
-</RadzenDataGrid>
+    .ent-link {
+        color: #1F4E79 !important;
+        text-decoration: none !important;
+        transition: all 0.2s;
+    }
+
+        .ent-link:hover {
+            color: #0F2A4A !important;
+            text-decoration: underline !important;
+        }
+
+    .ent-btn-outline {
+        border: 1px solid #1F4E79 !important;
+        color: #1F4E79 !important;
+        border-radius: 4px !important;
+        font-weight: 600 !important;
+        background-color: transparent !important;
+    }
+
+        .ent-btn-outline:hover {
+            background-color: #F0F4F8 !important;
+        }
+
+    .ent-action-btn {
+        color: #1F4E79 !important;
+        background: transparent !important;
+        font-size: 1.2rem !important;
+    }
+
+        .ent-action-btn:hover {
+            background: #E6F2FF !important;
+            transform: scale(1.1);
+        }
+</style>
 
 @code {
     List<OperacionResumenDTO> listaCompleta = new();
@@ -100,7 +247,7 @@
 
     string textoBusqueda = "";
     string estadoSeleccionado = "TODOS";
-    List<string> opcionesEstado = new List<string> { "TODOS", "Activa", "Finalizado" };
+    List<string> opcionesEstado = new List<string> { "TODOS", "Pendiente", "Activa", "Finalizado" };
 
     protected override async Task OnInitializedAsync()
     {
@@ -173,7 +320,7 @@
     private async Task AbrirDialogoImputarAposteriori(OperacionResumenDTO operacionSeleccionada)
     {
 
-        var operarios = await ServicioMaquina.ObtenerOperariosDeUnaMaquina(operacionSeleccionada.IdMaquina);
+        var operarios = await ServicioMaquina.ObtenerOperariosDeUnaMaquina(operacionSeleccionada.IdMaquina ?? 0);
 
         var parametros = new Dictionary<string, object>
     {

@@ -3,51 +3,133 @@
 @using Proyecto_FUXA.Services
 @using Radzen
 @using Radzen.Blazor
+
 @inject ServicioMaquina ServicioMaquina
 @inject NavigationManager NavManager
 
-<RadzenStack Gap="2rem" class="rz-p-6">
-    @* cabecera *@
-    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center" 
-                 Style="padding: 20px; border-radius: 12px; color: white;">
-        <RadzenStack Gap="0">
-            <RadzenText TextStyle="TextStyle.H4" Style="color: black; margin: 0;">Seleccione su puesto de trabajo</RadzenText>
-        </RadzenStack>
-    </RadzenStack>
+<div class="terminal-container">
+    <div class="topbar">
+        <div class="topbar-left">
+            <div class="machine-id">SELECCIÓN DE PUESTO</div>
+            <div class="machine-name">Planta Principal</div>
+        </div>
+        <div class="topbar-center">
+            <div class="clock-big">@DateTime.Now.ToString("HH:mm")</div>
+        </div>
+    </div>
 
-    @if (listaMaquinas == null)
-    {
-        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
-    }
-    else
-    {
-        @* botones con maquinas *@
-        <RadzenDataList Data="@listaMaquinas" TItem="Maquina" WrapItems="true" AllowPaging="false">
-            <Template Context="m">
-                <RadzenCard @onclick="@(() => IrATerminal(m.Id))" 
-                            Style="width: 280px; height: 180px; cursor: pointer; transition: transform 0.2s;" 
-                            class="rz-m-2 rz-border-radius-4 rz-shadow-6 machine-card">
-                    <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="height: 100%;">
-                        <RadzenIcon Icon="settings_suggest" Style="font-size: 4rem; color: #1F4E79;" />
-                        <RadzenText TextStyle="TextStyle.H5" Style="font-weight: bold; color: #1A2E3F; text-align: center;">
-                            @m.Nombre
-                        </RadzenText>
-                        <RadzenBadge BadgeStyle="BadgeStyle.Light" Text="@(m.Seccion?.Nombre ?? "Sin sección")" />
-                    </RadzenStack>
-                </RadzenCard>
-            </Template>
-        </RadzenDataList>
-    }
-</RadzenStack>
+    <div class="step-content">
+        <RadzenText TextStyle="TextStyle.H5" class="instruction" Style="text-align: center; margin-bottom: 2rem;">
+            Seleccione la máquina a la que desea conectarse
+        </RadzenText>
+
+        @if (listaMaquinas == null)
+        {
+            <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+        }
+        else if (!listaMaquinas.Any())
+        {
+            <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat">
+                No hay máquinas registradas en el sistema.
+            </RadzenAlert>
+        }
+        else
+        {
+            <div class="operario-grid">
+                @foreach (var m in listaMaquinas)
+                {
+                    <div class="operario-card" @onclick="() => IrATerminal(m.Id)">
+                        <RadzenIcon Icon="settings_suggest" Style="font-size: 3rem; color: #1F4E79; margin-bottom: 10px;" />
+                        <div class="name">@m.Nombre</div>
+                        <div class="surname">@(m.Seccion?.Nombre ?? "General")</div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
 
 <style>
-    .machine-card:hover {
-        transform: scale(1.03);
-        border: 2px solid #2E75B6 !important;
+    .terminal-container {
+        background: #F0F4F8;
+        min-height: 100vh;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
     }
-    .machine-card:active {
-        transform: scale(0.98);
-        background-color: #F0F4F8;
+
+    .topbar {
+        background: #1F4E79;
+        color: white;
+        padding: 12px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #185FA5;
+    }
+
+    .machine-id {
+        color: #BDD7EE;
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+    }
+
+    .machine-name {
+        font-size: 20px;
+        font-weight: 500;
+        color: white;
+    }
+
+    .clock-big {
+        font-size: 28px;
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .step-content {
+        padding: 2rem;
+        max-width: 1000px;
+        margin: auto;
+    }
+
+    .instruction {
+        color: #1F4E79;
+        font-weight: bold;
+    }
+
+    .operario-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .operario-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        text-align: center;
+        cursor: pointer;
+        border: 1px solid #D5E3EF;
+        transition: all 0.2s;
+    }
+
+        .operario-card:hover {
+            border-color: #2E75B6;
+            transform: translateY(-5px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            background-color: #f8fafc;
+        }
+
+    .name {
+        font-weight: bold;
+        color: #1A2E3F;
+        font-size: 1.2rem;
+    }
+
+    .surname {
+        color: #6B8FAD;
+        font-size: 0.9rem;
+        margin-top: 5px;
     }
 </style>
 
@@ -56,13 +138,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // crgamos todas las maquinas
+        // cargamos la lista completa de máquinas
         listaMaquinas = await ServicioMaquina.GetAllAsync();
     }
 
     private void IrATerminal(int id)
     {
-        // redirigimos a la maquina
+        // redirigimos al terminal enviando ID de la máquina
         NavManager.NavigateTo($"/terminal-operario/{id}");
     }
 }

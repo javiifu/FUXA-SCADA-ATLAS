@@ -11,21 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-var defaultConnection = builder.Configuration.GetConnectionString("DefaultConnection");
-if (string.IsNullOrWhiteSpace(defaultConnection))
-{
-    throw new InvalidOperationException(
-        "No se encontró la cadena de conexión 'ConnectionStrings:DefaultConnection'. " +
-        "Configúrala en appsettings.json, appsettings.Development.json o variables de entorno.");
-}
-
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(
-        defaultConnection,
-        sqlServerOptions =>
-        {
-            sqlServerOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
-        }));
+builder.Services.AddDbContextFactory<AppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddRadzenComponents();
 builder.Services.AddScoped<DialogService>();
@@ -33,7 +20,6 @@ builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<TooltipService>();
 builder.Services.AddScoped<ContextMenuService>();
 builder.Services.AddScoped<ImputacionService>();
-builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<ServicioEmpleado>();
 builder.Services.AddScoped<ServicioMaquina>();
 builder.Services.AddScoped<ServicioIncidencia>();

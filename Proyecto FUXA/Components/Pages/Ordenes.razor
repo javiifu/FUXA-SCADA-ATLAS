@@ -7,74 +7,221 @@
 @inject DialogService DialogService
 @inject NotificationService NotificationService
 
-<RadzenStack Gap="1rem" class="rz-p-4">
+<div class="fuxa-enterprise-container">
+    <RadzenStack Gap="1.5rem">
 
-    <RadzenRow AlignItems="AlignItems.Center">
-        <RadzenColumn Size="12" SizeMD="6">
-            <RadzenText TextStyle="TextStyle.H4" TagName="TagName.H1">Gestión ordenes</RadzenText>
-        </RadzenColumn>
+        @* CABECERA *@
+        <RadzenRow AlignItems="AlignItems.Center">
+            <RadzenColumn Size="12" SizeMD="6">
+                <RadzenStack Gap="0">
+                    <RadzenText TextStyle="TextStyle.H4" TagName="TagName.H1" class="ent-title">
+                        Gestión de Órdenes
+                    </RadzenText>
+                    <div class="ent-title-underline"></div>
+                </RadzenStack>
+            </RadzenColumn>
 
-        <RadzenColumn Size="12" SizeMD="6">
-            <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.End" Gap="0.5rem">
+            <RadzenColumn Size="12" SizeMD="6">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" Gap="1rem">
+                    <RadzenButton Click="LimpiarBusqueda"
+                                  Icon="filter_alt_off"
+                                  Text="LIMPIAR FILTROS"
+                                  ButtonStyle="ButtonStyle.Light"
+                                  class="ent-btn-outline" />
 
-                <RadzenButton Click="@AbrirDialogoNuevaOrden"
-                              Text="CREAR NUEVA ORDEN"
-                              Icon="add_circle"
-                              ButtonStyle="ButtonStyle.Primary" />
+                    <RadzenButton Click="@AbrirDialogoNuevaOrden"
+                                  Text="NUEVA ORDEN"
+                                  Icon="add_box"
+                                  ButtonStyle="ButtonStyle.Primary"
+                                  class="ent-btn-solid" />
+                </RadzenStack>
+            </RadzenColumn>
+        </RadzenRow>
 
-                <RadzenButton Click="LimpiarBusqueda"
-                              Icon="clear"
-                              ButtonStyle="ButtonStyle.Light"
-                              Variant="Variant.Flat"
-                              Size="ButtonSize.Medium" />
-
-            </RadzenStack>
-        </RadzenColumn>
-    </RadzenRow>
-
-
-    <RadzenCard Variant="Variant.Outlined">
-        <RadzenDataGrid AllowFiltering="true" AllowPaging="true" PageSize="10" AllowSorting="true" 
-                        Data="@escaparateOrdenes" TItem="Orden" EmptyText="No hay ordenes creadas."
-                        FilterMode="FilterMode.Simple" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive">
-            <Columns>
-                <RadzenDataGridColumn TItem="Orden" Property="CodigoOrden" Title="Codigo" Width="150px">
-                    <FilterTemplate>
-                        <RadzenTextBox Placeholder="Buscar..."
-                                        @bind-Value="filtroTexto"
-                                       @oninput="@(args => { filtroTexto = args.Value.ToString(); AplicarFiltros(); })"
-                                       class="w-100" />
-                    </FilterTemplate>
-                </RadzenDataGridColumn>
+        @* TABLA (GRID) *@
+        <div class="ent-grid-wrapper">
+            <RadzenDataGrid AllowFiltering="true" AllowPaging="true" PageSize="10" AllowSorting="true"
+                            Data="@escaparateOrdenes" TItem="Orden" EmptyText="No hay órdenes creadas."
+                            FilterMode="FilterMode.Simple" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                            class="ent-datagrid">
+                <Columns>
+                    <RadzenDataGridColumn TItem="Orden" Property="CodigoOrden" Title="CÓDIGO ORDEN" Width="160px">
+                        <FilterTemplate>
+                            <RadzenTextBox Placeholder="Buscar..."
+                                           @bind-Value="filtroTexto"
+                                           @oninput="@(args => { filtroTexto = args.Value.ToString(); AplicarFiltros(); })"
+                                           class="ent-input w-100" />
+                        </FilterTemplate>
+                        <Template Context="o">
+                            <strong>@o.CodigoOrden</strong>
+                        </Template>
+                    </RadzenDataGridColumn>
+                        
+                    <RadzenDataGridColumn TItem="Orden" Property="Producto" Title="PRODUCTO / DESCRIPCIÓN" />
                     
-                <RadzenDataGridColumn TItem="Orden" Property="Producto" Title="Producto / Descripcion" />
-                <RadzenDataGridColumn TItem="Orden" Property="FechaInicio" Title="Fecha inicio" FormatString="{0:dd/MM/yyyy HH:mm}" Width="200px" />
-                
-                <RadzenDataGridColumn TItem="Orden" Property="Estado" Title="Estado" Width="120px" TextAlign="TextAlign.Center">
-                    <FilterTemplate>
-                        <RadzenDropDown @bind-Value="filtroEstado"
-                                        Data="@opcionesEstado"
-                                        Change="@AplicarFiltros"
-                                        class="w-100" />
-                    </FilterTemplate>
-                    <Template Context="o">
-                        <RadzenBadge BadgeStyle="@(o.Estado == "Activa" ? BadgeStyle.Success :
-                                                                         o.Estado == "Finalizado" ? BadgeStyle.Danger :
-                                                                         BadgeStyle.Info)"
-                                     Text="@o.Estado" />
-                    </Template>
-                </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="Orden" Property="FechaInicio" Title="FECHA INICIO" FormatString="{0:dd/MM/yyyy HH:mm}" Width="160px" />
+                    
+                    <RadzenDataGridColumn TItem="Orden" Property="FechaFin" Title="FECHA FIN" FormatString="{0:dd/MM/yyyy HH:mm}" Width="160px">
+                        <Template Context="o">
+                            @(o.FechaFin.HasValue ? o.FechaFin.Value.ToString("dd/MM/yyyy HH:mm") : "--")
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Orden" Property="Estado" Title="ESTADO" Width="140px" TextAlign="TextAlign.Center">
+                        <FilterTemplate>
+                            <RadzenDropDown @bind-Value="filtroEstado"
+                                            Data="@opcionesEstado"
+                                            Change="@AplicarFiltros"
+                                            class="ent-input w-100" />
+                        </FilterTemplate>
+                        <Template Context="o">
+                            @* AQUÍ SE RESPETAN TUS COLORES ORIGINALES *@
+                            <RadzenBadge BadgeStyle="@(o.Estado == "Activa" ? BadgeStyle.Success :
+                                                                                                                            o.Estado == "Finalizado" ? BadgeStyle.Danger :
+                                                                                                                            BadgeStyle.Info)"
+                                         Text="@o.Estado.ToUpper()"
+                                         class="ent-badge" />
+                        </Template>
+                    </RadzenDataGridColumn>
 
-                <RadzenDataGridColumn TItem="Orden" Title="Acciones" Width="100px" TextAlign="TextAlign.Center" Filterable="false" Sortable="false">
-                    <Template Context="o">
-                        <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Medium" 
-                                      Click="@(args => EditarOrden(o))" />
-                    </Template>
-                </RadzenDataGridColumn>
-            </Columns>
-        </RadzenDataGrid>
-    </RadzenCard>
-</RadzenStack>
+                    <RadzenDataGridColumn TItem="Orden" Title="ACCIONES" Width="100px" TextAlign="TextAlign.Center" Filterable="false" Sortable="false">
+                        <Template Context="o">
+                            <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Text" Size="ButtonSize.Medium"
+                                          Click="@(args => EditarOrden(o))" class="ent-action-btn" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </div>
+    </RadzenStack>
+</div>
+
+<style>
+    /* Fondo general */
+    .fuxa-enterprise-container {
+        background-color: #FAFAFA;
+        min-height: 100vh;
+        padding: 2rem;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    /* Títulos */
+    .ent-title {
+        color: #1A2E3F;
+        font-weight: 800 !important;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin: 0;
+    }
+
+    .ent-title-underline {
+        height: 4px;
+        width: 60px;
+        background-color: #1F4E79;
+        margin-top: 5px;
+    }
+
+    /* Contenedor de la tabla con borde estricto */
+    .ent-grid-wrapper {
+        border: 1px solid #D5E3EF;
+        background: white;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    /* ---- ESTILOS DE LA TABLA (DATAGRID) ---- */
+    .ent-datagrid {
+        border: none !important;
+    }
+
+    /* Cabecera oscura corporativa */
+    .ent-datagrid .rz-datagrid-header-cell {
+        background-color: #1A2E3F !important;
+        color: #FFFFFF !important;
+        font-weight: 600 !important;
+        font-size: 0.85rem !important;
+        letter-spacing: 0.5px;
+        border-bottom: 3px solid #1F4E79 !important;
+        padding: 12px 15px !important;
+        text-transform: uppercase;
+    }
+
+    /* Iconos de ordenación en la cabecera */
+    .ent-datagrid .rz-datagrid-header-cell .rz-sortable-column-icon {
+        color: #7BB3D4 !important;
+    }
+
+    /* Filas de la tabla */
+    .ent-datagrid .rz-datagrid-row td {
+        border-bottom: 1px solid #EEEEEE !important;
+        padding: 12px 15px !important;
+        color: #333333 !important;
+        font-size: 0.95rem;
+    }
+
+    /* Filas alternas (Zebra stripes) para leer mejor los datos */
+    .ent-datagrid .rz-datagrid-row:nth-child(even) > td {
+        background-color: #F8F9FA !important;
+    }
+
+    /* Efecto hover al pasar el ratón */
+    .ent-datagrid .rz-datagrid-row:hover td {
+        background-color: #E6F2FF !important;
+    }
+
+    /* ---- ETIQUETAS Y BOTONES ---- */
+    .ent-badge {
+        border-radius: 4px !important;
+        padding: 6px 12px !important;
+        font-weight: bold !important;
+        letter-spacing: 0.5px;
+        font-size: 0.8rem;
+    }
+
+    .ent-input {
+        border-radius: 4px !important;
+        border: 1px solid #CCCCCC !important;
+    }
+
+    .ent-input:focus {
+        border-color: #1F4E79 !important;
+        box-shadow: 0 0 0 2px rgba(31,78,121,0.2) !important;
+    }
+
+    /* Botones superiores */
+    .ent-btn-solid {
+        background-color: #1F4E79 !important;
+        border-radius: 4px !important;
+        font-weight: 600 !important;
+        box-shadow: none !important;
+    }
+
+    .ent-btn-solid:hover {
+        background-color: #163857 !important;
+    }
+
+    .ent-btn-outline {
+        border: 1px solid #1F4E79 !important;
+        color: #1F4E79 !important;
+        border-radius: 4px !important;
+        font-weight: 600 !important;
+        background-color: transparent !important;
+    }
+
+    .ent-btn-outline:hover {
+        background-color: #F0F4F8 !important;
+    }
+
+    /* Botón de editar de la tabla */
+    .ent-action-btn {
+        color: #1F4E79 !important;
+        background: transparent !important;
+    }
+
+    .ent-action-btn:hover {
+        background: #E6F2FF !important;
+    }
+</style>
 
 @code {
     List<Orden> listaOrdenes = new();
@@ -92,7 +239,7 @@
 
     private async Task CargarOrdenes()
     {
-        var datos = await ImputacionService.ObtenerOrdenesActivasAsync();
+        var datos = await ImputacionService.ObtenerOrdenesAsync();
         almacenOrdenes = datos.ToList();
         AplicarFiltros();
     }
@@ -100,7 +247,7 @@
     private async Task AbrirDialogoNuevaOrden()
     {
         var res = await DialogService.OpenAsync<DialogoPlanificarOrden>("Planificar nueva orden",
-            new Dictionary<string, object>(), 
+            new Dictionary<string, object>(),
             new DialogOptions() { Width = "500px", Style = "position: absolute;" });
 
         if (res == true)
@@ -111,8 +258,8 @@
 
     private async Task EditarOrden(Orden orden)
     {
-        var parametros = new Dictionary<string, object> { 
-            { "OrdenParaEditar", orden } 
+        var parametros = new Dictionary<string, object> {
+            { "OrdenParaEditar", orden }
         };
 
         var res = await DialogService.OpenAsync<DialogoPlanificarOrden>("Editar orden", parametros, new DialogOptions() { Width = "500px" });
@@ -138,7 +285,7 @@
         {
             resultadoTemporal = resultadoTemporal.Where(orden => orden.CodigoOrden != null && orden.CodigoOrden.Contains(filtroTexto, StringComparison.OrdinalIgnoreCase));
         }
-        if(filtroEstado != "TODOS")
+        if (filtroEstado != "TODOS")
         {
             resultadoTemporal = resultadoTemporal.Where(orden => orden.Estado == filtroEstado);
         }

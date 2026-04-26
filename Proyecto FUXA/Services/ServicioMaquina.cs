@@ -14,11 +14,20 @@ namespace Proyecto_FUXA.Services
         {
             _db = db;
         }
+
         public async Task<List<Maquina>> GetAllAsync()
         {
             return await _db.Maquinas
-                .Include(m => m.Producciones)
-                .OrderBy(m => m.Nombre)
+                .AsNoTracking()
+                .Include(m => m.Seccion)
+                .Include(m => m.MaquinasEmpleados)
+                .ThenInclude(me => me.Empleado)
+                .ToListAsync();
+        }
+        public async Task<List<Maquina>> GetAllBySeccionAsync()
+        {
+            return await _db.Maquinas
+                .Include(m => m.Seccion)
                 .ToListAsync();
         }
 
@@ -135,40 +144,6 @@ namespace Proyecto_FUXA.Services
                 .FirstOrDefaultAsync(m => m.Id == id);
         }
 
-        public async Task<Maquina?> ObtenerPorId(int id)
-        {
-            maquina.Nombre = (maquina.Nombre ?? string.Empty).Trim();
-            maquina.FechaCreacion = DateTime.UtcNow;
-            maquina.FechaActualizacion = DateTime.UtcNow;
-            _db.Maquinas.Add(maquina);
-            await _db.SaveChangesAsync();
-
-            var yaExisteObjetoVisual = await _db.ObjetosVisualesPlanta
-                .AnyAsync(x => x.MaquinaId == maquina.Id);
-
-            if (!yaExisteObjetoVisual)
-            {
-                var totalObjetos = await _db.ObjetosVisualesPlanta.CountAsync();
-                var columna = totalObjetos % 5;
-                var fila = totalObjetos / 5;
-
-                _db.ObjetosVisualesPlanta.Add(new PlantaObjetoVisual
-                {
-                    Nombre = maquina.Nombre,
-                    Tipo = "Rectangulo",
-                    PosX = 20 + (columna * 150),
-                    PosY = 20 + (fila * 110),
-                    Width = 120,
-                    Height = 80,
-                    ColorHex = "#2f80ed",
-                    MaquinaId = maquina.Id,
-                    FechaCreacion = DateTime.UtcNow,
-                    FechaActualizacion = DateTime.UtcNow
-                });
-
-                await _db.SaveChangesAsync();
-            }
-        }
 
         public async Task GuardarMaquina(Maquina maquina)
         {
@@ -192,7 +167,6 @@ namespace Proyecto_FUXA.Services
                     }
 
                     dbMaquina.CiclosReales = maquina.CiclosReales;
-                    dbMaquina.EmpleadoId = maquina.EmpleadoId;
                     dbMaquina.EstadoActualId = maquina.EstadoActualId;
                     dbMaquina.FechaActualizacion = DateTime.UtcNow;
 
@@ -217,25 +191,28 @@ namespace Proyecto_FUXA.Services
         {
             return await _db.Maquinas.ToListAsync();
         }
+
         public async Task<List<Empleado>> GetAllEmpleadosAsync()
         {
             return await _db.Empleados.AsNoTracking().ToListAsync();
         }
+
         public async Task<bool> AddEmpleadoAsync(Empleado empleado)
         {
             try
             {
                 _db.Empleados.Add(empleado);
                 await _db.SaveChangesAsync();
-                return true; 
+                return true;
             }
             catch (DbUpdateException ex)
             {
                 Console.WriteLine("Error: El código de empleado ya existe.");
                 _db.Entry(empleado).State = EntityState.Detached;
-                return false; 
+                return false;
             }
         }
+
         public async Task UpdateEmpleadoAsync(Empleado empleado)
         {
             var dbEmpleado = await _db.Empleados.FindAsync(empleado.Id);
@@ -244,7 +221,6 @@ namespace Proyecto_FUXA.Services
                 dbEmpleado.Nombre = empleado.Nombre;
                 dbEmpleado.Apellidos = empleado.Apellidos;
                 dbEmpleado.Cargo = empleado.Cargo;
-                dbEmpleado.IdMaquina = empleado.IdMaquina;
 
                 await _db.SaveChangesAsync();
             }
@@ -289,21 +265,12 @@ namespace Proyecto_FUXA.Services
             }
         }
 
-        public async Task CrearOrdenAsync(Orden nuevaOrden)
-        {
-
-        }
         public async Task<bool> InsertarOperacion(OperacionesOrden nuevaOp)
         {
             try
             {
-                // añadimos el objeto a la tabla de operaciones
                 _db.OperacionesOrden.Add(nuevaOp);
-
-                // guardamos los cambios en SQL
                 var resultado = await _db.SaveChangesAsync();
-
-                // Si devuelve más de 0, es que se ha guardado bien
                 return resultado > 0;
             }
             catch (Exception ex)
@@ -312,6 +279,7 @@ namespace Proyecto_FUXA.Services
                 return false;
             }
         }
+
         public async Task<bool> InsertarMaquina(Maquina nuevaMaquina)
         {
             try
@@ -328,6 +296,7 @@ namespace Proyecto_FUXA.Services
                 return false;
             }
         }
+
         public async Task<bool> ActualizarMaquina(Maquina maquinaEditada)
         {
             try
@@ -344,46 +313,35 @@ namespace Proyecto_FUXA.Services
             }
         }
 
-        public async Task <List<Empleado>> ObtenerEmpleadosConMaquinaAsync()
-        {
-            return await _db.Empleados.Include(e => e.Maquina).ToListAsync();
-        }
-
-        public async Task<List<Empleado>> ObtenerOperariosDeMaquina(int maquinaId)
-        {
-            return await _db.MaquinasOperarios
-                .Where(mo => mo.MaquinaId == maquinaId)
-                .Select(mo => mo.Empleado)
-                .ToListAsync();
-        }
-
         public async Task<List<Empleado>> GetAllEmpleadosConMaquinaAsync()
         {
             try
             {
                 return await _db.Empleados
-                    .Include(e => e.Maquina)
+                    .Include(e => e.MaquinasEmpleados)
+                        .ThenInclude(me => me.Maquina)
                     .AsNoTracking()
                     .ToListAsync();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Console.WriteLine($"Error: {ex.Message}");
                 return new List<Empleado>();
             }
         }
 
-        public async Task<List<Empleado>> ObtenerOperariosDeUnaMaquina (int maquinaId)
+        public async Task<List<Empleado>> ObtenerOperariosDeUnaMaquina(int maquinaId)
         {
             try
             {
-                return await _db.Empleados
-                    .Where(e => e.IdMaquina == maquinaId)
+                return await _db.EmpleadoMaquinas
+                    .Where(me => me.IdMaquina == maquinaId)
+                    .Include(me => me.Empleado)
+                    .Select(me => me.Empleado)
                     .AsNoTracking()
                     .ToListAsync();
-                        
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Console.WriteLine($"Error: {ex.Message}");
                 return new List<Empleado>();
@@ -408,5 +366,97 @@ namespace Proyecto_FUXA.Services
         {
             return await _db.OperacionesOrden.AnyAsync(op => op.IdMaquina == maquinaId && op.Estado == "Activa");
         }
+
+        public async Task<List<Material>> ObtenerTodosLosMaterialesAsync()
+        {
+            return await _db.Materiales
+                .AsNoTracking()
+                .OrderBy(n => n.Nombre)
+                .ToListAsync();
+        }
+
+        public async Task<List<Material>> ObtenerMaterialesDeMaquinaAsync(int idMaquina)
+        {
+            var materiales = await _db.MaquinasMateriales
+                .AsNoTracking()
+                .Where(mm => mm.IdMaquina == idMaquina)
+                .Include(mm => mm.Material)
+                .Select(mm => mm.Material)
+                .ToListAsync();
+
+            return materiales ?? new List<Material>();
+        }
+
+        public async Task AsignarMaterialAMaquinaAsync(int idMaquina, int idMaterial)
+        {
+            var existe = await _db.MaquinasMateriales
+                .AnyAsync(mm => mm.IdMaquina == idMaquina && mm.IdMaterial == idMaterial);
+
+            if (!existe)
+            {
+                var nuevaRelacion = new MaquinaMaterial
+                {
+                    IdMaquina = idMaquina,
+                    IdMaterial = idMaterial
+                };
+
+                _db.MaquinasMateriales.Add(nuevaRelacion);
+                await _db.SaveChangesAsync();
+            }
+        }
+
+        public async Task DesvincularMaterialDeMaquinaAsync(int idMaquina, int idMaterial)
+        {
+            var relacion = await _db.MaquinasMateriales
+                .FirstOrDefaultAsync(mm => mm.IdMaquina == idMaquina && mm.IdMaterial == idMaterial);
+
+            if (relacion != null)
+            {
+                _db.MaquinasMateriales.Remove(relacion);
+                await _db.SaveChangesAsync();
+            }
+        }
+
+        public async Task AsignarEmpleadoAMaquinaAsync(int idMaquina, int idEmpleado)
+        {
+            var existe = await _db.EmpleadoMaquinas
+                .AnyAsync(em => em.IdMaquina == idMaquina && em.IdEmpleado == idEmpleado);
+
+            if (!existe)
+            {
+                var nuevaRelacion = new EmpleadoMaquina
+                {
+                    IdMaquina = idMaquina,
+                    IdEmpleado = idEmpleado
+                };
+                _db.EmpleadoMaquinas.Add(nuevaRelacion);
+                await _db.SaveChangesAsync();
+            }
+        }
+
+        public async Task DesvincularEmpleadoDeMaquinaAsync(int idMaquina, int idEmpleado)
+        {
+            var relacion = await _db.EmpleadoMaquinas
+                .FirstOrDefaultAsync(em => em.IdMaquina == idMaquina && em.IdEmpleado == idEmpleado);
+
+            if (relacion != null)
+            {
+                _db.EmpleadoMaquinas.Remove(relacion);
+                await _db.SaveChangesAsync();
+            }
+        }
+
+        //public async Task <int?> PreferenciaPorMaquinaId(int idMaquina)
+        //{
+        //    var maquina = await _db.Maquinas
+        //        .FirstOrDefaultAsync(m => m.Id == idMaquina);
+
+        //    if (maquina == null) return null;
+
+        //    var seccion = await _db.Secciones
+        //        .FirstOrDefaultAsync(s => s.Id == maquina.IdSeccion);
+
+        //    return seccion?.Preferencia;
+        //}
     }
 }

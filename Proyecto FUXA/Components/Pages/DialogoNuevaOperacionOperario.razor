@@ -180,7 +180,6 @@
     {
         try
         {
-            // OJO: Orden de parámetros -> 1º Orden, 2º Máquina, 3º Ciclos
             bool exito = await ImputacionService.AsignarOrdenAMaquinaAsync(idOrdenSeleccionada, IdMaquina, ciclosObjetivo);
 
             if (exito)

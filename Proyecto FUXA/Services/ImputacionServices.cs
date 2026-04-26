@@ -4,6 +4,7 @@ using Proyecto_FUXA.Models;
 using Microsoft.EntityFrameworkCore;
 
 using System.ComponentModel.DataAnnotations.Schema;
+using Proyecto_FUXA.Components.Pages;
 
 
 namespace Proyecto_FUXA.Services;
@@ -65,10 +66,12 @@ public class ImputacionService
         {
             _context.Ordenes.Add(orden);
             await _context.SaveChangesAsync();
+            await GenerarHojaRutaAsync(orden.Id);
             return true;
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"Error creando orden: {ex.Message}");
             return false;
         }
     }
@@ -112,7 +115,6 @@ public class ImputacionService
         {
             var ordenPadre = await _context.Ordenes.FindAsync(idOrden);
 
-            //cuenta cuántas operaciones tiene ya esta orden para calcular el sufijo (-1, -2...)
             var totalOperaciones = await _context.OperacionesOrden.CountAsync(op => op.IdOrden == idOrden);
             string nuevoCodigo = $"{ordenPadre.CodigoOrden}-{totalOperaciones + 1}";
 
@@ -127,6 +129,14 @@ public class ImputacionService
             };
 
             _context.OperacionesOrden.Add(nuevaOp);
+
+            //para cambiar el estado de la maquina
+            var maquina = await _context.Maquinas.FindAsync(idMaquina);
+            if (maquina != null)
+            {
+                maquina.EstadoActualId = 1;
+            }
+
             await _context.SaveChangesAsync();
             return true;
         }
@@ -136,7 +146,7 @@ public class ImputacionService
     public class OperacionResumenDTO
     {
         public int Id { get; set; }
-        public int IdMaquina { get; set; }
+        public int? IdMaquina { get; set; }
         public string CodigoOperacion { get; set; } = "";
         public string NombreOrden { get; set; } = "";   
         public string NombreMaquina { get; set; } = "";
@@ -148,6 +158,11 @@ public class ImputacionService
         public int EstadoMaquinaId { get; set; }
         public DateTime FechaInicio { get; set; }
         public DateTime? FechaFin { get; set; }
+    }
+
+    public async Task<Orden?> GetOrdenById(string codigo)
+    {
+        return await _context.Ordenes.FirstOrDefaultAsync(o => o.CodigoOrden == codigo);
     }
 
     public async Task<bool> AsignarOrdenAMaquinaAsync(int idOrden, int idMaquina, int ciclos)
@@ -173,6 +188,13 @@ public class ImputacionService
         };
 
         _context.OperacionesOrden.Add(nuevaOp);
+
+        var maquina = await _context.Maquinas.FindAsync(idMaquina);
+        if (maquina != null)
+        {
+            maquina.EstadoActualId = 1;
+        }
+
         return await _context.SaveChangesAsync() > 0;
     }
     public async Task<List<Orden>> ObtenerOrdenesActivasAsync()
@@ -180,7 +202,7 @@ public class ImputacionService
         try
         {
             return await _context.Ordenes
-                .Where(o => o.Estado != "Activa")
+                .Where(o => o.Estado == "Activa")
                 .OrderByDescending(o => o.FechaInicio)
                 .ToListAsync();
         }
@@ -189,14 +211,19 @@ public class ImputacionService
             return new List<Orden>();
         }
     }
+
+    public async Task<List<Orden>> ObtenerOrdenesAsync()
+    {
+        return await _context.Ordenes.ToListAsync();
+    }
     public async Task<List<OperacionResumenDTO>> ObtenerOperacionesActivasAsync()
     {
         try
         {
             return await _context.OperacionesOrden
-                .Include(o => o.Orden)   
+                .Include(o => o.Orden)
                 .Include(o => o.Maquina)
-                .Where(o => o.Estado == "Activa")
+                .Where(o => (o.Estado == "Activa" || o.Estado == "Pendiente" || o.Estado == "Finalizado") && o.Orden.Estado != "Finalizado")
                 .Select(o => new OperacionResumenDTO
                 {
                     Id = o.Id,
@@ -302,13 +329,24 @@ public class ImputacionService
                 op.PiezasFabricadas = (int)operacion.PiezasFabricadas;
                 op.PiezasRotas = (int)operacion.PiezasRotas;
 
+                bool quedanPendientes = await _context.OperacionesOrden
+                    .AnyAsync(o => o.IdOrden == op.IdOrden && o.Estado != "Finalizado");
+
+                if (!quedanPendientes)
+                {
+                    var ordenMadre = await _context.Ordenes.FindAsync(op.IdOrden);
+                    if (ordenMadre != null)
+                    {
+                        ordenMadre.Estado = "Finalizado";
+                    }
+                }
                 await _context.SaveChangesAsync();
             }
 
             var maquina = await _context.Maquinas.FindAsync(idMaquina);
-            if(maquina != null)
+            if (maquina != null)
             {
-                if(maquina.EstadoActualId != 4)
+                if (maquina.EstadoActualId != 4)
                 {
                     maquina.EstadoActualId = 3;
                 }
@@ -408,7 +446,7 @@ public class ImputacionService
             .ToListAsync();
     }
 
-    private async Task<string> GenerarCodigoMaterial(string nombreMaterial)
+    public async Task<string> GenerarCodigoMaterial(string nombreMaterial)
     {
 
         string limpio = new string((nombreMaterial ?? "MAT")
@@ -474,24 +512,38 @@ public class ImputacionService
         }
     }
 
-    public async Task<bool> CerrarOperacionAsync(int idOperacion)
+    public async Task<bool> CerrarOperacionAsync(int idOperacion, int idMaquina, int? idSeccion)
     {
         try
         {
             var operacion = await _context.OperacionesOrden.FindAsync(idOperacion);
 
-            if(operacion != null)
-            {
-                operacion.Estado = "Finalizada";
+            if (operacion == null) return false;
 
-                await _context.SaveChangesAsync();
-                return true;
+            operacion.Estado = "Finalizado";
+            operacion.IdMaquina = idMaquina;
+            operacion.IdSeccion = idSeccion;
+            operacion.FechaFin = DateTime.Now;
+            await _context.SaveChangesAsync();
+
+            bool quedanOperacionesPendientes = await _context.OperacionesOrden
+                .AnyAsync(op => op.IdOrden == operacion.IdOrden && op.Estado != "Finalizado");
+
+            if (!quedanOperacionesPendientes)
+            {
+                var ordenMadre = await _context.Ordenes.FindAsync(operacion.IdOrden);
+                if (ordenMadre != null)
+                {
+                    ordenMadre.Estado = "Finalizado";
+                    ordenMadre.FechaFin = DateTime.Now;
+                    await _context.SaveChangesAsync();
+                }
             }
-            return false;
-        }catch(Exception ex)
+            return true;
+        }
+        catch (Exception ex)
         {
-            
-            Console.WriteLine($"Error: { ex.Message}");
+            Console.WriteLine($"Error al cerrar operación y comprobar orden: {ex.Message}");
             return false;
         }
     }
@@ -535,7 +587,7 @@ public class ImputacionService
         }
     }
 
-    public async Task<bool> RegistrarConsumoMaterialAsync(int idOperacion, int idMaterial, decimal cantidad, string? observaciones = null)
+    public async Task<bool> RegistrarConsumoMaterialAsync(int idOperacion, int idMaterial, decimal cantidad, int idEmpleado , string? observaciones = null)
     {
         try
         {
@@ -543,6 +595,7 @@ public class ImputacionService
             {
                 IdOperacion = idOperacion,
                 IdMaterial = idMaterial,
+                IdEmpleado = idEmpleado,
                 Cantidad = cantidad,
                 Observaciones = observaciones,
                 FechaRegistro = DateTime.Now
@@ -630,5 +683,153 @@ public class ImputacionService
             Console.WriteLine($"Error con el stock minimo {ex.Message}");
             return false;
         }
+    }
+
+    public async Task<bool> EliminarConsumoAsync(int idConsumo)
+    {
+        using var transaccion = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            var consumo = await _context.ImputacionMateriales.FindAsync(idConsumo);
+
+            if (consumo == null) return false;
+
+            var material = await _context.Materiales.FindAsync(consumo.IdMaterial);
+            if(material != null)
+            {
+                material.Stock += consumo.Cantidad;
+            }
+            _context.ImputacionMateriales.Remove(consumo);
+            await _context.SaveChangesAsync();
+            await transaccion.CommitAsync();
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            await transaccion.RollbackAsync();
+            Console.WriteLine($"Error al borrar el consumo: {ex.Message}");
+            return false;
+        }
+    }
+
+    public async Task<bool> RegistrarConsumoMaterialAsync(int idOperacion, int idMaterial, decimal cantidad, int idEmpleado, bool esMerma)
+    {
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            var nuevoConsumo = new ImputacionMaterial
+            {
+                IdOperacion = idOperacion,
+                IdMaterial = idMaterial,
+                Cantidad = cantidad,
+                IdEmpleado = idEmpleado,
+                EsMerma = esMerma, 
+                FechaRegistro = DateTime.Now
+            };
+
+            _context.ImputacionMateriales.Add(nuevoConsumo);
+
+            var material = await _context.Materiales.FindAsync(idMaterial);
+            if (material != null)
+            {
+                material.Stock -= cantidad;
+            }
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return true;
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync();
+            return false;
+        }
+    }
+
+    public async Task<bool> PuedeIniciarOperacionAsync(int idOperacion, int idOrden)
+    {
+        var opActual = await _context.OperacionesOrden.FindAsync(idOperacion);
+        if (opActual == null) return false;
+
+        var hayBloqueo = await _context.OperacionesOrden
+            .AnyAsync(o => o.IdOrden == idOrden &&
+                           o.Preferencia > opActual.Preferencia &&
+                           o.Estado != "Finalizado");
+
+        return !hayBloqueo;
+    }
+
+    public async Task IniciarFichajeAsync(int idOperacion, int idEmpleado)
+    {
+        var operacion = await _context.OperacionesOrden.FindAsync(idOperacion);
+
+        if (operacion != null)
+        {
+            operacion.Estado = "Activa";
+
+            var ordenMadre = await _context.Ordenes.FindAsync(operacion.IdOrden);
+            if (ordenMadre != null && ordenMadre.Estado == "Pendiente")
+            {
+                ordenMadre.Estado = "Activa";
+            }
+
+            var maquina = await _context.Maquinas.FindAsync(operacion.IdMaquina);
+            if(maquina != null)
+            {
+                maquina.EstadoActualId = 1;
+            }
+
+            var nuevaImputacion = new ImputacionOperario
+            {
+                IdOperacion = idOperacion,
+                IdEmpleado = idEmpleado,
+                FechaInicio = DateTime.Now
+            };
+
+            _context.ImputacionesOperarios.Add(nuevaImputacion);
+            await _context.SaveChangesAsync();
+        }
+    }
+    public async Task GenerarHojaRutaAsync(int idOrden)
+    {
+        var orden = await _context.Ordenes.FindAsync(idOrden);
+        if (orden == null) return;
+
+        var operaciones = await _context.TiposOperaciones
+            .OrderByDescending(o => o.Preferencia)
+            .ToListAsync();
+
+        int contador = 1;
+
+        foreach(var op in operaciones)
+        {
+            var nuevaOperacion = new OperacionesOrden
+            {
+
+                IdOrden = idOrden,
+                IdOperacionMaestra = op.Id,
+                Preferencia = op.Preferencia,
+                Estado = "Pendiente",
+                FechaCreacion = DateTime.Now,
+                CodigoOperacion = op.Nombre,
+                CiclosObjetivo = 0,
+                PiezasRotas = 0,
+                PiezasFabricadas = 0,
+                IdSeccion = null,
+                IdMaquina = null
+            };
+
+            _context.OperacionesOrden.Add(nuevaOperacion);
+            contador++;
+        }
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<List<TipoOperacion>> ObtenerOperacionesActivas()
+    {
+        return await _context.TiposOperaciones
+        .OrderByDescending(o => o.Preferencia)
+        .ToListAsync();
     }
 }

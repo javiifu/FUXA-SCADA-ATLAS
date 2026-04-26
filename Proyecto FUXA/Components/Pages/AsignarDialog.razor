@@ -83,12 +83,7 @@ else
 
             if (Datos.MaquinaId > 0)
             {
-                var maquinaDb = await ServicioMaquina.ObtenerPorId(Datos.MaquinaId);
-                if (maquinaDb != null)
-                {
-                    maquinaDb.EmpleadoId = Datos.EmpleadoId;
-                    await ServicioMaquina.GuardarMaquina(maquinaDb);
-                }
+                await ServicioMaquina.AsignarEmpleadoAMaquinaAsync(Datos.MaquinaId, Datos.EmpleadoId.Value);
             }
 
             DialogService.Close(true);

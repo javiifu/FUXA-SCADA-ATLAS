@@ -15,4 +15,7 @@ public class Material
     public decimal StockMinimo { get; set; }
 
     public virtual ICollection<MaquinaMaterial> MaquinasMateriales { get; set; } = new List<MaquinaMaterial>();
+
+    [NotMapped]
+    public string BusquedaCombinada => $"{Nombre} {CodigoMaterial}";
 }

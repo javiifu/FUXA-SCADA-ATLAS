@@ -16,7 +16,7 @@ namespace Proyecto_FUXA.Models
         public int? IdSeccion { get; set; }
         public int CiclosReales { get; set; }
         //public string? NombreSeccion { get; set; } = string.Empty;
-        public int? EmpleadoId { get; set; }
+        //public int? EmpleadoId { get; set; }
         public int? EstadoActualId { get; set; }
         public DateTime FechaCreacion { get; set; }
         public DateTime FechaActualizacion { get; set; }
@@ -36,8 +36,6 @@ namespace Proyecto_FUXA.Models
         public int PiezasRotas { get; set; }
         [NotMapped]
         public string CodigoOperacionActiva { get; set; } = "Sin operacion";
-        [JsonIgnore]
-        public Empleado? Empleado { get; set; }
 
         [ForeignKey("IdSeccion")]
         public virtual Seccion? Seccion { get; set; }
@@ -55,5 +53,6 @@ namespace Proyecto_FUXA.Models
         public virtual MaquinaEstatus? EstadoActual { get; set; }
 
         public virtual ICollection<MaquinaMaterial> MaquinasMateriales { get; set; } = new List<MaquinaMaterial>();
+        public virtual ICollection<EmpleadoMaquina> MaquinasEmpleados { get; set; } = new List<EmpleadoMaquina>();
     }
 }
