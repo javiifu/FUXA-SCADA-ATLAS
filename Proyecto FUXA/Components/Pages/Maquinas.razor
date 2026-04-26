@@ -27,41 +27,16 @@ else
         <RadzenRow>
             <RadzenColumn Size="12">
                 <RadzenCard Variant="Variant.Outlined">
-                    @* Cabecera con título y buscador a la derecha *@
+                    
                     <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" class="rz-mb-4">
                         <RadzenText TextStyle="TextStyle.H5" class="rz-m-0">Lista de máquinas en planta</RadzenText>
 
-                        <div class="row mb-4">
-                            <div class="col-md-auto">
-                                @* boton orden fabricacion *@
-                                <RadzenButton Click=@(args => AbrirDialogoPlanificar())
-                                              Text="NUEVA ORDEN DE FABRICACIÓN"
-                                              Icon="add_circle"
-                                              ButtonStyle="ButtonStyle.Primary"
-                                              Style="height: 55px; min-width: 300px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
-
-                                @* boton nueva maquina *@
-                                <RadzenButton Click=@(args => AbrirNuevaMaquina())
-                                              Text="NUEVA MÁQUINA"
-                                              Icon="add_circle"
-                                              ButtonStyle="ButtonStyle.Primary"
-                                              Style="height: 55px; min-width: 200px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
-
-                                @* boton nueva seccion *@
-                                <RadzenButton Click=@(args => AbrirDialogoNuevaSeccion())
-                                              Text="NUEVA SECCIÓN"
-                                              Icon="add_circle"
-                                              ButtonStyle="ButtonStyle.Primary"
-                                              Style="height: 55px; min-width: 200px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
-
-                                @* boton nuevo material *@
-                                <RadzenButton Click=@(args => AbrirDialogoNuevoMaterial())
-                                              Text="NUEVO MATERIAL"
-                                              Icon="add_circle"
-                                              ButtonStyle="ButtonStyle.Primary"
-                                              Style="height: 55px; min-width: 200px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
-                            </div>
-                        </div>
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.8rem" Wrap="FlexWrap.Wrap">
+                            <RadzenButton Click=@(args => AbrirDialogoPlanificar()) Text="NUEVA ORDEN" Icon="assignment" class="ent-btn-solid" />
+                            <RadzenButton Click=@(args => AbrirDialogoNuevaSeccion()) Text="NUEVA SECCIÓN" Icon="domain" class="ent-btn-solid" />
+                            <RadzenButton Click=@(args => AbrirDialogoNuevoMaterial()) Text="NUEVO MATERIAL" Icon="category" class="ent-btn-solid" />
+                            <RadzenButton Click=@(args => AbrirNuevaMaquina()) Text="NUEVA MÁQUINA" Icon="precision_manufacturing" class="ent-btn-solid" />
+                        </RadzenStack>
 
                         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
                             <RadzenIcon Icon="search" />
@@ -76,13 +51,8 @@ else
                                     SelectionMode="DataGridSelectionMode.Single" Responsive="true">
 
                         <Columns>
-                            @* <RadzenDataGridColumn TItem="Maquina" Title="Nº" Width="60px" TextAlign="TextAlign.Center">
-                                <Template Context="item">
-                                    @(maquinasFiltradas.IndexOf(item) + 1)
-                                </Template>
-                            </RadzenDataGridColumn> *@
-                            <RadzenDataGridColumn TItem="Maquina" Property="Nombre" Title="Nombre Máquina" Width="150px"/>
-                            <RadzenDataGridColumn TItem="Maquina" Property="Seccion.Nombre" Title="Sección" Width="130px"/>
+                            <RadzenDataGridColumn TItem="Maquina" Property="Nombre" Title="Nombre Máquina" Width="150px" />
+                            <RadzenDataGridColumn TItem="Maquina" Property="Seccion.Nombre" Title="Sección" Width="130px" />
                             <RadzenDataGridColumn TItem="Maquina" Property="CodigoOperacionActiva" Title="Operación Actual" Width="170px">
                                 <Template Context="m">
                                     @if (m.CodigoOperacionActiva != "Sin operacion")
@@ -171,7 +141,7 @@ else
                             <RadzenDataGridColumn TItem="Maquina" Title="Materiales" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
                                 <Template context="maquina">
                                     <RadzenButton Icon="category" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Flat"
-                                        Size="ButtonSize.Medium" Click="@(args => AbrirAsignarMateriales(maquina))"/>
+                                                  Size="ButtonSize.Medium" Click="@(args => AbrirAsignarMateriales(maquina))" />
                                 </Template>
                             </RadzenDataGridColumn>
 
@@ -190,10 +160,10 @@ else
                             <RadzenDataGridColumn TItem="Maquina" Title="Imputar" Width="70px" Filterable="false" Sortable="false" TextAlign="TextAlign.Center">
                                 <Template Context="maquina">
                                     <RadzenButton Icon="add"
-                                                    ButtonStyle="ButtonStyle.Primary"
-                                                    Size="ButtonSize.Medium"
+                                                  ButtonStyle="ButtonStyle.Primary"
+                                                  Size="ButtonSize.Medium"
                                                   class="rz-border-radius-10 rz-shadow-2"
-                                                  Click ="@(args => AbrirAsignarImputacion(maquina))"/>
+                                                  Click="@(args => AbrirAsignarImputacion(maquina))" />
                                 </Template>
                             </RadzenDataGridColumn>
 
@@ -249,6 +219,35 @@ else
         </Tabs>
     </RadzenTabs>
 }
+
+<style>
+    .ent-btn-solid {
+        background-color: #1F4E79 !important;
+        border-radius: 4px !important;
+        font-weight: 700 !important;
+        padding: 0 20px !important;
+        box-shadow: none !important;
+        height: 40px !important;
+    }
+
+        .ent-btn-solid:hover {
+            background-color: #163857 !important;
+        }
+
+    .ent-btn-outline {
+        border: 1px solid #1F4E79 !important;
+        color: #1F4E79 !important;
+        border-radius: 4px !important;
+        font-weight: 700 !important;
+        padding: 0 15px !important;
+        background-color: transparent !important;
+        height: 40px !important;
+    }
+
+        .ent-btn-outline:hover {
+            background-color: #F0F4F8 !important;
+        }
+</style>
 
 @code {
 
@@ -368,7 +367,7 @@ else
     public void AlEscribirNombre(string escrito)
     {
 
-        if(string.IsNullOrWhiteSpace(escrito))
+        if (string.IsNullOrWhiteSpace(escrito))
         {
             maquinasFiltradas = maquinasDB.ToList();
         }
@@ -384,9 +383,9 @@ else
     public int MaquinasActivas(int idEstado)
     {
         int maquinas = 0;
-        foreach(var m in maquinasFiltradas)
+        foreach (var m in maquinasFiltradas)
         {
-            if(m.EstadoActualId == idEstado)
+            if (m.EstadoActualId == idEstado)
             {
                 maquinas++;
             }
@@ -397,12 +396,12 @@ else
     public double ProduccionTotalFabricaPorcentaje()
     {
         int contador = 0;
-        double porcentajeMaquinasTotal= 0;
+        double porcentajeMaquinasTotal = 0;
         double totalProcentaje = 0;
 
         foreach (var m in maquinasFiltradas)
         {
-            if(m.EstadoActualId != 4)
+            if (m.EstadoActualId != 4)
             {
                 contador++;
                 porcentajeMaquinasTotal += m.PorcentajeCiclos;
@@ -552,7 +551,7 @@ else
 
         var res = await DialogService.OpenAsync<DialogoNuevaSeccion>("Nueva seccion", parametros);
 
-        if(res == true)
+        if (res == true)
         {
             await CargarMaquinasDesdeSQL();
             StateHasChanged();
@@ -570,7 +569,7 @@ else
 
         var res = await DialogService.OpenAsync<DialogoNuevoMaterial>("Nuevo material", parametros);
 
-        if(res == true)
+        if (res == true)
         {
             await CargarMaquinasDesdeSQL();
             StateHasChanged();
@@ -581,7 +580,7 @@ else
     {
         var opActiva = listaOperacionesActivas.FirstOrDefault(o => o.IdMaquina == maquinaSeleccionada.Id);
 
-        if(opActiva != null)
+        if (opActiva != null)
         {
             maquinaSeleccionada.PiezasFabricadas = opActiva.PiezasFabricadas;
             maquinaSeleccionada.PiezasRotas = opActiva.PiezasRotas;
@@ -598,7 +597,7 @@ else
         };
         var res = await DialogService.OpenAsync<DialogoNuevaMaquina>("Editar máquina", parametros);
 
-        if(res == true)
+        if (res == true)
         {
             await CargarMaquinasDesdeSQL();
             listaOperacionesActivas = await ImputacionService.ObtenerOperacionesActivasAsync();
@@ -614,19 +613,19 @@ else
         };
 
         var opciones = new DialogOptions
-            {
-                Width = "750px",
-                Resizable = true,
-                Draggable = true,
-                Style = "border-radius: 12px;"
-            };
+        {
+            Width = "750px",
+            Resizable = true,
+            Draggable = true,
+            Style = "border-radius: 12px;"
+        };
         var resultado = await DialogService.OpenAsync<DialogoGestionMaterialesMaquina>(
             $"Materiales - {maquinaSeleccionada.Nombre}",
             parametros,
             opciones
         );
 
-        if(resultado == true)
+        if (resultado == true)
         {
             await CargarMaquinasDesdeSQL();
             StateHasChanged();
@@ -645,7 +644,7 @@ else
 
         var res = await DialogService.OpenAsync<DialogoFinalizarOperacionMaquina>($"Finalizar: {maquina.Nombre}", parametros);
 
-        if(res == true)
+        if (res == true)
         {
 
             await CargarMaquinasDesdeSQL();
